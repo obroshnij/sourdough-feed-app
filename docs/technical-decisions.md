@@ -8,9 +8,9 @@ Evidence tags: **[ran]** = headless run in a scratch project (see the verificati
 
 | ADR | Topic | Log | Status |
 |---|---|---|---|
-| 001 | Renderer: Mobile plus Compatibility tier | D-008 | proposed (spike pending) |
-| 002 | Glass: opaque interior, two-pass glass, Tier A and B | D-009 | proposed (spike pending) |
-| 003 | Starter deformation: one shader fed by `VisualMapper` | D-010 | proposed (spike pending) |
+| 001 | Renderer: Mobile plus Compatibility tier | D-008 | **accepted** (spike, Mac estimates); phone check in Phase 5 |
+| 002 | Glass: opaque interior, Tier A two-pass, Tier B front pass with refraction | D-009 | **accepted, amends D-009** (spike) |
+| 003 | Starter deformation: one shader fed by `VisualMapper` | D-010 | **accepted** (spike) |
 | 004 | Custom headless test runner | D-011 | **accepted**, with a required wrapper |
 | 005 | Save format and atomic write | D-013 | **accepted, amends D-013** |
 | 006 | Time model and clock rules | D-006, D-013 | **accepted, amends D-013** |
@@ -18,11 +18,11 @@ Evidence tags: **[ran]** = headless run in a scratch project (see the verificati
 | 008 | Accessibility and the 4.8 upgrade | D-012 | accepted, with a device-test gate |
 | 009 | Dependency policy | | accepted |
 | 010 | Export and toolchain | D-016 | proposed |
-| 011 | Performance and battery | | proposed (spike pending) |
+| 011 | Performance and battery | | **accepted** for phone defaults and the evidence protocol (director ruling); phone numbers in Phase 5 |
 | 012 | Layers, two autoloads, contracts commit | | accepted |
 | 013 | Events: pure scheduler, no RNG in events | | accepted (agreed with `game-designer` and the scientist) |
 | 014 | Localization: generated `en.csv` plus per-track pending CSVs | D-003 | **accepted** (confirmed by `narrative-designer`) |
-| 015 | UI scale: 1 unit = 1 pt or dp | | proposed (spike pending) |
+| 015 | UI scale: 1 unit = 1 pt or dp | | proposed (Mac value in; simulator check in Phase 2) |
 
 ---
 
@@ -30,21 +30,45 @@ Evidence tags: **[ran]** = headless run in a scratch project (see the verificati
 - **Context.** Mobile has refraction-friendly screen textures and better color. Some Android devices lack usable Vulkan.
 - **Options.** (a) Mobile only. (b) Compatibility only. (c) Mobile primary with a lighter Compatibility tier.
 - **Decision.** (c). `rendering_method = mobile`. Keep `rendering/rendering_device/fallback_to_opengl3 = true`. `QualityTier` picks the tier from `RenderingServer.get_current_rendering_method()`.
-- **Consequences.** Every shader must compile and look acceptable in both renderers. CI renders nothing (headless draws nothing), so visual checks are captures on the Mac.
-- **Evidence.** `fallback_to_opengl3` exists and defaults to `true` in 4.7.2 **[ran]**. `rendering_method.mobile` defaults to `mobile` **[ran]**. `get_current_rendering_method()` exists **[ran]**. Frame timings for Mobile+A, Mobile+B and Compat+A: **pending [spike]**.
-- **Revisit if** Compatibility Tier A is under 60 fps on the Mac at phone resolution, or Tier B adds more than 2 ms GPU over Tier A.
+- **Consequences.**
+  - Every shader must compile and look acceptable in both renderers. CI renders nothing (headless draws nothing), so visual checks are captures on the Mac.
+  - **Compatibility renders color noticeably differently** (the starter near white, the counter oversaturated): AgX doesn't match there [spike]. Compatibility needs its own tonemap and exposure preset. The T2 view track owns that parity work, and `art-director` signs off (director ruling).
+  - **GPU timing is only measurable on Vulkan.** `viewport_get_measured_render_time_gpu` returns 0 on Metal, opengl3 and ANGLE on macOS in 4.7.2 [spike]. `PerfLog` GPU numbers on the Mac must use `--rendering-driver vulkan` (MoltenVK). For Compatibility, the uncapped frame time is the upper bound.
+- **Evidence** [spike]. All are **Mac estimates**: Apple M4, 1206x2622 (iPhone 17 Pro pixels), MSAA 4x, `jar_v0.glb`, state `collapsing`, 60 s scripted orbit. Raw data in `spikes/jar-spike/bench-results/summary.csv`, which I checked against the reported numbers.
+
+  | Combo | CPU ms p50 / p95 / p99 | GPU ms p50 / p95 / p99 | Frame ms p50 / p95 / p99 |
+  |---|---|---|---|
+  | Mobile, Vulkan, Tier A | 0.12 / 0.17 / 0.19 | 3.60 / 5.87 / 6.34 | 8.33 (vsync) |
+  | Mobile, Vulkan, Tier B | 0.16 / 0.20 / 0.22 | 4.76 / 6.22 / 6.46 | 8.33 (vsync) |
+  | Mobile, Metal, Tier A | 0.11 / 0.19 / 0.21 | not measurable | 6.68 / 8.43 / 10.44 |
+  | Compat, opengl3, Tier A | 0.13 / 0.19 / 0.30 | not measurable | 4.24 / 5.30 / 5.56 (uncapped) |
+
+  Both revisit conditions pass on the Mac. Compatibility Tier A runs at about 236 fps (p99 180 fps). Tier B adds 1.16 ms GPU at p50 (0.35 at p95), under the 2 ms threshold. Also `fallback_to_opengl3` defaults to `true` **[ran]**, and `get_current_rendering_method()` exists **[ran]**.
+- **Re-measure on a real device as soon as one exists** (D-004). An M4 at native resolution says little about a 2021 mid-range phone.
+- **Revisit if** that device misses 60 fps at Tier A with `scaling_3d_scale` 0.75.
 
 ## ADR-002 Glass (D-009)
 - **Context.** Godot sorts transparent objects by origin, so transparent things inside the jar would flicker in draw order.
-- **Decision.** Everything inside the glass is opaque: the starter, the liner streaks (alpha scissor) and the hooch band. `Jar_Glass` is the only transparent mesh: one node, surface 0 outer and surface 1 inner (art contract), drawn with back faces first (`cull_front`, `render_priority -1`), then front faces (`cull_back`, `+1`). Tier A: fresnel, specular, small cubemap. Tier B (Mobile only): plus screen-texture refraction on the front pass, behind `#if CURRENT_RENDERER == RENDERER_COMPATIBILITY` and a `tier_b` uniform.
-- **Evidence.** Art contract agreed by message (thickness 3.5 mm, inner normals face the axis). Screenshots and the compile-time define: **pending [spike]**.
-- **Revisit if** the inner surface drawn in the back pass looks wrong over the starter. Fallback: split `Jar_Glass_Outer` and `Jar_Glass_Inner` into separate nodes (art-director offered this).
+- **Decision.**
+  - Everything inside the glass is opaque: the starter, the liner streaks (alpha scissor) and the hooch band. `Jar_Glass` is the only transparent mesh (one node, surface 0 outer, surface 1 inner).
+  - **Tier A** (both renderers): back faces first (`cull_front`, `render_priority -1`), then front faces (`cull_back`, `+1`), with fresnel, specular and a small cubemap.
+  - **Tier B** (Mobile only): **front faces only**, sampling the screen texture with a normal-based offset, a depth check and an analytic far wall. A back-face pass is pointless here, because the screen copy holds only opaque objects and the front pass overwrites it [spike]. The Compatibility build compiles out the screen-texture code with `#if CURRENT_RENDERER == RENDERER_COMPATIBILITY`.
+  - **Switching tiers swaps materials** (a Tier A glass material with no `hint_screen_texture`). It does **not** use a `tier_b` bool uniform: with the bool off, Tier B still costs 4.52 ms GPU against Tier A's 3.63, because the screen copy still happens [spike].
+- **Amends D-009** ("Tier B adds screen-texture refraction"): Tier B replaces the two-pass glass rather than adding to it.
+- **Evidence** [spike]:
+  - The `#if CURRENT_RENDERER` define compiles and branches in both renderers. The compiled uniforms of `glass_front_b` include `refraction`, `jar_axis`, `far_wall_strength` and `refraction_on` on Mobile, and none of them on Compatibility. No shader errors in any log.
+  - Glass normals in `jar_v0.glb`: outer 441/441 away from the axis, inner 343/343 toward it.
+- **Revisit if** Tier B's analytic far wall reads wrong at extreme orbit angles in Phase 3 captures.
 
 ## ADR-003 Starter deformation (D-010)
 - **Decision.** One `ShaderMaterial` on `Starter_Body`. Vertex displacement from `VisualParams` uniforms, which share the field names in `data-models.md` §7. Normals come from the height function. `custom_aabb` covers rise 3.0 plus the dome. Shape keys only for hand-made hero shapes.
 - **Mesh contract.** Authored 40 mm tall, 64 segments, dense top. UV2.x = radial (0 center to 1 wall), UV2.y = height fraction, so the shader sets `VERTEX.y = UV2.y * level` without knowing the authored height. glTF node extras (`inner_radius_m` and so on) import as `get_meta("extras")` **[ran]**. `jar_geometry.gd` mirrors them and asserts at load.
-- **Evidence.** The D-010 claim of "a reported normals bug in 4.7" for blend shapes: **[unverified]** by me. Culling pops and normal quality: **pending [spike]**.
-- **Revisit if** procedural bubbles cost more than 1.5 ms GPU at Tier A on the Mac.
+- **Evidence** [spike]:
+  - **`custom_aabb` works and is needed.** Godot culls by it: with a box placed 1 m under the table, the starter vanished (`objects_in_frame` 4 to 3). With the rise-3.0-plus-dome box, nothing popped during the orbit (screenshots `spikes/jar-spike/screenshots/mobile_artglb_aabb_*.png`).
+  - **Procedural bubbles cost 0.63 ms GPU at p50** (3.63 to 3.01 ms with bubbles off), under the 1.5 ms threshold.
+  - The GLB arrived with every contract name (`Jar_Glass` with 2 surfaces, `Starter_Body`, `Starter_Liner`, `StarterFloor`, `StarterRim`, `Jar_Lid_Loose`, `Jar_Lid_Tight`, `Cloth_Cover`, `Rubber_Band`, `Counter`, `Backdrop_placeholder`), and extras as `get_meta("extras")`.
+  - The D-010 claim of "a reported normals bug in 4.7" for blend shapes is still **[unverified]**. It's moot because we use no blend shapes.
+- **Revisit if** procedural bubbles exceed 1.5 ms GPU on a Phase 5 phone at Tier A.
 
 ## ADR-004 Test runner (D-011)
 - **Context.** Godot 4.7.2 headless `-s` exits 0 in several broken cases, so a naive runner gives false passes.
@@ -138,8 +162,10 @@ Evidence tags: **[ran]** = headless run in a scratch project (see the verificati
   - `keep_screen_on = false`. The 4.7.2 default is `true` **[ran]**.
   - No `low_processor_mode` for the 3D scene, because the jar always animates.
   - No physics nodes.
-- **Evidence.** Mac frame timings: **pending [spike]**. Phone numbers: none until a phone exists (D-004).
-- **Revisit if** idle at 30 fps looks choppy in the breathing animation. Try 40.
+- **Starting values until Phase 5 phone numbers:** `rendering/scaling_3d/scale = 0.75` and `rendering/anti_aliasing/quality/msaa_3d = 2x`. Both setting names exist in 4.7.2 **[ran]**. On the Mac, scale 0.75 cut GPU p50 from 3.63 to 2.34 ms (-35%), and MSAA 4x costs 0.44 ms (3.19 ms with it off) [spike].
+- **Evidence protocol.** On the Mac, take GPU time from Vulkan (MoltenVK) only, plus frame time on Metal and Compatibility, because Metal, opengl3 and ANGLE report no GPU time in 4.7.2 [spike]. Label every number "Mac estimate". Re-measure on a phone as soon as one exists (D-004).
+- **Evidence.** CPU is negligible: 0.12 to 0.16 ms p50 in every combo. GPU is 3.6 ms (Tier A) and 4.8 ms (Tier B) at p50 on an M4 at native iPhone 17 Pro resolution [spike, Mac estimate]. No phone numbers until a phone exists (D-004). `godot-developer` cautions that a 2021 mid-range phone could be several times slower.
+- **Revisit if** idle at 30 fps looks choppy in the breathing animation (try 40), or Phase 5 phones have GPU headroom (raise the scale toward 1.0).
 
 ## ADR-012 Layers, two autoloads, contracts commit
 - **Decision.** The four layers and the dependency rule in `architecture.md` §1. Exactly two autoloads (`Bus`, `Session`). Clock, store and settings are injected objects. Phase 2 opens with a contracts commit (T1) that freezes the public classes, `GameSession` API, `Bus` signals and `project.godot`. Then the parallel tracks in §14.
@@ -164,7 +190,7 @@ Evidence tags: **[ran]** = headless run in a scratch project (see the verificati
 
 ## ADR-015 UI scale
 - **Decision** (constraint from `ux-designer`). Stretch mode `disabled`, and `content_scale_factor = DisplayServer.screen_get_scale()` at boot, so 1 UI unit = 1 pt or dp. Text size scales Theme fonts only.
-- **Evidence.** `screen_get_scale`, `screen_get_dpi` and `Window.content_scale_factor` exist in 4.7.2 **[ran]**. Values on Android and iOS: **pending [spike]**.
+- **Evidence.** `screen_get_scale`, `screen_get_dpi` and `Window.content_scale_factor` exist in 4.7.2 **[ran]**. On this Mac, `screen_get_scale` is 2.0 and dpi 303 [spike]. iOS and Android values need the Phase 2 simulator and emulator check.
 - **Revisit if** Android returns 1.0. Then derive the scale from `screen_get_dpi() / 160`.
 
 ---

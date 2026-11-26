@@ -1,0 +1,12 @@
+label,renderer,adapter,api,tier,resolution,msaa,frames,cpu_p50,cpu_p95,cpu_p99,gpu_p50,gpu_p95,gpu_p99,frame_p50,frame_p95,frame_p99,draw_calls_max
+mobile_vulkan_tierA_1206x2622_msaa4,mobile,Apple M4,1.2.334,A,1206x2622,4,8065,0.117,0.165,0.193,3.603,5.868,6.342,8.333,9.091,10.984,4
+mobile_vulkan_tierB_1206x2622_msaa4,mobile,Apple M4,1.2.334,B,1206x2622,4,8084,0.163,0.202,0.221,4.760,6.220,6.460,8.333,8.333,9.180,4
+mobile_metal_tierA_1206x2622_msaa4,mobile,Apple M4 (Apple9),4.0,A,1206x2622,4,8885,0.114,0.185,0.209,0.000,0.000,0.000,6.683,8.426,10.436,4
+mobile_metal_tierB_1206x2622_msaa4,mobile,Apple M4 (Apple9),4.0,B,1206x2622,4,8360,0.152,0.219,0.247,0.000,0.000,0.000,8.333,8.359,9.091,4
+gl_compatibility_opengl3_tierA_1206x2622_msaa4,gl_compatibility,Apple M4,4.1 Metal - 91.7,A,1206x2622,4,13605,0.134,0.187,0.299,0.000,0.000,0.000,4.241,5.302,5.556,10
+gl_compatibility_opengl3_tierB_fallback_1206x2622_msaa4,gl_compatibility,Apple M4,4.1 Metal - 91.7,B,1206x2622,4,13765,0.132,0.219,0.320,0.000,0.000,0.000,4.236,5.079,5.321,8
+mobile_vulkan_tierA_1206x2622_msaa4_baselineA,mobile,Apple M4,1.2.334,A,1206x2622,4,4188,0.127,0.196,0.213,3.630,6.170,6.368,8.333,8.372,9.826,4
+mobile_vulkan_tierA_1206x2622_msaa4_nobubblesA,mobile,Apple M4,1.2.334,A,1206x2622,4,4703,0.018,0.134,0.193,3.005,5.872,6.565,6.061,8.363,10.654,4
+mobile_vulkan_tierB_1206x2622_msaa4_refractionoffB,mobile,Apple M4,1.2.334,B,1206x2622,4,4606,0.158,0.191,0.207,4.516,6.139,6.369,6.061,8.333,9.036,4
+mobile_vulkan_tierA_1206x2622_msaa0_msaa0A,mobile,Apple M4,1.2.334,A,1206x2622,0,4581,0.116,0.181,0.200,3.191,6.117,6.326,6.633,8.355,9.256,4
+mobile_vulkan_tierA_905x1967_msaa4_scale075A,mobile,Apple M4,1.2.334,A,905x1967,4,4424,0.019,0.188,0.209,2.343,6.090,6.549,8.133,8.333,9.858,4

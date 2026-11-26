@@ -91,7 +91,7 @@ Numbers taken from a draft are tagged, and they move when the owning spec moves.
 | L5 Save | Durability, migration, fallback | `SaveStore(base_dir)` plus `fault_point` | headless | every commit |
 | L6 Clock | Elapsed time, re-anchoring, local time | `FakeClock` | headless | every commit |
 | L7 Integration | Action, state, `VisualParams`, journal, events, save | `Session` with fakes, no rendering | headless | every commit |
-| L8 UI scripted | Flows, tap budgets, routing, layout rules | scenes plus `Input.parse_input_event()` | headless if layout resolves there (OD-11), else windowed | every commit |
+| L8 UI scripted | Flows, tap budgets, routing, layout rules | scenes plus `Input.parse_input_event()`, mounted under a **fixed-size root Control** (for example 390 × 844 or 360 × 640) owned by the harness, never anchored to the window | headless (OD-11, verified) | every commit |
 | L9 Visual capture | The look vs. the references | `--capture=<png>` with `time_override`, then review | Mac windowed | each milestone and art change |
 | L10 Performance | Frame, catch-up and save cost | `--perf-log=<csv>` | Mac (estimate), simulator (estimate), device later | each milestone |
 | L11 Manual | Feel, delight, device-only behavior | §6 checklists | Mac, simulator, device later | each milestone |
@@ -318,6 +318,7 @@ Every Then is measurable. "Looks good" is never a pass condition. Slice scope co
 | AC-01.4 | Mobile Tier A, Mobile Tier B, Compatibility Tier A, captured at the art-direction "preview pose" | Compared with `art/previews/jar_v0_<state>.png` and the per-state tells in `art-direction.md` "Reference renders" | art-director ticks all of MAN-01. The references are Blender Cycles renders, so a Godot capture must match the **tells**, not the pixels. Compatibility has no missing object and no black or magenta surface. | review |
 | AC-01.5 | Main scene, idle, slice configuration (loose lid, no cloth) | `Performance` monitors | ≤ 16k rendered triangles. From the checker's per-node counts, jar_v0's visible set is 13,568. Fewer than 10 draw surfaces for the jar. Fewer than 30 draw calls total (architecture §11). | capture |
 | AC-01.6 | Default pose, iPhone SE and 17 Pro Max sizes | Projected jar AABB | The jar is centered in the jar region (UX §2: between the HUD plate and the action bar) within ±4% of its height. It fills at least TBD-UX % of the region. | capture |
+| AC-01.7 | The glass materials | Shader code is scanned, then "reduce effects" is toggled | The Tier A glass shader has no `hint_screen_texture`. Tier B is the only one that samples the screen. The toggle swaps the material, and no bool uniform exists for it. Compatibility always uses Tier A. | auto |
 
 ### AC-02 An animated starter
 
@@ -338,7 +339,8 @@ Input is injected with `InputEventScreenTouch` and `InputEventScreenDrag`. Numbe
 | ID | Given | When | Then | Check |
 |---|---|---|---|---|
 | AC-03.1 | Home pose | One-finger drag of N pt horizontally, then vertically | Yaw changes by 0.30° × N and pitch by 0.20° × N, each ±1%. | auto |
-| AC-03.2 | Any pose | A 10,000 pt drag in each direction | While dragging, yaw and pitch never pass the limits plus the rubber band (yaw ±70° + 8°, pitch −10° to +35° + 5°). After release, they settle back inside the limits. | auto |
+| AC-03.2 | Any pose | A 10,000 pt drag in each direction | While dragging, yaw and pitch never pass the limits plus the rubber band (yaw ±70° + 8°, pitch −5° to +35° + 5°). After release, they settle back inside the limits. These limits apply to free orbit only. Inspection presets may exceed them (the `surface` preset sits at about 60°). | auto |
+| AC-03.2b | A one-finger orbit in progress | The finger slides over the action bar | The camera keeps the finger from press to release and keeps orbiting (UX §6 rule 1). Same as AC-03.10, from the camera side. | auto |
 | AC-03.3 | Two fingers, both started in 3D | Spread and pinch | Zoom stays within 1.0× to 2.2× of the home distance, plus an 8% rubber band while held. It settles inside on release. A light haptic tick fires at each limit. | auto |
 | AC-03.4 | One finger orbiting | A second finger lands on a plate | It's ignored. No pinch starts and the orbit continues. | auto |
 | AC-03.5 | Pinching | One finger lifts | Back to orbit, with a yaw jump < 1°. | auto |
@@ -346,7 +348,7 @@ Input is injected with `InputEventScreenTouch` and `InputEventScreenDrag`. Numbe
 | AC-03.7 | Release at velocity v | Inertia with τ = 250 ms | After 1.25 s (5τ) the speed is < 1% of v. No drift after 10 s. With reduce motion on, there's no inertia. | auto |
 | AC-03.8 | No touch for 20 s | Idle | The camera eases home over 1,500 ms. Off with reduce motion. | auto |
 | AC-03.9 | A touch starts on an action-bar button | It drags over the jar | No orbit. The press cancels once the touch leaves the button by > 10 pt. | auto |
-| AC-03.10 | A touch starts on the jar | It drags over the bar | Orbit continues. No button activates. | auto |
+| AC-03.10 | A touch starts on the jar | It drags across the action bar (a `STOP` Control) and releases there | Orbit continues for the whole drag. The release reaches the camera, so the gesture ends cleanly and no finger is left claimed. No button activates. Mechanism (architecture §9): the camera claims the finger on press in `_unhandled_input`, then follows its drags and release in `_input`. **Regression proof:** with the spike's `--no-own-touches` behavior, this test must fail. | auto |
 | AC-03.11 | Any sheet open | Touches on the scrim | A tap closes the sheet (except during the feed sequence and on attention sheets). A drag does nothing. The camera never moves. | auto |
 | AC-03.12 | Any pose | 10,000 random events: 1 to 3 fingers, random indices, out-of-order releases, canceled touches | No NaN. The pose stays within the clamps and bands. After all fingers lift, a one-finger drag orbits normally. | auto |
 | AC-03.13 | Mac with mouse, iOS simulator | MAN-03 | Every item is ticked. | manual |
@@ -474,7 +476,7 @@ Slice events (game-mechanics §7.4):
 | AC-12.3 | Theme colors | Contrast computed | Text ≥ 4.5:1. Non-text (icons, borders, focus) ≥ 3:1. | auto |
 | AC-12.4 | HUD plates over the 3D scene | Contrast computed | Plate alpha ≥ 0.88. Text contrast ≥ 4.5:1 against the plate blended over pure black **and** over pure white (worst case, so it needs no capture). No text sits directly on the 3D scene. | auto |
 | AC-12.5 | Every Control | Its stylebox and font are resolved | Neither comes from `ThemeDB.get_default_theme()`. One Theme: `src/ui/theme/sourdough_theme.tres`. | auto |
-| AC-12.6 | The §9 matrix | Layout per device | HUD plate top = safe top + 8. Bar bottom = safe bottom + 8, never below the UX §2 floor (SE 8, 17e / 17 Pro / 17 Pro Max 42, Android gesture navigation 32 dp, 3-button 56 dp). Side gutters ≥ 16. | capture (Phase 5) |
+| AC-12.6 | The §9 matrix | Layout per device | HUD plate top = safe top + 8. Bar bottom = safe bottom + 8, never below the UX §2 floor (SE 8, 17e / 17 Pro / 17 Pro Max 42, **every Android phone 56 dp**: max(reported, 48) + 8, because Godot can't tell gesture navigation from 3-button). Side gutters ≥ 16. | capture (Phase 5) |
 | AC-12.7 | The 12 tap budgets in UX §7 | Scripted paths | Each path is within its budget. | auto |
 | AC-12.8 | Motion | Tweens inspected | Durations and easing match UX §15 (sheet 300 / 220 ms, card 280 / 200 ms, and so on). With reduce motion, the listed fallbacks apply. | auto |
 | AC-12.9 | A disabled control | Shown | A reason is visible. | auto |
@@ -678,7 +680,7 @@ Each check time below sits at least 0.3 h inside its window, to absorb jitter an
 
 ### MAN-05 Feeding
 - [ ] Scrape, scoop, pour and stir play in order (about 6 s). They're skippable after the first feed.
-- [ ] Haptics (device): light at chip select and stir ticks (10 ms, 0.3), medium at the flour landing (20 ms, 0.6), firm at the band snap (35 ms, 1.0). None with haptics off. Every haptic moment also has a sound.
+- [ ] Haptics (device). Android: light at chip select and stir ticks (10 ms, 0.3), medium at the flour landing (20 ms, 0.6), firm at the band snap (35 ms, 1.0). iOS: a single level until Phase 2 (UX §15). None with haptics off. Every haptic moment also has a sound.
 - [ ] The "Same as last time" line is noticed without help.
 
 ### MAN-07 Smell
@@ -708,7 +710,8 @@ The Mac and simulators use **regression gates**: fail on a slowdown of more than
 
 | ID | Metric | Target | Where |
 |---|---|---|---|
-| PERF-01 | Frame while interacting (60 s scripted orbit) | Device: 60 fps, CPU ≤ 8 ms, GPU ≤ 10 ms (2021 mid-range). Mac and simulator: regression gate. | capture |
+| PERF-01 | Frame while interacting (60 s scripted orbit) | Device: 60 fps, CPU ≤ 8 ms, GPU ≤ 10 ms (2021 mid-range). Mac and simulator: regression gate. Mac GPU numbers run only with `--rendering-driver vulkan` (MoltenVK). In 4.7.2, `viewport_get_measured_render_time_gpu` returns 0 on Metal, opengl3 and ANGLE. Compatibility uses uncapped frame time as its upper bound. | capture |
+| PERF-01b | `PerfLog` on a driver that can't measure GPU time (Metal, Compatibility) | `gpu_ms` is written empty ("not measured"), never 0, and gates skip it. A logged 0 would silently pass every GPU gate. | auto |
 | PERF-02 | Idle frame cap | `Engine.max_fps` = 30 after 3 s with no touch and no tween. Back to 60 within 1 frame of `interaction_started`. | auto (scripted, windowed) |
 | PERF-03 | 14-day catch-up (20,160 steps) | ≤ 250 ms Mac estimate. Architect's toy loop: 22 ms on M4. If over, `WorkerThreadPool`. | auto (timed) |
 | PERF-04 | Save | ≤ 128 KB, write < 10 ms (Mac estimate) | auto |
@@ -717,9 +720,9 @@ The Mac and simulators use **regression gates**: fail on a slowdown of more than
 | PERF-07 | Hitches after warm-up: first open of each sheet, each state change | No frame over 50 ms (Mac estimate) | capture |
 | PERF-08 | Battery: 10 min idle on the main screen | Device only, Phase 5 | manual |
 | PERF-09 | Opaque full-screen UI (journal) | `World` hidden, so 3D draw calls are 0 | capture |
-| PERF-10 | `keep_screen_on` | `false` in project settings (LINT check) | auto |
+| PERF-10 | Project settings | `keep_screen_on` = `false`, `scaling_3d_scale` = 0.75, MSAA 2x (ADR-011). A LINT check on `project.godot`, so a perf regression from a setting change shows up as a diff. | auto |
 
-**`PerfLog` CSV columns:** `unix_ms`, `scene`, `renderer`, `tier`, `frame_ms`, `cpu_ms`, `gpu_ms`, `draw_calls`, `primitives`. A summary line gives p50, p95, p99 and max.
+**`PerfLog` CSV columns:** `unix_ms`, `scene`, `renderer`, `driver`, `tier`, `frame_ms`, `cpu_ms`, `gpu_ms` (empty when not measured), `draw_calls`, `primitives`. A summary line gives p50, p95, p99 and max. Baselines are kept per machine, renderer, driver and tier.
 
 ---
 
@@ -763,7 +766,7 @@ The Mac and simulators use **regression gates**: fail on a slowdown of more than
 | A large phone (Pixel Pro XL class) | verify | Reach |
 
 Each Android profile runs with:
-- gesture navigation and 3-button navigation
+- gesture navigation and 3-button navigation, expecting the same 56 dp bar inset on both (UX §2)
 - the system font scale at 1.0 and at its maximum (UX §16 says the in-app size is used, so check that nothing breaks)
 - the Vulkan (Mobile) and GLES3 (Compatibility fallback) renderers
 - SAVE-19 (rename atomicity)
@@ -850,7 +853,7 @@ All of these were accepted by tech-architect. The names are from `architecture.m
 | OD-8 | Journal growth over a year or more, against the 128 KB budget | tech-architect | **Resolved**: capped at 400 entries with a fixed drop order (data-models §6). SAVE-13 asserts it. |
 | OD-9 | Release-build and device checks need export templates (1,281 MB) | director | Approve before Phase 5. |
 | OD-10 | Android SDK pieces missing | director | Install before Phase 5. |
-| OD-11 | Does Control layout resolve under `--headless`? | godot-developer | A 10-minute spike check. Otherwise L8 runs windowed. |
+| OD-11 | Does Control layout resolve under `--headless`? | godot-developer | **Resolved: yes, inside a fixed-size root Control.** The headless root window stays 64 × 64 whatever size is set. QA re-ran `spikes/jar-spike/scripts/headless_layout_probe.gd`: vbox 390 × 844, label 390 × 75 with 3 lines, button 390 × 48 at y = 79, exit 0. Only the default font is checked so far. Confirm Theme fonts in Phase 2. |
 | OD-12 | Save rotation could push out the last good file (SAVE-17), and "none passes" kept no copy of the bad files (SAVE-06) | tech-architect | **Resolved**: data-models §9.3 and §9.4 (trusted rotation, quarantine). Logged in ADR-005. |
 | OD-13 | `AWAY_SUMMARY_MIN_S` was 30 min in architecture, 60 min in game-mechanics | tech-architect | **Resolved**: 3,600 s. |
 | OD-14 | iPhone SE is in UX §2 but not in the role-file matrix | director | Include it: it's the smallest layout, and the simulator is installed. |

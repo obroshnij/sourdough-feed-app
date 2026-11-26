@@ -227,11 +227,13 @@ Cost: a toy 11-variable step loop ran **14 days in 22 ms on an Apple M4 [ran, Ma
 
 | Tier | When | Glass | Extras |
 |---|---|---|---|
-| B | `mobile` and the player hasn't chosen "reduce effects" | Tier A plus screen-texture refraction (front pass only) | Full VFX |
-| A | `gl_compatibility`, or "reduce effects" | Back faces then front faces, fresnel, specular, small cubemap | Reduced VFX, `scaling_3d_scale` 0.85 |
+| B | `mobile` and the player hasn't chosen "reduce effects" | Front faces only: screen-texture refraction with a normal offset, a depth check and an analytic far wall | Full VFX |
+| A | `gl_compatibility`, or "reduce effects" | Back faces then front faces (`render_priority` -1, then +1), fresnel, specular, small cubemap | Reduced VFX |
 
-- Shader branching: compile-time `#if CURRENT_RENDERER == RENDERER_COMPATIBILITY` for features that don't exist there (the screen texture), plus a `tier_b` bool uniform for the runtime toggle. `godot-developer` is verifying the define in the spike **[unverified]**.
-- **Everything inside the glass is opaque.** The starter, the liner streaks (alpha scissor) and the hooch band all render in the opaque pass. Only `Jar_Glass` is transparent: one node, surface 0 outer and surface 1 inner, two passes ordered by `render_priority` (-1 back faces, +1 front faces).
+- **Switching tiers swaps the glass material.** A runtime bool can't turn off the screen copy: Tier B with refraction off still cost 4.52 ms GPU against Tier A's 3.63 [spike, Mac estimate].
+- Compile-time `#if CURRENT_RENDERER == RENDERER_COMPATIBILITY` removes the screen-texture code from Compatibility builds. Verified in both renderers [spike].
+- **Compatibility needs its own tonemap and exposure.** It renders color noticeably differently (AgX washes the starter toward white) [spike]. `QualityTier` applies a per-renderer `Environment` preset. The T2 view track owns the parity work, and `art-director` signs off (§14.1).
+- **Everything inside the glass is opaque.** The starter, the liner streaks (alpha scissor) and the hooch band all render in the opaque pass. Only `Jar_Glass` is transparent (one node, surface 0 outer, surface 1 inner).
 - **The starter is one `ShaderMaterial`.** Every `VisualParams` field maps 1:1 to a uniform with the same name (`data-models.md` §7). `custom_aabb` covers the maximum rise (3.0x) and dome.
 - Mesh contract with `art-director`: node names `Jar_Glass`, `Starter_Body`, `Starter_Liner`, `Jar_Lid_Loose`, `Jar_Lid_Tight`, `Cloth_Cover`, `Rubber_Band`, `Counter`, `Backdrop_placeholder`. Shape data lives in UV2 (x radial, y height fraction). glTF node extras arrive as `get_meta("extras")` **[ran]**. `jar_geometry.gd` mirrors them as constants and asserts a match at load.
 
@@ -239,13 +241,13 @@ Cost: a toy 11-variable step loop ran **14 days in 22 ms on an Apple M4 [ran, Ma
 
 | Rule | How |
 |---|---|
-| A touch belongs to what it started on | GUI consumes presses that start on a `STOP` Control. The camera reads only `InputEventScreenTouch` and `InputEventScreenDrag` in `_unhandled_input`, and tracks a finger index only if it saw that index's press. Drags for untracked indices are ignored |
+| A touch belongs to what it started on | GUI consumes presses that start on a `STOP` Control. The camera **claims** a finger index when it sees that index's `InputEventScreenTouch` press in `_unhandled_input`. It then reads that index's drags and release in **`_input`**, because a drag that starts on the 3D view stops reaching `_unhandled_input` once the finger crosses a `STOP` Control [spike]. Unclaimed indices are ignored |
 | What blocks the jar | Layout roots and the **top** HUD plate use `MOUSE_FILTER_IGNORE`, so a drag starting there can orbit. The **action bar plate**, cards, toasts and sheets use `STOP` across their whole area, so a near-miss between bar buttons or a tap on card text never reaches the 3D view (`ux-design.md` §6) |
 | An open sheet blocks the 3D view | Every sheet has a full-screen scrim with `MOUSE_FILTER_STOP`. It also emits `Bus.sheet_opened` so the camera kills inertia |
 | Orbit | One finger, `screen_relative`, with inertia. Yaw free, pitch clamped (limits owned by ux and art) |
 | Pinch | Our own: two tracked indices, distance ratio to zoom. iOS sends no `InputEventMagnifyGesture` from touch |
 | Double tap | Reset to home pose |
-| Desktop testing | `input_devices/pointing/emulate_touch_from_mouse = true`. Keep `emulate_mouse_from_touch = true` (default) so Buttons get presses on phones. Duplicate-event behavior is checked in the spike **[unverified]** |
+| Desktop testing | `input_devices/pointing/emulate_touch_from_mouse = true`. Keep `emulate_mouse_from_touch = true` (default) so Buttons get presses on phones. With both on, there are no duplicate events: one press and release gives exactly 2 `ScreenTouch` and 2 `MouseButton` events, and the camera reads only the touch events [spike] |
 
 ### 9.1 UI structure (constraints from `docs/ux-design.md` §12, §17 and §19)
 
@@ -273,13 +275,15 @@ Phone numbers are targets. Nothing is measured on a phone yet (D-004).
 
 | Budget | Target | Measured so far |
 |---|---|---|
-| Frame, interacting | 60 fps: CPU 8 ms, GPU 10 ms on a 2021 mid-range phone | Pending spike (Mac estimates) |
+| Frame, interacting | 60 fps: CPU 8 ms, GPU 10 ms on a 2021 mid-range phone | Mac estimate at iPhone 17 Pro pixels, MSAA 4x: CPU 0.12 to 0.16 ms p50. GPU (Vulkan only) Tier A 3.60 / 6.34 ms p50 / p99, Tier B 4.76 / 6.46 [spike] |
+| 3D resolution and AA | Start at `scaling_3d_scale` 0.75 and MSAA 2x until Phase 5 phones | 0.75 scale: GPU p50 3.63 to 2.34 ms (-35%). MSAA 4x costs 0.44 ms (3.63 vs 3.19 with it off) [spike] |
+| Evidence protocol | Mac: GPU time from Vulkan (MoltenVK) only, plus frame time on Metal and Compatibility. Every number labeled "Mac estimate". Phone: re-measure as soon as a device exists (D-004) | Metal, opengl3 and ANGLE report no GPU time in 4.7.2 [spike] |
 | Frame, idle | `Engine.max_fps = 30` after 3 s with no touch and no tween. Back to 60 on `interaction_started` | `Engine.max_fps` settable at runtime **[ran]** |
 | Opaque full-screen UI (journal) | Hide `World` (no 3D draw) | |
 | Catch-up, 14 days | 250 ms on the Mac | Toy loop 22 ms **[ran]** |
 | Launch to first frame of the jar | 2 s on a phone | |
 | Save | 128 KB or less, write under 10 ms | |
-| Scene | 16k tris or fewer, under 10 draw surfaces for the jar (art budget), under 30 draw calls total | Pending GLB |
+| Scene | 16k tris or fewer, under 10 draw surfaces for the jar (art budget), under 30 draw calls total | `jar_v0.glb`: max 4 draw calls on Mobile, 10 on Compatibility [spike] |
 | Screen | `display/window/energy_saving/keep_screen_on = false` (4.7.2 default is **true [ran]**) | |
 
 - `low_processor_mode` is **not** used for the main scene. It only redraws on change, and the jar always breathes. It may be used for an opaque full-screen screen later.
@@ -310,6 +314,8 @@ Seams for `qa-engineer`: `Clock` and `FakeClock`; `sim_rng` injected (the only R
 | `display/window/stretch/mode` | `disabled` | `ux-designer` constraint: 1 UI unit = 1 pt or dp, layout at the real logical size (360 to 440 wide), not a stretched base. At boot `Main` sets `get_window().content_scale_factor = DisplayServer.screen_get_scale()` (API exists **[ran]**; Android return value is being checked in the spike **[unverified]**) |
 | `rendering/renderer/rendering_method` and `.mobile` | `mobile` | §8.1 |
 | `rendering/textures/vram_compression/import_etc2_astc` | `true` | Mobile texture formats (default false **[ran]**) |
+| `rendering/scaling_3d/scale` | `0.75` | Starting value until Phase 5 phone numbers (ADR-011) |
+| `rendering/anti_aliasing/quality/msaa_3d` | `1` (2x) | Same. Default 0 is off **[ran]** |
 | `debug/gdscript/warnings/untyped_declaration` | `2` (error) | Hard rule 4. Errors under `-s` too **[ran]** |
 | `debug/gdscript/warnings/unsafe_property_access`, `unsafe_method_access` | `2` | Typed code stays typed |
 | `debug/gdscript/warnings/unsafe_call_argument`, `unsafe_cast` | `1` (warn) | Save decoding reads Variants. Errors here would force `@warning_ignore` everywhere |
@@ -329,7 +335,7 @@ Goal: at least three tracks in parallel git worktrees, with no file written by t
 | Track | Owns (writes) | Reads |
 |---|---|---|
 | **T1 sim and core** | `src/sim/**` (except `src/sim/events/rules/**`), `src/core/**`, `src/main/**`, `data/**`, `src/i18n/pending_core.csv`, `tests/unit/sim/**`, `tests/unit/core/**`, `project.godot` | everything |
-| **T2 view and shaders** | `src/view/**`, `src/i18n/pending_view.csv`, `tests/unit/view/**` | `src/sim` types, `Bus`, `Session` API, `assets/3d/**` |
+| **T2 view and shaders** | `src/view/**`, `src/i18n/pending_view.csv`, `tests/unit/view/**`. Also owns Compatibility tonemap and exposure parity (the per-renderer `Environment` presets in `src/view/`), signed off by `art-director` | `src/sim` types, `Bus`, `Session` API, `assets/3d/**` |
 | **T3 UI** | `src/ui/**`, `src/i18n/pending_ui.csv`, `tests/unit/ui/**` | `src/sim` types, `Bus`, `Session` API |
 | T4 events content (optional, can fold into T1) | `src/sim/events/rules/**`, `tests/unit/events/**` | `src/sim/**` |
 | Narrative | `src/i18n/en.csv` (generated) and its build script in `tools/i18n/` | the three narrative docs |

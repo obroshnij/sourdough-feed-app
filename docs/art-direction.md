@@ -73,6 +73,21 @@ Type: Figtree for all UI (measured 0.427 to 0.440 em). Fraunces only for the sta
 | Environment | Gradient world, strength 0.30 | One baked 128 px cubemap of the kitchen (reflections on glass and starter). AgX tonemap (matches Blender), exposure tuned to the previews | Cubemap only, Filmic if AgX is unavailable |
 | Contact shadow | Real | Baked soft AO decal under the jar (64 px texture) | Same |
 
+**Tonemap and exposure per tier.** `QualityTier` applies one `Environment` preset per renderer (`architecture.md` §8.1). These are **starting values, not yet run in Godot**. The spike tunes them against `art/previews/`.
+
+| Setting | Mobile (Tier B) | Compatibility (Tier A) |
+|---|---|---|
+| Tonemap | AgX (matches the Blender previews) | Filmic, white 4.0. godot-developer found that AgX does not match on Compatibility |
+| Exposure | 1.0 | 0.85 (the starter was rendering near white) |
+| Adjustments | Off | Saturation 0.9, contrast 1.0, if 4.7.2 Compatibility supports adjustments. If not, the Tier A materials take the color down: counter and wood albedo saturation -10% |
+| Key light energy | 1.0 x | 0.9 x |
+| Ambient energy | 0.35 | 0.40 (no back-scatter term in Tier A, so the shadow side needs a little lift) |
+
+**Match targets** (Godot screenshot at the preview pose vs `jar_v0_at_peak.png`, sampled as 9 x 9 px averages):
+- Starter, lit front at mid-height: luminance within ±6%. It must never clip to white; the max channel stays under 0.95.
+- Counter, front right: saturation within ±10%.
+- Tile wall, top center: hue within ±8 degrees.
+
 **Key-to-fill about 4:1.** The right side of the jar stays a little darker, and the rim brings the edge back. Flat front light makes glass look cheap.
 
 **Time of day.** Three presets cross-fade on the device's local clock over about 20 minutes:

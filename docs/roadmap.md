@@ -44,10 +44,11 @@ Owner: director. Phases 2 to 5, built from [`mvp-scope.md`](mvp-scope.md), [`arc
      - the event engine with no rules yet
    - **T2:**
      - the jar scene from `assets/3d/jar_v0.glb`
-     - glass Tiers A and B and the starter shader, both lifted from the spike
+     - glass Tiers A and B, lifted from the spike
      - orbit and pinch
-     - the quality-tier switch
+     - the quality-tier switch (a material swap)
      - a `VisualParams` scrubber scene
+     - **first priority, the starter look (D-037):** take the art director's masks, add fake translucency and a glossy dome, and fix the Compatibility tonemap. The spike's starter reads as "Swiss cheese" and is not yet at the bar.
    - **T3:**
      - the Theme (palette with its night variant, Figtree)
      - the component inventory from ux-design
@@ -57,6 +58,7 @@ Owner: director. Phases 2 to 5, built from [`mvp-scope.md`](mvp-scope.md), [`arc
      - move the copy checker and the `en.csv` build into `tools/i18n/`
      - add the "away more than 14 days" summary line (D-024)
    - **Art:**
+     - **first**, a starter reference board plus bubble and streak masks for T2 (D-037), and sign-off on Godot captures against the Blender previews
      - the 42 icon files (D-034)
      - the kitchen set beyond the placeholder backdrop
      - a lighting pass against Godot screenshots
@@ -68,6 +70,7 @@ Owner: director. Phases 2 to 5, built from [`mvp-scope.md`](mvp-scope.md), [`arc
 - `tests/run.sh` is green.
 - The sim's test vectors pass.
 - The jar renders every state preset on the Mac in both renderers and on the iOS simulator.
+- The art director signs off the starter look against the Blender previews, and you see the captures.
 - Save, load and catch-up are proven by tests.
 - No file was written by two tracks.
 

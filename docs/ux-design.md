@@ -51,8 +51,7 @@ All sizes are in **pt**: 1 UI unit = 1 iOS point = 1 Android dp (see §19).
 | iPhone 17e | 390 × 844 **[assumed]** | 47 / 34 **[assumed]** | Same chrome and corner radius (47.33) as the 16e in the Xcode 27.2 simulator profiles. Verify with the Phase 2 simulator check |
 | iPhone 17 Pro | 402 × 874 | 62 / 34 | Corner radius 62 |
 | iPhone 17 Pro Max (largest) | 440 × 956 | 62 / 34 | Corner radius 62 |
-| Android, gesture navigation | varies | reported / max(reported, 24) | Edge-to-edge is forced on Android 15+ at target SDK 35 |
-| Android, 3-button navigation | varies | reported / max(reported, 48) | |
+| Android, any navigation mode | varies | reported / max(reported, 48) | Edge-to-edge is forced on Android 15+ at target SDK 35. Godot has no API to tell gesture navigation from 3-button navigation (spike), so every Android phone gets the 3-button floor |
 
 **Insets (QA checks these):**
 - HUD plate top = safe top + 8.
@@ -65,10 +64,9 @@ Minimum bottom inset for the action bar:
 |---|---|
 | iPhone SE | 8 |
 | iPhone 17e, 17 Pro, 17 Pro Max | 42 |
-| Android, gesture navigation | 32 dp |
-| Android, 3-button navigation | 56 dp |
+| Android, any navigation mode | 56 dp (48 floor + 8) |
 
-Godot's `DisplayServer.get_display_safe_area()` may report only the Android status bar, not the navigation bar (forum reports). That's why the Android bottom values above are floors. godot-developer verifies this in the spike.
+`DisplayServer.get_display_safe_area()` is implemented on Android and iOS (spike, from the docs). Forum reports say it may cover only the Android status bar, not the navigation bar. The spike couldn't test this: there are no export templates and no device (D-016). So the Android bottom value is a floor until the Phase 2 device check.
 
 **Stage budget at 100% text** (jar region = space between the HUD plate and the action bar):
 
@@ -198,8 +196,8 @@ On the Pro Max, the far-left bar slot (Feed) falls in S for a right thumb. That'
 | Tap slop (move before a tap becomes a drag) | 10 pt (20 px at 2x, 30 px at 3x) |
 | Double-tap window | 300 ms between taps, at most 24 pt apart |
 | Long-press | 500 ms, within the 10 pt slop |
-| Orbit yaw | ±70° from the front, with an 8° rubber band. Unlimited if art-director's set reads well at 360° (open) |
-| Orbit pitch | −10° to +35°, with a 5° rubber band |
+| Orbit yaw | ±70° from the front, with an 8° rubber band. Unlimited if art-director's set reads well at 360° (open). The spike benchmark orbits 360°, so the frame budget already covers unlimited yaw |
+| Orbit pitch (free orbit) | −5° to +35°, with a 5° rubber band. At −10° the zoomed-out camera sat at counter height (spike). Inspection presets may go past this: `surface` uses about 60° |
 | Zoom | 1.0× (home distance) to 2.2× (home distance ÷ 2.2), with an 8% rubber band |
 | Orbit inertia | exponential decay, τ = 250 ms. Off with reduce motion |
 | Idle return | after 20 s with no touch, the camera eases home over 1,500 ms. Off with reduce motion |
@@ -209,10 +207,16 @@ On the Pro Max, the far-left bar slot (Feed) falls in S for a right thumb. That'
 
 These come from the director's source review. godot-developer confirms them in the spike.
 
-1. **A touch belongs to the Control it started on for the whole drag.** A drag that starts on the jar and slides over the action bar keeps orbiting. A drag that starts on a bar button never orbits, and it cancels the button press when it leaves the button by more than 10 pt.
+1. **The camera owns a finger from press to release.**
+   - Godot gives only half of this by default (spike, run). A drag that starts on a `STOP` Control never orbits. But a drag that starts on the jar stops orbiting once the finger slides over a `STOP` bar, because Godot hands the drag to the Control under the finger.
+   - The fix: the camera rig claims the finger index on press in `_unhandled_input`, then follows that index in `_input` until it's released. With that, the orbit continues over the bar, and a release over the bar ends it (spike, run, PASS).
+   - A drag that starts on a bar button never orbits, and it cancels the button press when it leaves the button by more than 10 pt.
 2. **Full-screen layout Controls use `mouse_filter = IGNORE`** (roots, margin containers, the HUD layer). The top HUD plate is also `IGNORE`, so a drag that starts on it orbits. Only the settings button and the status pill inside it are `STOP`. The action bar plate, sheets, cards, toasts and scrims use `STOP`, so a near-miss between bar buttons never turns into a poke or an orbit. The 3D rig reads only touches no Control consumed, in `_unhandled_input` (architecture.md §9).
 3. **An open sheet blocks the 3D view.** Its scrim covers the whole screen above the sheet with `STOP`. A tap on the scrim closes the sheet, and a drag on it does nothing.
-4. **iOS sends no pinch event, so we build pinch ourselves** from `InputEventScreenTouch` and `InputEventScreenDrag` indices, on both platforms. Pinch counts only when both touches started in 3D. A second finger landing on a plate is ignored.
+4. **iOS sends no pinch event, so we build pinch ourselves** from `InputEventScreenTouch` and `InputEventScreenDrag` indices, on both platforms (spike, run: no orbit during a pinch).
+   - Keep `input_devices/pointing/android/enable_pan_and_scale_gestures` off, so Android sends raw touches only.
+   - Pinch counts only when both touches started in 3D. A second finger landing on a plate is ignored.
+   - Real-device behavior is untested.
 5. **Cards and toasts don't block 3D** outside their own rect.
 
 ---
@@ -373,7 +377,7 @@ Tapping a chip moves the camera (500 ms, ease-in-out cubic). The camera then hol
 | `bubbles` | Glass wall at the starter's mid-height, the side facing the light | Close-up, glass fills 70% of the jar region | Glass focus pull, bubbles in sharp focus |
 | `consistency` | Jar mouth, from 50° above | Medium | A spoon lifts a strand and lets it fall |
 | `height` | Side view at the band | Medium, band and top both in frame | Band glints, a faint guide line rises from band to top |
-| `surface` | Top-down into the mouth | Close-up | Lid lifts away |
+| `surface` | Into the mouth from about 60° pitch, a preset beyond the free-orbit cap. The spike needed about 60° to see the top | Close-up | Lid lifts away |
 | `development` | Slow orbit, 40° over 3 s, at home distance × 1.2 | Wide | None. Reduce motion: a static wide 3/4 view |
 
 - Results come from the sim state only (CLAUDE.md hard rule 2). The observation describes what the jar shows. The meaning connects it to the state, in plain words.
@@ -554,7 +558,7 @@ There are no accounts.
 | medium | 20 ms, 0.6 | flour landing, smell inhale peak |
 | firm | 35 ms, 1.0 | band snap (feed complete), discard ceremony |
 
-**[assumed]** If iOS ignores amplitude, iOS keeps medium and firm only, and the light cues are skipped. godot-developer checks this. Every haptic moment also has a sound, so players with haptics off lose nothing.
+**Until Phase 2, iOS uses one level.** iOS amplitude is untested, and the docs only say Web ignores it (spike). iOS keeps the medium and firm moments as one fixed pulse and skips the light cues. Android uses all three levels. Every haptic moment also has a sound, so players with haptics off lose nothing.
 
 ---
 
@@ -563,10 +567,10 @@ There are no accounts.
 | Requirement | Spec |
 |---|---|
 | Touch targets | 48 × 48 standard, 44 × 44 absolute minimum, and hit areas never overlap. Bar slots are at least 64 × 64 |
-| Text size | Body is at least 16 pt at 100%. Three in-app sizes: Standard 100%, Large 125%, Largest 150% (type scale in §17). The OS text-size setting can't be read in 4.7.2 **[assumed]** |
+| Text size | Body is at least 16 pt at 100%. Three in-app sizes: Standard 100%, Large 125%, Largest 150% (type scale in §17). Godot 4.7.2 has no OS text-size API (spike, doctool), so the in-app setting is the only control |
 | Contrast | Text ≥ 4.5:1, non-text (icons, borders, focus) ≥ 3:1. Computed in §16.1. No text sits straight on the 3D scene |
 | Status | Never color alone: icon shape + word + tone (§11). Selected states add a ✓ or a filled icon. Disabled controls show a reason |
-| Motion | Reduce motion setting (§15). The OS flag can't be read in 4.7.2 **[assumed]** |
+| Motion | Reduce motion setting (§15). `DisplayServer.accessibility_should_reduce_animation()` exists but is implemented only on macOS and Windows (spike), so phones get the in-app toggle |
 | Haptics | Can be turned off. Never the only cue |
 | Timing | "Keep messages on screen". Nothing auto-confirms. The time-lapse is skippable |
 | Gestures | All optional. No required hold, multi-finger gesture or path-drag. Mix is a tap |
@@ -717,11 +721,11 @@ These are hard maximums in characters, spaces included. They were computed on a 
 
 ## 19. Notes for godot-developer and tech-architect
 
-1. **1 unit = 1 pt or dp on every device.** Lay out at the device's real logical size (360 to 440 wide). Don't stretch a fixed base resolution. Example: a 390 × 844 base with `canvas_items` + `expand` scales by min(w, h) ratio. On an iPhone SE that's 1.58 px per unit instead of 2 px per pt, so a 48-unit target would come out at 38 pt and fail the 44 pt minimum. Derive `content_scale_factor` from the screen scale (iOS) or density (Android). Please confirm the API.
+1. **1 unit = 1 pt or dp on every device.** Lay out at the device's real logical size (360 to 440 wide). Don't stretch a fixed base resolution. Example: a 390 × 844 base with `canvas_items` + `expand` scales by min(w, h) ratio. On an iPhone SE that's 1.58 px per unit instead of 2 px per pt, so a 48-unit target would come out at 38 pt and fail the 44 pt minimum. Use `DisplayServer.screen_get_scale()`. It's implemented on Android, iOS, Web and macOS, and returns 2.0 on the dev Mac (spike). Real phone values need the Phase 2 simulator. architecture.md sets stretch mode to `disabled`.
 2. **Text size.** Scale Theme font sizes, not `content_scale_factor`, so targets don't balloon. Every text container must grow vertically.
 3. **Input.** See §6 for the touch routing rules. 3D input lives in `_unhandled_input` on the camera rig. Pinch is built from touch indices on both platforms.
 4. **Safe areas.** Read `get_display_safe_area()` each time the app resumes or the screen resizes, and apply the §2 floors on Android.
-5. **Camera framing.** Frame to the jar region (§2), not the viewport, and reframe when a sheet opens (§15).
+5. **Camera framing.** Frame to the jar region (§2), not the viewport, and reframe when a sheet opens (§15). The spike confirmed an off-axis frustum shift with a 300 ms ease (`set_frame_shift`), which moves the jar 18% up the frame with no perspective change.
 6. **Hard rule 2 in the UI.** Status, hint, smell, inspection, forecast and the time-lapse read from sim state only.
 
 ---
@@ -734,7 +738,7 @@ These are hard maximums in characters, spaces included. They were computed on a 
 | Fraunces width measurement before it's adopted for the name | needs a font download (approval) |
 | Rubber band at the fed mark as a jar element | art-director, sourdough-scientist |
 | Yaw limit (±70° or unlimited), depending on whether the set reads at 360° | art-director |
-| Spike checks: touch ownership, pinch, safe area on Android, haptic amplitude on iOS, content scale, OS text-size and reduce-motion flags | godot-developer |
+| Still unverified after the spike: the Android navigation-bar inset, iOS haptic amplitude, and `screen_get_scale()` values on real phones | Phase 2 simulator and device checks (D-016) |
 
 ## Sources
 

@@ -1,0 +1,31 @@
+; Jar spike: a throwaway Godot project for Phase 1 renderer and shader evidence.
+; Never imported into the game. See README in the spike report.
+
+config_version=5
+
+[application]
+
+config/name="Sourdough Jar Spike"
+run/main_scene="res://main.tscn"
+config/use_custom_user_dir=true
+config/custom_user_dir_name="sourdough_jar_spike"
+config/features=PackedStringArray("4.7", "Mobile")
+
+[debug]
+
+gdscript/warnings/untyped_declaration=2
+
+[display]
+
+window/size/viewport_width=540
+window/size/viewport_height=1170
+window/handheld/orientation=1
+window/vsync/vsync_mode=0
+
+[input_devices]
+
+pointing/emulate_touch_from_mouse=true
+
+[rendering]
+
+renderer/rendering_method="mobile"
