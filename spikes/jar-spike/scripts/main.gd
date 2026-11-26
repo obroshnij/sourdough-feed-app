@@ -20,6 +20,11 @@ extends Node
 ## Shots only:   --only=<substring>  --shot-dir=<path>  --force-b (Tier B shots on Compatibility)
 ## Bench only:   --no-bubbles  --refraction-off  --label-suffix=<text>
 ## Self-test:    --no-own-touches (reproduces the drag-over-a-Control bug)
+## Color parity: --tonemap=agx|filmic|linear --exposure=F --white=F --key=F --ambient=F
+##               --ambient-source=color --ambient-color=r,g,b --sky-contribution=F
+##               --saturation=F (turns adjustments on) --reflections=off
+##               --set-colors --no-translucency --no-glass
+## Measure with: -s res://scripts/patch_probe.gd -- <png> ...
 
 const KEY_DIR: Vector3 = Vector3(-0.5, 0.75, 0.5)
 const RIM_DIR: Vector3 = Vector3(0.75, 0.2, -0.62)
@@ -65,6 +70,15 @@ func _ready() -> void:
 		_swap_in_art(args["glb"])
 	set_tier(tier)
 	set_state(state_id)
+	if args.has("set-colors"):
+		# Same values as the shader defaults, but set from GDScript (source_color test).
+		starter_mat.set_shader_parameter(&"starter_color", Color(0.93, 0.87, 0.76))
+		starter_mat.set_shader_parameter(&"cavity_color", Color(0.50, 0.41, 0.31))
+		starter_mat.set_shader_parameter(&"hooch_color", Color(0.46, 0.40, 0.29))
+	if args.has("no-glass"):
+		glass_mi.visible = false
+	if args.has("no-translucency"):
+		starter_mat.set_shader_parameter(&"translucency", 0.0)
 	if args.has("no-bubbles"):
 		starter_mat.set_shader_parameter(&"bubbles_on", false)
 	if args.has("refraction-off"):
@@ -166,6 +180,7 @@ func _build_world() -> void:
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	env.tonemap_mode = Environment.TONE_MAPPER_AGX
 	env.tonemap_exposure = 1.0
+	_apply_tone_args(env)
 	var we := WorldEnvironment.new()
 	we.environment = env
 	world.add_child(we)
@@ -173,7 +188,7 @@ func _build_world() -> void:
 	var key := DirectionalLight3D.new()
 	key.transform = Transform3D(Basis.looking_at(-KEY_DIR.normalized(), Vector3.UP), KEY_DIR)
 	key.light_color = Color(1.0, 0.94, 0.86)
-	key.light_energy = 1.6
+	key.light_energy = 1.6 * float(args.get("key", "1.0"))
 	key.shadow_enabled = true
 	key.shadow_blur = 1.5
 	key.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
@@ -244,6 +259,38 @@ func _glass_material(path: String, cube: Cubemap, priority: int) -> ShaderMateri
 	m.set_shader_parameter(&"key_dir", KEY_DIR)
 	m.set_shader_parameter(&"rim_dir", RIM_DIR)
 	return m
+
+
+## Tonemap overrides for the per-tier color check (art-direction.md §3):
+## --tonemap=agx|filmic|linear --exposure=F --white=F --ambient=F --saturation=F
+func _apply_tone_args(env: Environment) -> void:
+	match args.get("tonemap", "agx"):
+		"filmic":
+			env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+		"linear":
+			env.tonemap_mode = Environment.TONE_MAPPER_LINEAR
+		_:
+			env.tonemap_mode = Environment.TONE_MAPPER_AGX
+	env.tonemap_exposure = float(args.get("exposure", "1.0"))
+	if args.has("white"):
+		env.tonemap_white = float(args["white"])
+	if args.has("ambient"):
+		env.ambient_light_energy = float(args["ambient"])
+	if args.get("reflections", "") == "off":
+		env.reflected_light_source = Environment.REFLECTION_SOURCE_DISABLED
+	if args.get("ambient-source", "") == "color":
+		env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	if args.has("ambient-color"):
+		var rgb: PackedStringArray = args["ambient-color"].split(",")
+		env.ambient_light_color = Color(float(rgb[0]), float(rgb[1]), float(rgb[2]))
+	if args.has("sky-contribution"):
+		env.ambient_light_sky_contribution = float(args["sky-contribution"])
+	if args.has("saturation"):
+		env.adjustment_enabled = true
+		env.adjustment_saturation = float(args["saturation"])
+	print("TONE tonemap=%d exposure=%.2f white=%.2f ambient=%.2f adjustments=%s saturation=%.2f" % [
+		env.tonemap_mode, env.tonemap_exposure, env.tonemap_white, env.ambient_light_energy,
+		str(env.adjustment_enabled), env.adjustment_saturation])
 
 
 ## floor_y and authored_top are in the starter mesh's local space.

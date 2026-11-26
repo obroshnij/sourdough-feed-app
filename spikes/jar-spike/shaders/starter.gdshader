@@ -17,6 +17,7 @@ render_mode diffuse_lambert_wrap, specular_schlick_ggx;
 
 uniform float authored_top = 0.038;   // local height of the authored top disk
 uniform bool bubbles_on = true;       // benchmark control only (--no-bubbles)
+uniform float translucency = 1.0;     // color-parity test only (--no-translucency)
 uniform vec3 starter_color : source_color = vec3(0.93, 0.87, 0.76);
 uniform vec3 cavity_color : source_color = vec3(0.50, 0.41, 0.31);
 uniform vec3 hooch_color : source_color = vec3(0.46, 0.40, 0.29);
@@ -136,7 +137,7 @@ void fragment() {
 	ALBEDO = albedo;
 	ROUGHNESS = rough;
 	SPECULAR = mix(mix(0.5, 0.15, cavity), 0.8, in_hooch);
-	BACKLIGHT = starter_color * 0.22 * (1.0 - in_hooch);
-	RIM = 0.12 * (1.0 - in_hooch);
+	BACKLIGHT = starter_color * 0.22 * (1.0 - in_hooch) * translucency;
+	RIM = 0.12 * (1.0 - in_hooch) * translucency;
 	RIM_TINT = 0.6;
 }
