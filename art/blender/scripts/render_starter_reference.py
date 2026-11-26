@@ -72,9 +72,15 @@ STATES = {
     "hungry":      dict(rise=1.25, dome=-0.1, lumps=0.15, bubble_density=0.2, bubble_size=0.85,
                         peak_line=2.3, streak_amount=0.5, hooch_depth=0.35, surface_dryness=0.1,
                         sheen=0.7, age=0.6),
+    # Warning, recoverable: dull dry cap, thick dark hooch, almost no bubbles, old pale residue.
+    # Never fuzz, never green, pink, orange or red specks.
+    "unhealthy":   dict(rise=0.95, dome=-0.05, lumps=0.35, bubble_density=0.03, bubble_size=0.2,
+                        peak_line=2.3, streak_amount=0.6, hooch_depth=0.4, surface_dryness=0.85,
+                        sheen=0.1, age=1.0, hooch_col="hooch_dark"),
 }
-POSE_STATES = ("at_peak", "collapsing")
+POSE_STATES = ("at_peak", "collapsing", "hungry", "unhealthy")
 POCKET = "#D3BF9E"
+DRIED = "#E2D9C8"                 # dried residue: paler than wet paste, never darker
 
 
 def parse_args():
@@ -148,6 +154,7 @@ def mat_starter_masked(side_img, top_img):
     level = t.value("level", FED)
     hooch_m = t.value("hooch_m", 0.0)
     dryness = t.value("dryness", 0.0)
+    hooch_rgb = t.rgb("hooch_color", bj.hexcol(bj.C["hooch"]))
 
     # Side: cylindrical, 4 tiles around, square texels, v squashed by stretch.
     ang = t.math("ARCTAN2", oy, ox)
@@ -231,7 +238,7 @@ def mat_starter_masked(side_img, top_img):
     col = [x for x in dim.outputs if x.type == "RGBA"][0]
     dry = t.math("MULTIPLY", top_w, dryness)
     col = t.mix_col(t.math("MULTIPLY", dry, 0.85), col, bj.hexcol(bj.C["crust"]))
-    hooch_col = t.mix_col(t.maprange(oz, hooch_lo, level, 0.45, 1.0), col, bj.hexcol(bj.C["hooch"]))
+    hooch_col = t.mix_col(t.maprange(oz, hooch_lo, level, 0.45, 1.0), col, hooch_rgb)
     col = t.mix_col(hooch, col, hooch_col)
 
     # Glossy skin: sheen drives roughness down and a clear coat up, most on the dome.
@@ -270,7 +277,7 @@ def mat_liner_masked(liner_img):
 
     thr = t.math("SUBTRACT", 1.0, amount)
     vis = t.maprange(E, t.math("SUBTRACT", thr, 0.02), t.math("ADD", thr, 0.02))
-    keep = t.maprange(D, t.math("MULTIPLY", age, 0.55), t.math("ADD", t.math("MULTIPLY", age, 0.55), 0.04))
+    keep = t.maprange(D, t.math("MULTIPLY", age, 0.35), t.math("ADD", t.math("MULTIPLY", age, 0.35), 0.04))
     vis = t.math("MULTIPLY", vis, keep)
     above = t.maprange(oz, t.math("ADD", level, 0.0003), t.math("ADD", level, 0.0018))
     thick = t.math("DIVIDE", t.math("SUBTRACT", E, thr), 0.5, clamp=True)
@@ -278,7 +285,7 @@ def mat_liner_masked(liner_img):
                    t.math("ADD", 0.30, t.math("MULTIPLY", thick, 0.62)))
     alpha = t.math("MULTIPLY", alpha, t.math("SUBTRACT", 1.0, t.math("MULTIPLY", age, 0.25)))
     alpha = t.math("MULTIPLY", alpha, t.math("GREATER_THAN", amount, 0.0))
-    col = t.mix_col(age, bj.hexcol(bj.C["starter"]["white_bread"]), bj.hexcol(bj.C["crust"]))
+    col = t.mix_col(age, bj.hexcol(bj.C["starter"]["white_bread"]), bj.hexcol(DRIED))
     p = t.principled(Base_Color=col, Subsurface_Weight=0.15, Subsurface_Scale=0.002)
     t.put(p.inputs["Roughness"], bj.lerp(t, age, 0.22, 0.8))
     tr = t.n("ShaderNodeBsdfTransparent")
@@ -302,6 +309,7 @@ def apply_state(name, objs, sv, lv):
     sv["level"].outputs[0].default_value = level
     sv["hooch_m"].outputs[0].default_value = s["hooch_depth"] * HOOCH_MAX_M
     sv["dryness"].outputs[0].default_value = s["surface_dryness"]
+    sv["hooch_color"].outputs[0].default_value = bj.hexcol(bj.C[s.get("hooch_col", "hooch")])
     lv["peak_m"].outputs[0].default_value = s["peak_line"] * FED
     lv["level"].outputs[0].default_value = level
     lv["streak_amount"].outputs[0].default_value = s["streak_amount"]

@@ -20,8 +20,8 @@ Channel meaning (docs/art-direction.md §16.3 and §16.4 have the UV mapping and
     liner       L = residue onset E: residue shows where E > 1 - streak_amount.
                     Ring at the peak line first, then drips, then a faint haze.
                     E above the threshold also reads as film thickness.
-                A = drying breakup D: dried residue is removed where D < age.
-                    Cracks along cell edges go first, so old film flakes.
+                A = drying breakup D: dried residue is removed where D < 0.35 x age.
+                    Soft patches go first, so old film thins out, never into grit.
 
 Every random draw comes from one seeded generator, so re-running gives
 byte-identical files.
@@ -417,12 +417,13 @@ def liner_mask(rng):
     fade_bottom = np.clip((H - 2.0 - rows) / 6.0, 0, 1)    # clamp-safe: last rows are zero
     E = np.clip(E * fade_bottom, 0, 1)
 
-    # Drying breakup: fine cells (about 2 x 3 mm) crack along their edges first,
-    # then patches go, so old film breaks into flecks, never into torn strips.
-    crack = np.clip(cell_crackle(rng, H, W, 9, 13) / 5.0, 0, 1)
-    fine = periodic_noise(rng, H, W, 1.4)
-    coarse = periodic_noise(rng, H, W, 7.0)
-    D = rank_normalize(0.28 * crack + 0.42 * fine + 0.30 * coarse)
+    # Drying breakup: soft patches about 5 to 8 mm across, with only a hint of
+    # cracking at their edges. Fine cells read as grit at game distance, and the
+    # gaps showed dark hooch and the sage wall as olive specks (Phase 2 review).
+    crack = np.clip(cell_crackle(rng, H, W, 22, 30) / 8.0, 0, 1)
+    fine = periodic_noise(rng, H, W, 4.0)
+    coarse = periodic_noise(rng, H, W, 14.0, aniso=(1.0, 1.6))
+    D = rank_normalize(0.15 * crack + 0.25 * fine + 0.60 * coarse)
     return E, D, edge
 
 
