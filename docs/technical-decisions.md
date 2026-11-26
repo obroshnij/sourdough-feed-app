@@ -20,7 +20,7 @@ Evidence tags: **[ran]** = headless run in a scratch project (see the verificati
 | 010 | Export and toolchain | D-016 | proposed |
 | 011 | Performance and battery | | proposed (spike pending) |
 | 012 | Layers, two autoloads, contracts commit | | accepted |
-| 013 | Events: pure scheduler, two RNG streams | | accepted (agreed with `game-designer`) |
+| 013 | Events: pure scheduler, no RNG in events | | accepted (agreed with `game-designer` and the scientist) |
 | 014 | Localization: generated `en.csv` plus per-track pending CSVs | D-003 | **accepted** (confirmed by `narrative-designer`) |
 | 015 | UI scale: 1 unit = 1 pt or dp | | proposed (spike pending) |
 
@@ -73,7 +73,12 @@ Evidence tags: **[ran]** = headless run in a scratch project (see the verificati
   3. Checksum over the stored payload bytes, not a re-serialization.
   4. RNG seeds and states as decimal strings.
   5. Write `save.tmp`, rename `save.json` to `save.prev`, rename `save.tmp` to `save.json`, using **`DirAccess.open("user://saves").rename()`**, never `DirAccess.rename_absolute()`.
-  6. Load order `save.json`, `save.tmp`, `save.prev`. The first that verifies wins.
+  6. Load order `save.json`, `save.tmp`, `save.prev`. The first that verifies wins. A winning `save.tmp` is renamed to `save.json` at once. The loader is silent on bad input:
+     - `get_file_as_bytes()` to read.
+     - SHA-256 over the raw payload bytes, before decoding.
+     - `JSON.new().parse()` to parse, never `JSON.parse_string()`, which logs an engine error on bad JSON **[ran]**.
+     - `typeof()` checks before typed assignment, because a wrong-typed assignment logs a script error **[ran]**.
+     Otherwise every corrupt-file test fails under the runner's Logger.
   7. Only a trusted `save.json` (loaded or written this session) rotates into `save.prev`. Anything that fails to load goes to `quarantine/` and is never deleted, except to keep the newest 5 sets. Before a fresh starter is created, all candidates are quarantined (`qa-engineer` findings SAVE-17 and SAVE-06, both data-loss paths in v0 of this design).
 - **Why the amendments.**
   - Default `JSON.stringify` writes `1/3` as `0.333333333333333`, which does not round-trip. Full precision does **[ran]**.
@@ -140,9 +145,10 @@ Evidence tags: **[ran]** = headless run in a scratch project (see the verificati
 - **Decision.** The four layers and the dependency rule in `architecture.md` §1. Exactly two autoloads (`Bus`, `Session`). Clock, store and settings are injected objects. Phase 2 opens with a contracts commit (T1) that freezes the public classes, `GameSession` API, `Bus` signals and `project.godot`. Then the parallel tracks in §14.
 - **Evidence.** Autoload `_ready` runs after a `-s` script's `_init`, so tests can't rely on autoloads and construct services directly **[ran]**. `class_name` cannot equal an autoload name, hence `Session` and `GameSession` **[unverified as an error message; avoided by design]**.
 
-## ADR-013 Events: pure scheduler, two RNG streams
-- **Decision.** Rules, admission caps, cooldowns, quiet hours and the ledger live in `src/sim/events/` and are pure. Local time is an argument. `sim_rng` drives feed jitter only, and `event_rng` drives ambient events only. Presentation timing (don't interrupt a sheet) lives in the UI `EventPresenter`.
-- **Why.** Events fire during offline catch-up, and their history changes later eligibility. That only stays deterministic and testable if admission is pure and saved. Separate streams mean a new event rule never changes the starter's outcome.
+## ADR-013 Events: pure scheduler, no RNG in events
+- **Decision.** Rules, admission caps, cooldowns, quiet hours and the ledger live in `src/sim/events/` and are pure. Local time is an argument. The only RNG is `sim_rng`, with one draw per feed (`feed_u`, stored). Event rules take no RNG. `big_bubble` reads `feed_u` (spec §14.1). Presentation timing (don't interrupt a sheet) lives in the UI `EventPresenter`.
+- **Revised in wave B.** v0 had a second stream, `event_rng`. The scientist moved `big_bubble`, its only user, into the sim so the jar shows the bubble (hard rule 2), and `game-designer` removed RNG from all rules. One fewer stream to save and test.
+- **Why.** Events fire during offline catch-up, and their history changes later eligibility. That only stays deterministic and testable if admission is pure and saved. With no RNG in events, a new event rule never changes the starter's outcome.
 - **Evidence.**
   - Restoring `RandomNumberGenerator.state` from a string gives the identical next values **[ran]**.
   - Setting `seed` after `state` resets the stream **[ran]**, so restore order matters.
@@ -180,6 +186,8 @@ Godot `4.7.2.stable.official.ed1daf0bf` on an Apple M4, scratch projects under `
 | `t_restringify.gd` | `{"arr":[1,2.5],...,"version":1}` becomes `{"arr":[1.0,2.5],...,"version":1.0}`, `identical=false` |
 | `t_perf.gd` (twice) | 20,160 steps of 60 s in 22.1 and 22.4 ms. 4,032 steps of 300 s in 4.6 and 4.4 ms |
 | `t_settings.gd`, `t_api.gd`, `t_ui.gd` | Setting names and defaults cited above. `get_current_rendering_method` present. `Engine.max_fps` settable. Typed `Dictionary[StringName, float]` works. `Control.accessibility_*` present |
+| `t_silent.gd` (wave B), with a counting `Logger` | `JSON.parse_string("{not json")`: 1 logged error. `JSON.new().parse()`: `Parse error`, 0 logged. `FileAccess.open` and `file_exists` on a missing file: 0 logged. Typed `var x: float = "high"`: 1 logged script error. Invalid UTF-8 via `get_string_from_utf8`: 0 logged, string mangled |
+| `t_bytes.gd` (wave B) | `HashingContext` SHA-256 over the payload bytes read back equals `sha256_text()` of the written string. `get_file_as_bytes` on a missing file: size 0, nothing logged |
 | `assets/probe.gltf` import + `t_gltf.gd` | Node `extras` became `get_meta("extras")` Dictionaries with the authored values |
 
 Source reads (`gh api repos/godotengine/godot/contents/<path>?ref=4.7.2-stable`): `core/io/dir_access.cpp` (`rename_absolute`, `create_for_path`), `drivers/unix/dir_access_unix.cpp` (`::rename`), `drivers/unix/file_access_unix.cpp` (no fsync, backup save), `drivers/unix/os_unix.cpp` and `drivers/apple_embedded/os_apple_embedded.*` (iOS uses the Unix drivers), `platform/android/os_android.cpp` (`ACCESS_USERDATA` is `DirAccessUnix`, `ACCESS_FILESYSTEM` is `DirAccessJAndroid`), and the Android Java files `FilesystemDirectoryAccess.kt`, `FileAccessHandler.kt`, `DataAccess.kt` and `FileData.kt` (`File.renameTo`).

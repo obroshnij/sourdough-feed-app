@@ -4,7 +4,7 @@ Owner: `narrative-designer`. Status: Phase 1 wave A draft, 2026-11-26.
 
 Every player-facing string with its `tr()` key, ready for `en.csv`. Voice: [`narrative.md`](narrative.md) §4. Events: [`events-catalog.md`](events-catalog.md). Onboarding, naming, traits and the memorial: [`narrative.md`](narrative.md) §6 to §9.
 
-`sourdough-scientist` spot-checked every science claim on 2026-11-26 (yogurt, fruity, alcohol, cheesy, strands, collapse, doubling, hooch, mold depth) and confirmed them, with two wording fixes applied. Their full wave B review still covers every line about mold, warnings and safety. Science source: [`sourdough-science.md`](sourdough-science.md).
+`sourdough-scientist` spot-checked every science claim on 2026-11-26 (yogurt, fruity, alcohol, cheesy, strands, collapse, doubling, hooch, mold depth) and confirmed them, with two wording fixes applied. Their wave B review (21 items) is applied, and they gave **safety sign-off** on this file, `events-catalog.md` and the `narrative.md` §9 mold flow (2026-11-26). Science source: [`sourdough-science.md`](sourdough-science.md).
 
 ## 1. Conventions
 
@@ -116,8 +116,8 @@ The pill shows an icon plus the word, never color alone. The hint is always show
 | `STATUS_RECOVERING_HINT` | Getting its strength back | 34 |
 | `STATUS_RECOVERING_TAP` | Weaker than usual after a hard stretch. Regular feeds rebuild it. | 90 |
 | `STATUS_UNHEALTHY_WORD` | At risk | 12 |
-| `STATUS_UNHEALTHY_HINT` | Warning signs. Feed it now | 34 |
-| `STATUS_UNHEALTHY_TAP` | Musty and run down. Not mold. Feed it now, then check the surface. | 90 |
+| `STATUS_UNHEALTHY_HINT` | Warning signs. Look, then feed | 34 |
+| `STATUS_UNHEALTHY_TAP` | Musty, run down. No mold yet. Fuzz or color on top means discard. If none, feed it. | 90 |
 | `STATUS_MOLDY_WORD` | Moldy | 12 |
 | `STATUS_MOLDY_HINT` | Mold. Please discard it | 34 |
 | `STATUS_MOLDY_TAP` | Mold can't be fixed. Discard all of it and wash the jar. | 90 |
@@ -160,7 +160,7 @@ Shown on the feed result card and on a status tap during a rise phase. Not shown
 | Body | The primary descriptor's sensory line `_<n>` (§1.4), then a note on the secondary descriptor if its intensity is at least 0.15 (**ASSUMED**): `SMELL_NOTE_FAINT` below 0.5, `SMELL_NOTE_CLEAR` at 0.5 or more. Max 60 + 1 + 30 = 91, so the note slot is 29 in practice. Checked below. |
 | Meaning | The primary descriptor's `_MEANING`, for the first 3 times that descriptor appears. Then one tap away. **`musty` never fades.** |
 | `musty` rule | If `musty` has any intensity, it is the primary descriptor, so a warning is never buried in a note. |
-| Faint rule | If every descriptor is below 0.3 (cold `dormant`), use the `SMELL_FAINT_*` lines and note the top descriptor. |
+| Faint rule | If every descriptor is below 0.3 (cold `dormant`) **and `musty` is absent**, use the `SMELL_FAINT_*` lines and note the top descriptor. At the watch stage `musty` sits at 0.2 to 0.3, so the faint rule must never hide it (scientist). |
 | `moldy` | Use `SMELL_MOLDY_*` only. No sniffing (scientist). |
 | Third descriptor | Not shown in text. The scientist suggests the top two or three; the slot fits two. |
 
@@ -226,7 +226,7 @@ Shown on the feed result card and on a status tap during a rise phase. Not shown
 | `SMELL_PLEASANTLY_TANGY_1` | A bright, clean tang with a little sweetness behind it. | 60 |
 | `SMELL_PLEASANTLY_TANGY_2` | Pleasantly sour, like the crumb of a good sourdough. | 60 |
 | `SMELL_PLEASANTLY_TANGY_3` | Tangy and lively. Your nose will want another go. | 60 |
-| `SMELL_PLEASANTLY_TANGY_MEANING` | Around its peak. This is the smell bakers hope for. | 90 |
+| `SMELL_PLEASANTLY_TANGY_MEANING` | Around its peak, or just past it. The smell bakers hope for. | 90 |
 
 `strongly_acidic`: hungry.
 
@@ -261,7 +261,7 @@ Shown on the feed result card and on a status tap during a rise phase. Not shown
 | `SMELL_ACETONE_3` | Like nail polish remover. Odd, from flour and water. | 60 |
 | `SMELL_ACETONE_MEANING` | Very hungry. Odd, but normal. A feed or two clears it. | 90 |
 
-`cheesy`: young starter (maturity below 0.3).
+`cheesy`: young starter (`maturity` below 0.33, spec §14.1).
 
 | Key | Text | Max |
 |---|---|---|
@@ -281,7 +281,7 @@ Shown on the feed result card and on a status tap during a rise phase. Not shown
 | `SMELL_MUSTY_1` | Musty, like a damp cellar. | 60 |
 | `SMELL_MUSTY_2` | A stale, musty note, like damp cardboard. | 60 |
 | `SMELL_MUSTY_3` | Damp and musty, under the sourness. | 60 |
-| `SMELL_MUSTY_MEANING` | A warning sign. Feed it now, and check the surface for mold. | 90 |
+| `SMELL_MUSTY_MEANING` | A warning sign. Check the surface first: fuzz or color means discard. If none, feed it. | 90 |
 
 ### 5.4 Faint and moldy
 
@@ -303,7 +303,8 @@ P0 kinds: `height`, `bubbles`, `surface`. P1: `consistency`, `development` (game
 **Shared rules:**
 - `dormant` has one observation and two meanings: `_MEAN_COLD` and `_MEAN_STARVED` (same rule as §2).
 - `moldy`: `surface` uses its own mold lines. Every other kind shows `INSPECT_ANY_MOLDY_*`.
-- Hooch: while `hooch` is visible and the state is not `unhealthy` or `moldy`, `surface` shows `INSPECT_SURFACE_HOOCH_*` instead of the state's lines. At the watch stage (v0: `mold_risk` 0.3 or more) it shows `INSPECT_SURFACE_HOOCH_DARK_*`, which never fades.
+- Hooch: while `hooch` ≥ 0.10 (visible) and the state is not `unhealthy` or `moldy`, `surface` shows `INSPECT_SURFACE_HOOCH_*` instead of the state's lines. It shows `INSPECT_SURFACE_HOOCH_DARK_*` instead when `hooch` ≥ 0.8, or when `hooch` ≥ 0.10 and `mold_risk` ≥ 0.3 (the watch stage). Those never fade.
+- `recovering`: `recovering` overlaps every rise phase, so `bubbles`, `height`, `surface` and `consistency` show the observation for the current `rise_phase`, with `INSPECT_RECOVERING_MEAN` as the meaning line (scientist).
 - Flour: at `at_peak`, `surface` uses the flour's `_OBS` override if one exists (`whole_wheat`, `rye`, `spelt`). White bread flour uses the default.
 
 | Key | Text | Max |
@@ -315,6 +316,7 @@ P0 kinds: `height`, `bubbles`, `surface`. P1: `consistency`, `development` (game
 | `INSPECT_CHIP_DEVELOPMENT` | Development | 11 |
 | `INSPECT_ANY_MOLDY_OBS` | There's mold on the surface. No need to look closer. | 90 |
 | `INSPECT_ANY_MOLDY_MEAN` | Please discard all of it and wash the jar. | 90 |
+| `INSPECT_RECOVERING_MEAN` | Weaker than usual for now. Regular feeds rebuild it. | 90 |
 
 ### 6.1 Bubbles (P0)
 
@@ -337,10 +339,8 @@ P0 kinds: `height`, `bubbles`, `surface`. P1: `consistency`, `development` (game
 | `INSPECT_BUBBLES_DORMANT_OBS` | Almost none. Maybe one, rising very slowly. | 90 |
 | `INSPECT_BUBBLES_DORMANT_MEAN_COLD` | The cold slows everything down. It's resting, and can wait. | 90 |
 | `INSPECT_BUBBLES_DORMANT_MEAN_STARVED` | It has waited a long time for food. A feed or two will wake it. | 90 |
-| `INSPECT_BUBBLES_RECOVERING_OBS` | Fewer bubbles than usual, but they're coming back. | 90 |
-| `INSPECT_BUBBLES_RECOVERING_MEAN` | It's regaining strength. Regular feeds will finish the job. | 90 |
 | `INSPECT_BUBBLES_UNHEALTHY_OBS` | Very few bubbles, and slow to form. | 90 |
-| `INSPECT_BUBBLES_UNHEALTHY_MEAN` | A warning sign. Feed it now. One feed usually turns it around. | 90 |
+| `INSPECT_BUBBLES_UNHEALTHY_MEAN` | A warning sign. Check the surface, then feed. One feed usually turns it around. | 90 |
 
 ### 6.2 Height (P0)
 
@@ -352,7 +352,7 @@ At peak, the observation depends on `peak_rise` (bands in [`events-catalog.md`](
 | `INSPECT_HEIGHT_FRESHLY_FED_MEAN` | That's the starting line. Watch it climb from here. | 90 |
 | `INSPECT_HEIGHT_DEVELOPING_OBS` | Just above the rubber band. | 90 |
 | `INSPECT_HEIGHT_DEVELOPING_MEAN` | The rise has begun. | 90 |
-| `INSPECT_HEIGHT_ACTIVE_OBS` | Well above the band, and still climbing. | 90 |
+| `INSPECT_HEIGHT_ACTIVE_OBS` | Above the band, and climbing. | 90 |
 | `INSPECT_HEIGHT_ACTIVE_MEAN` | It's rising steadily. Peak is still to come. | 90 |
 | `INSPECT_HEIGHT_NEAR_PEAK_OBS` | High up the jar, and the climb is slowing. | 90 |
 | `INSPECT_HEIGHT_NEAR_PEAK_MEAN` | Peak is close. | 90 |
@@ -368,10 +368,8 @@ At peak, the observation depends on `peak_rise` (bands in [`events-catalog.md`](
 | `INSPECT_HEIGHT_DORMANT_OBS` | Barely above the band, and not moving. | 90 |
 | `INSPECT_HEIGHT_DORMANT_MEAN_COLD` | The cold keeps it low and still. It'll rise again once it's warm and fed. | 90 |
 | `INSPECT_HEIGHT_DORMANT_MEAN_STARVED` | It has run out of energy. A feed or two will get it rising. | 90 |
-| `INSPECT_HEIGHT_RECOVERING_OBS` | A modest rise, short of its best. | 90 |
-| `INSPECT_HEIGHT_RECOVERING_MEAN` | It's getting back to full strength. | 90 |
 | `INSPECT_HEIGHT_UNHEALTHY_OBS` | Flat. It has barely risen in a while. | 90 |
-| `INSPECT_HEIGHT_UNHEALTHY_MEAN` | A warning sign. Feed it now. | 90 |
+| `INSPECT_HEIGHT_UNHEALTHY_MEAN` | A warning sign. Check the surface, then feed it. | 90 |
 
 ### 6.3 Surface (P0)
 
@@ -399,19 +397,21 @@ The surface is where the player learns the real discard rule, so its warning and
 | `INSPECT_SURFACE_DORMANT_OBS` | Flat and still. | 90 |
 | `INSPECT_SURFACE_DORMANT_MEAN_COLD` | Resting in the cold. That's what the fridge is for. | 90 |
 | `INSPECT_SURFACE_DORMANT_MEAN_STARVED` | Run down after a long wait. Feed it today. | 90 |
-| `INSPECT_SURFACE_RECOVERING_OBS` | Gently domed, but not as full as usual. | 90 |
-| `INSPECT_SURFACE_RECOVERING_MEAN` | Getting there. | 90 |
 | `INSPECT_SURFACE_HOOCH_OBS` | A layer of grayish liquid on top. That's hooch. | 90 |
 | `INSPECT_SURFACE_HOOCH_MEAN` | A hunger sign, and normal. Pour it off or stir it in, then feed. | 90 |
 | `INSPECT_SURFACE_HOOCH_DARK_OBS` | A thicker, darker layer of hooch on top. | 90 |
-| `INSPECT_SURFACE_HOOCH_DARK_MEAN` | It has been hungry a long time. Feed it today, and keep an eye on the smell. | 90 |
+| `INSPECT_SURFACE_HOOCH_DARK_MEAN` | Dark hooch is still a hunger sign, but it has been a while. Feed it today. | 90 |
 | `INSPECT_SURFACE_UNHEALTHY_OBS` | A dull, dry skin across the top, maybe with dark liquid. | 90 |
 | `INSPECT_SURFACE_UNHEALTHY_MEAN` | Warning sign. Fuzz, or pink or orange color, means discard. If none, feed it now. | 90 |
 | `INSPECT_SURFACE_MOLDY_FUZZ_OBS` | Fuzzy spots on the surface. That's mold. | 90 |
-| `INSPECT_SURFACE_MOLDY_TINT_OBS` | Fuzzy spots, and pink or orange color. That's mold. | 90 |
+| `INSPECT_SURFACE_MOLDY_TINT_OBS` | Fuzzy spots of mold, and pink or orange spoilage. | 90 |
 | `INSPECT_SURFACE_MOLDY_MEAN` | It can't be saved. Discard all of it, even parts that look clean. | 90 |
 
+`INSPECT_SURFACE_MOLDY_TINT_OBS` is unused in v0 (art shows no tint), kept unused. D-026: no tint in the MVP.
+
 ### 6.4 Consistency (P1)
+
+`dormant` splits its observation too: cold is firm, starved is runny (acid, scientist). With the P1 stiff hydration preset (60%, spec `stiff_dough`), use a `_STIFF_` observation where one exists. Stiff starter is never soupy or pourable.
 
 | Key | Text | Max |
 |---|---|---|
@@ -429,13 +429,16 @@ The surface is where the player learns the real discard rule, so its warning and
 | `INSPECT_CONSISTENCY_COLLAPSING_MEAN` | Acid and time soften it as the food runs out. Feed soon. | 90 |
 | `INSPECT_CONSISTENCY_HUNGRY_OBS` | Thin and soupy, almost pourable. | 90 |
 | `INSPECT_CONSISTENCY_HUNGRY_MEAN` | A hungry starter goes runny. A feed thickens it again. | 90 |
-| `INSPECT_CONSISTENCY_DORMANT_OBS` | Dense and heavy. | 90 |
+| `INSPECT_CONSISTENCY_DORMANT_OBS_COLD` | Firm and cold. | 90 |
+| `INSPECT_CONSISTENCY_DORMANT_OBS_STARVED` | Thin and runny. | 90 |
 | `INSPECT_CONSISTENCY_DORMANT_MEAN_COLD` | The cold keeps it firm and quiet. | 90 |
 | `INSPECT_CONSISTENCY_DORMANT_MEAN_STARVED` | It has waited a long time. Feed it to bring it round. | 90 |
-| `INSPECT_CONSISTENCY_RECOVERING_OBS` | A bit looser than usual, but holding together. | 90 |
-| `INSPECT_CONSISTENCY_RECOVERING_MEAN` | Stronger with each feed. | 90 |
 | `INSPECT_CONSISTENCY_UNHEALTHY_OBS` | Slack and lifeless under a dry skin. | 90 |
-| `INSPECT_CONSISTENCY_UNHEALTHY_MEAN` | A warning sign. Feed it now for a clean start. | 90 |
+| `INSPECT_CONSISTENCY_UNHEALTHY_MEAN` | A warning sign. Check the surface, then feed it. | 90 |
+| `INSPECT_CONSISTENCY_FRESHLY_FED_STIFF_OBS` | Firm, like a soft bread dough. | 90 |
+| `INSPECT_CONSISTENCY_AT_PEAK_STIFF_OBS` | Puffy and spongy, like a well-risen dough. | 90 |
+| `INSPECT_CONSISTENCY_HUNGRY_STIFF_OBS` | Softer and sticky, but it still holds its shape. | 90 |
+| `INSPECT_CONSISTENCY_DORMANT_STIFF_OBS_STARVED` | Soft and sticky. | 90 |
 
 ### 6.5 Development (P1)
 
@@ -443,9 +446,9 @@ Keyed by maturity stage (progression §2), not by state. Overlays win in this or
 
 | Key | Text | Max |
 |---|---|---|
-| `INSPECT_DEVELOPMENT_YOUNG_OBS` | Young and a little unpredictable. Rises vary from feed to feed. | 90 |
-| `INSPECT_DEVELOPMENT_YOUNG_MEAN` | Normal for a young starter. Regular feeds settle it. | 90 |
-| `INSPECT_DEVELOPMENT_STEADY_OBS` | Settled into a rhythm. It rises about the same way each time. | 90 |
+| `INSPECT_DEVELOPMENT_YOUNG_OBS` | Young. A little slower and lower for now, and sometimes a cheesy smell. | 90 |
+| `INSPECT_DEVELOPMENT_YOUNG_MEAN` | Normal for a young starter. Regular feeds build it up. | 90 |
+| `INSPECT_DEVELOPMENT_STEADY_OBS` | Steadier now. It rises higher and sooner than it did when young. | 90 |
 | `INSPECT_DEVELOPMENT_STEADY_MEAN` | Maturing nicely. Keep doing what you're doing. | 90 |
 | `INSPECT_DEVELOPMENT_MATURE_OBS` | Strong and reliable. It doubles, and bounces back well. | 90 |
 | `INSPECT_DEVELOPMENT_MATURE_MEAN` | A mature starter, strong enough to raise bread. | 90 |
@@ -454,7 +457,7 @@ Keyed by maturity stage (progression §2), not by state. Overlays win in this or
 | `INSPECT_DEVELOPMENT_WEAKENED_OBS` | Weaker than usual after a hard stretch. | 90 |
 | `INSPECT_DEVELOPMENT_WEAKENED_MEAN` | Regular feeds at room temperature rebuild it. | 90 |
 | `INSPECT_DEVELOPMENT_UNHEALTHY_OBS` | Run down, with warning signs. | 90 |
-| `INSPECT_DEVELOPMENT_UNHEALTHY_MEAN` | Feed it now. It can still recover. | 90 |
+| `INSPECT_DEVELOPMENT_UNHEALTHY_MEAN` | Check the surface, then feed it. It can still recover. | 90 |
 
 ## 7. Feed sheet
 
@@ -632,7 +635,7 @@ Shown the first time a term appears (coach mark or tap), per [`narrative.md`](na
 | `GLOSS_FEED` | Feed: fresh flour and water, so it has food again. | 90 |
 | `GLOSS_DISCARD` | Discard: the part you take out before feeding, so the jar doesn't overflow. | 90 |
 | `GLOSS_PEAK` | Peak: its tallest point after a feed, just before it falls. | 90 |
-| `GLOSS_HOOCH` | Hooch: gray or brownish liquid on top. A sign it's hungry. | 90 |
+| `GLOSS_HOOCH` | Hooch: liquid on top, gray to brown, sometimes black. A sign it's hungry. | 90 |
 | `GLOSS_RATIO` | Ratio: starter, flour and water by weight. 1:1:1 means equal parts. | 90 |
 | `GLOSS_HYDRATION` | Hydration: water divided by flour, times 100. Equal weights make 100%. | 90 |
 | `GLOSS_RUBBER_BAND` | The rubber band marks where it started after a feed. Bakers really do this. | 90 |
@@ -681,13 +684,13 @@ Ids from [`progression.md`](progression.md) §4. A milestone that fires with an 
 | `MILESTONE_FIRST_DOUBLE_BODY` | It doubled its height after a feed for the first time. Many bakers use doubling as their sign that a starter is ready to bake with. | 200 |
 | `MILESTONE_RESCUED_TOAST` | Out of the woods. The warning signs are gone. | 60 |
 | `MILESTONE_RESCUED_TITLE` | Rescued | 26 |
-| `MILESTONE_RESCUED_BODY` | Warning signs, then a feed, and it pulled through. Worth remembering: musty and flat means feed it now. | 200 |
+| `MILESTONE_RESCUED_BODY` | Warning signs, then a feed, and it pulled through. Worth remembering: musty and flat means look closely, then feed. | 200 |
 | `MILESTONE_NOSE_FOR_IT_TOAST` | Four smells and counting. You've got a nose for this. | 60 |
 | `MILESTONE_NOSE_FOR_IT_TITLE` | A nose for it | 26 |
 | `MILESTONE_NOSE_FOR_IT_BODY` | Four different smells so far. Smell is the quickest way to read a starter, and you're getting good at it. | 200 |
-| `MILESTONE_STAGE_STEADY_TOAST` | It has found its rhythm. | 60 |
+| `MILESTONE_STAGE_STEADY_TOAST` | Stronger now. It has come into its own. | 60 |
 | `MILESTONE_STAGE_STEADY_TITLE` | Steady | 26 |
-| `MILESTONE_STAGE_STEADY_BODY` | It rises and falls on a reliable rhythm now. No longer the unpredictable young thing M. left behind. | 200 |
+| `MILESTONE_STAGE_STEADY_BODY` | It rises higher and sooner now than the young thing M. left behind. A steady starter. | 200 |
 | `MILESTONE_STAGE_MATURE_TOAST` | Ready to bake. It doubles reliably now. | 60 |
 | `MILESTONE_STAGE_MATURE_TITLE` | Ready to bake | 26 |
 | `MILESTONE_STAGE_MATURE_BODY` | A mature starter: it doubles reliably and bounces back well. Strong enough to raise a loaf. M. would be pleased. | 200 |
@@ -767,7 +770,7 @@ Local only, opt-in, outside quiet hours (D-007, game-design OD-1). No guilt, no 
 
 ## 16. Copy check
 
-A script checks every `Key | Text | Max` row in the three narrative docs. It lives at `/private/tmp/claude-502/-Users-dev--claude-spares-spare-gzS17v/fdcc74d2-7208-4177-baa0-2aa2b64f8419/scratchpad/narrative-designer/check_copy.py` for now. **Recommendation:** `qa-engineer` adopts it as a test once `en.csv` exists.
+[`tools/i18n/check_copy.py`](../tools/i18n/check_copy.py) checks every `Key | Text | Max` row in the three narrative docs. It is the build gate for the generated `en.csv` (ADR-014, D-028). Run it from the repo root: `python3 -I tools/i18n/check_copy.py .`. Exit 0 means clean.
 
 | Check | Rule |
 |---|---|
@@ -782,4 +785,4 @@ A script checks every `Key | Text | Max` row in the three narrative docs. It liv
 
 It also runs `qa-engineer`'s LINT-06 word lists, mapped to the real key prefixes (safety: `STATUS_MOLDY`, `STATUS_UNHEALTHY`, `SMELL_MUSTY`, `SMELL_MOLDY`, `INSPECT_*_MOLDY*`, `INSPECT_*_UNHEALTHY*`, `INSPECT_SURFACE_HOOCH_DARK`, `EVENT_WARNING_SIGNS`, `EVENT_MOLD_FOUND`, `MOLD_`, `MEMORIAL_`, `NOTIF_WARNING`; hunger: `STATUS_HUNGRY`, `STATUS_DORMANT_STARVED`, `SMELL_ACETONE`, `SMELL_ALCOHOL`, `SMELL_STRONGLY_ACIDIC`, `EVENT_HOOCH_FORMING`, `EVENT_HUNGRY_AGAIN`, `EVENT_FIRST_ACETONE`, `INSPECT_SURFACE_HOOCH`, `INSPECT_*_HUNGRY*`, `FEED_HOOCH`, `GLOSS_HOOCH`). Every moldy *message* (`STATUS_MOLDY_HINT` and `_TAP`, `SMELL_MOLDY_BODY`, `INSPECT_*MOLDY*_MEAN`, `MOLD_SHEET_BODY*`, `MOLD_FEED_BLOCKED`) must contain "discard". Titles, status words, observations and buttons are exempt because they always appear beside one of those.
 
-**Last run, 2026-11-26:** `python3 check_copy.py <repo>` over 614 strings (narrative 123, events 69, game copy 422). First run found 3 over-length strings, all fixed. Second run: 0 problems. It also confirmed the smell rule shows all 3 variants within 300 feeds and never repeats a line on consecutive cycles.
+**Last run, 2026-11-26:** `python3 -I tools/i18n/check_copy.py .` over 614 strings (narrative 123, events 69, game copy 422). First run found 3 over-length strings, all fixed. Second run: 0 problems. After the scientist's wave B review (21 fixes, 3 strings removed, 6 added, net 612 strings), the run still finds 0 problems. It also confirmed the smell rule shows all 3 variants within 300 feeds and never repeats a line on consecutive cycles.

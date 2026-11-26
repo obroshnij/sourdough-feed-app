@@ -23,6 +23,7 @@ Voice rules: [`narrative.md`](narrative.md) §4. Every string is in a `Key | Tex
 3. Every negative event says what to do, in the first sentence that can hold it.
 4. Hunger events (`hungry_again`, `hooch_forming`, `first_acetone`) always say "normal" or "hunger" so they never read as danger.
 5. No event mentions how long the player was away, except as a time of day or "about N hours ago" for warning signs, where the timing helps the player learn.
+6. Warnings teach the real habit: **look first, then feed.** Warning copy says "No mold yet", never "not mold", because in real life a musty smell can come with mold.
 
 ## 2. Summary
 
@@ -33,7 +34,7 @@ Voice rules: [`narrative.md`](narrative.md) §4. Every string is in a `Key | Tex
 | `hungry_again` | ✓ | nudge | neutral | state_enter | 12 h | Feed it / Later |
 | `hooch_forming` | ✓ | info | neutral | threshold_cross | 24 h | Pour off / Stir in, in the feed sheet |
 | `back_to_strength` | ✓ | info | positive | action_outcome | 24 h | |
-| `warning_signs` | ✓ | attention | negative | state_enter | once per episode | Feed it now / Look first |
+| `warning_signs` | ✓ | attention | negative | state_enter | once per episode | Look first / Feed it now |
 | `first_acetone` | | info | neutral | milestone | one-time | |
 | `off_to_nap` | | info | neutral | state_enter | 24 h | |
 | `waking_up` | | info | positive | action_outcome | once per fridge stay | |
@@ -42,11 +43,11 @@ Voice rules: [`narrative.md`](narrative.md) §4. Every string is in a `Key | Tex
 | `getting_stretchy` | | info (P1) | positive | threshold_cross | one-time | |
 | `big_bubble` | | info | positive | ambient | 48 h, max 1 a day | |
 | `trait_revealed` | | info (P1) | positive | milestone | one-time per trait | |
-| `mold_found` | | attention | negative | state_enter | once | Discard it / Not yet |
+| `mold_found` | ✓ (debug) | attention | negative | state_enter | once | Discard it / Not yet |
 
 **15 events, 6 in the vertical slice.** Positive 6, neutral 6, negative 2, plus the `peak_now` variant. Tier mix: 11 info, 2 nudge, 2 attention.
 
-**Recommendation:** also build `mold_found` in the vertical slice, behind the debug time scale. It is the only loss, and its safety copy should be tested on screen early. Open decision OD-E1.
+**D-017:** `mold_found` and the memorial are also built in the vertical slice, reachable through the debug time scale, so the safety copy is tested on screen early.
 
 ---
 
@@ -56,7 +57,7 @@ Voice rules: [`narrative.md`](narrative.md) §4. Every string is in a `Key | Tex
 
 | Field | Value |
 |---|---|
-| Trigger | First real-time feed of this starter, then `rise` crosses the "noticeably risen" level (TBD sim spec). |
+| Trigger | First real-time feed of this starter, then `rise` crosses 1.25 upward ("noticeably risen", spec §14.1). |
 | Tier, cooldown | `info`, one-time per starter. Pairs with the `first_rise` milestone, which goes to the journal only. |
 | Teaches | It's alive on the real clock. The band is the reference. |
 
@@ -71,10 +72,10 @@ Voice rules: [`narrative.md`](narrative.md) §4. Every string is in a `Key | Tex
 
 | Field | Value |
 |---|---|
-| Trigger | An `at_peak` phase starts and ends while `ctx.app_foreground` is false. Payload: peak time, `peak_rise`. If the app is in the foreground when `at_peak` starts, `peak_now` fires instead. |
+| Trigger | `rise_phase` enters and leaves `at_peak` while `ctx.app_foreground` is false. Uses `rise_phase`, not the state label, because `recovering` hides the rise phase (scientist). Payload: peak time, `peak_rise`. If the app is in the foreground when `rise_phase` enters `at_peak`, `peak_now` fires instead. At most one peak per absence (no feeds while away). |
 | Tier, cooldown | `info`, once per rise cycle. |
 | Teaches | Peaks happen while you're out, and that's fine. The streaks show the high point. |
-| Rise words | From `peak_rise`. **ASSUMED** bands, scientist and game-designer to tune: `SMALL` below 1.5×, `NEAR` 1.5 to 1.9×, `DOUBLE` 1.9 to 2.2×, `BIG` above 2.2×. The same bands drive the height inspection (game-copy §6). |
+| Rise words | From `peak_rise`, bands set by the scientist (spec §14.1): `SMALL` below 1.5×, `NEAR` 1.5 to 1.85×, `DOUBLE` 1.85 to 2.4×, `BIG` 2.4× and up. A normal 1:1:1 peak (2.1 to 2.25×) reads "doubled", as King Arthur would say. The same bands drive the height inspection (game-copy §6.2). |
 | `peak_now` | Neutral toast below. Trait versions `EVENT_PEAK_NOW_<TRAIT>` are in [`narrative.md`](narrative.md) §7.3. |
 
 | Key | Text | Max |
@@ -83,7 +84,6 @@ Voice rules: [`narrative.md`](narrative.md) §4. Every string is in a `Key | Tex
 | `EVENT_PEAKED_WHILE_AWAY_AWAY_NEAR` | Nearly doubled, peaking around {time}. | 44 |
 | `EVENT_PEAKED_WHILE_AWAY_AWAY_DOUBLE` | Doubled, peaking around {time}. | 44 |
 | `EVENT_PEAKED_WHILE_AWAY_AWAY_BIG` | More than doubled, peaking around {time}. | 44 |
-| `EVENT_PEAKED_WHILE_AWAY_AWAY_TWICE` | It peaked twice while you were out. | 44 |
 | `EVENT_PEAKED_WHILE_AWAY_JOURNAL_TITLE` | Peaked while you were out | 26 |
 | `EVENT_PEAKED_WHILE_AWAY_JOURNAL_BODY` | It peaked around {time}. The streaks on the glass show how high it climbed before it fell back. | 200 |
 | `EVENT_PEAK_NOW_TOAST` | At its peak. Tall, domed and rather pleased with itself. | 60 |
@@ -115,7 +115,7 @@ The `_AWAY_` peak lines double as the journal's peak log lines, so peaks read th
 
 | Field | Value |
 |---|---|
-| Trigger | `hooch` crosses the visible threshold (TBD sim spec). Happens in `hungry` and in `dormant`, including in the fridge (scientist). |
+| Trigger | `hooch` crosses 0.10 upward (visible, spec §14.1). Happens in `hungry` and in `dormant`, including in the fridge (scientist). |
 | Tier, cooldown | `info`, 24 h. Pairs with the `first_hooch` milestone (journal only). |
 | Choices | None on the toast (toasts have no buttons). The choice is the first step of the feed sheet while hooch is present: **Pour off** (default) or **Stir in**. Strings: [`game-copy.md`](game-copy.md) §7. |
 | Outcome | A journal log line for the choice. Scientist v1: stirring in has no acid effect, it only makes the starter a little wetter. No flavor claim either way. |
@@ -127,13 +127,13 @@ The `_AWAY_` peak lines double as the journal's peak log lines, so peaks read th
 | `EVENT_HOOCH_FORMING_TOAST` | Liquid on top? That's hooch. It just means hungry. | 60 |
 | `EVENT_HOOCH_FORMING_AWAY` | A layer of hooch formed on top. | 44 |
 | `EVENT_HOOCH_FORMING_JOURNAL_TITLE` | Hooch | 26 |
-| `EVENT_HOOCH_FORMING_JOURNAL_BODY` | A gray to brownish liquid on top, called hooch. It's mostly water and alcohol from a hungry starter, and it's normal. Pour it off or stir it in, then feed. | 200 |
+| `EVENT_HOOCH_FORMING_JOURNAL_BODY` | Liquid on top, gray to brown and sometimes even black, called hooch. It's mostly water and alcohol from a hungry starter, and it's normal. Pour it off or stir it in, then feed. | 200 |
 
 ### 3.5 `back_to_strength`
 
 | Field | Value |
 |---|---|
-| Trigger | After a `very_late` feed or a fridge wake, a rise reaches at least 85% of the pre-neglect `peak_rise`. |
+| Trigger | After a `very_late` feed or a fridge wake, a rise reaches at least 85% of the pre-neglect `peak_rise` **and** `vigor_at_feed` ≥ 0.75 (spec §14.1). Without the vigor check it would fire on the first recovering feed while the pill still says "Recovering". |
 | Tier, cooldown | `info`, 24 h. Pairs with `comeback` when `starved_h` ≥ 24 (journal only). |
 | Teaches | Starters are forgiving. Normal life never ruins one. |
 
@@ -151,21 +151,21 @@ The `_AWAY_` peak lines double as the journal's peak log lines, so peaks read th
 | Trigger | Enters `unhealthy` (v0: `mold_risk` ≥ 0.5). |
 | Tier, cooldown | `attention`, once per episode. Re-armed after 24 h out of `unhealthy`. |
 | Visible signs (scientist) | Musty note under the sour smell, a dull dry skin on top, thick dark hooch, flat and sluggish, few bubbles. **Never** fuzz or pink, orange or red color. Those only appear at `moldy`. Earlier, at the watch stage, a faint musty note (always listed first) and thicker, darker hooch already show. |
-| Choices | **Feed it now**: opens the feed sheet. A feed takes it out of `unhealthy` (v0, mechanics L-9). Outcome toast below. **Look first**: opens Inspect on `surface`. Close X allowed (closing is safe). |
+| Choices | **Look first** (primary): opens Inspect on `surface`, whose card says fuzz or color means discard, and if none, feed. This is the real-world habit: look, then feed (scientist). **Feed it now**: opens the feed sheet. A feed takes it out of `unhealthy` (v0, mechanics L-9). Outcome toast below. Close X allowed (closing is safe). |
 | Teaches | Warning signs are different from hunger, and still fixable. What would mean discard. |
 | Safety | Never says "safe". Names fuzz and pink or orange as the discard signs so the player learns the real rule. Scientist reviews. |
 
 | Key | Text | Max |
 |---|---|---|
 | `EVENT_WARNING_SIGNS_TITLE` | Warning signs | 26 |
-| `EVENT_WARNING_SIGNS_BODY` | It smells musty, and it looks run down: flat, few bubbles, maybe a dry skin on top. These are warning signs, not mold. Feed it now. Fresh food gives it a clean start, and one feed usually turns it around. If you ever see fuzz, or pink or orange color, discard it. | 280 |
+| `EVENT_WARNING_SIGNS_BODY` | It smells musty, and it looks run down: flat, few bubbles, maybe a dry skin on top. These are warning signs. No mold yet. Look at the surface first: fuzz of any color, or pink or orange, means discard. If you see none, feed it now. One feed usually turns it around. | 280 |
 | `EVENT_WARNING_SIGNS_BTN_FEED` | Feed it now | 18 |
 | `EVENT_WARNING_SIGNS_BTN_LOOK` | Look first | 18 |
 | `EVENT_WARNING_SIGNS_OUTCOME_FED` | Fed through the warning signs. Look in again tomorrow. | 60 |
 | `EVENT_WARNING_SIGNS_AWAY_HOURS` | Warning signs began about {hours} hours ago. | 44 |
 | `EVENT_WARNING_SIGNS_AWAY_DAYS` | Warning signs began about {days} days ago. | 44 |
 | `EVENT_WARNING_SIGNS_JOURNAL_TITLE` | Warning signs | 26 |
-| `EVENT_WARNING_SIGNS_JOURNAL_BODY` | Warning signs showed up: a musty smell and a tired, flat look. Not mold. A feed is the fix. | 200 |
+| `EVENT_WARNING_SIGNS_JOURNAL_BODY` | Warning signs showed up: a musty smell and a tired, flat look. No mold yet. A careful look, then a feed, is the fix. | 200 |
 
 `_AWAY_HOURS` is used for 2 to 47 hours, `_AWAY_DAYS` for 2 days or more, so both plurals are always right.
 
@@ -206,7 +206,7 @@ The `_AWAY_` peak lines double as the journal's peak log lines, so peaks read th
 
 | Field | Value |
 |---|---|
-| Trigger | The first rise after leaving `fridge` (`rise` crosses the noticeably-risen level, TBD sim spec). |
+| Trigger | The first rise after leaving `fridge`: `rise` crosses 1.25 upward after a feed (spec §14.1). |
 | Tier, cooldown | `info`, once per fridge stay. Pairs with `first_wake` (journal only). |
 
 | Key | Text | Max |
@@ -220,7 +220,7 @@ The `_AWAY_` peak lines double as the journal's peak log lines, so peaks read th
 
 | Field | Value |
 |---|---|
-| Trigger | `consecutive_early_feeds` reaches 3 (fed during `freshly_fed`, `developing` or `active`). |
+| Trigger | `consecutive_early_feeds` reaches 3 (fed while `rise_phase` is `freshly_fed`, `developing` or `active`; `rise_phase`, not the state label, per the scientist). |
 | Tier, cooldown | `nudge`, 72 h. |
 | Choices | **Got it**: closes the card. No dismiss button needed. |
 | Sim effect | Scientist v1 (via `game-designer`): feeding before peak dilutes the starter, so the next peak comes **later**. It does not get weaker. The copy says exactly that. |
@@ -238,7 +238,7 @@ The `_AWAY_` peak lines double as the journal's peak log lines, so peaks read th
 
 | Field | Value |
 |---|---|
-| Trigger | At a warm location, feed-to-peak time is at most 75% of `last_counter_peak_s`. |
+| Trigger | At a warm location, the peak comes at no more than 0.85 × the 22 °C forecast for the same feed (game-mechanics §7.4). |
 | Tier, cooldown | `info`, 72 h. |
 | Teaches | Warm means faster, and hungry sooner. |
 
@@ -266,7 +266,7 @@ The `_AWAY_` peak lines double as the journal's peak log lines, so peaks read th
 
 | Field | Value |
 |---|---|
-| Trigger | State is `active` or `near_peak`, then the seeded RNG fires at p = 0.15 per eligible cycle (mechanics). The sim produces the bubble, so the jar shows it (CLAUDE.md rule 2). |
+| Trigger | `rise_phase` enters `near_peak` and `feed_u` ≥ 0.85, where `feed_u` is the sim's stored per-feed draw. That is about 15% of cycles, and fully deterministic: event rules use no RNG (ADR-013, game-mechanics §7.3). The sim produces the bubble, so the jar shows it (CLAUDE.md rule 2). |
 | Tier, cooldown | `info`, 48 h, max 1 a day. Ambient: first to be dropped from a summary. |
 | Variant pick | `EVENT_BIG_BUBBLE_TOAST_<1 + (feed_count % 3)>`. |
 
@@ -318,11 +318,11 @@ Rows are built by `ReturnSummary.build()` (mechanics §8). Narrative ordering on
 4. The "Now" row reuses the status word and hint (ux). No new string.
 5. Moments that aren't events (resting in the fridge, a quiet stretch) use the `AWAY_*` rows in [`game-copy.md`](game-copy.md) §10.
 
-## 6. Open decisions (events)
+## 6. Decisions (events)
 
-| ID | Decision | Recommendation | Owner |
-|---|---|---|---|
-| OD-E1 | Build `mold_found` and the memorial in the vertical slice, behind the debug time scale. | Yes. Safety copy should be seen on screen early. | director |
-| OD-E2 | Rise-word bands for `peak_rise`: below 1.5, 1.5 to 1.9, 1.9 to 2.2, above 2.2. | Approve as placeholders. Scientist sets real values. | scientist, `game-designer` |
-| OD-E3 | `fed_before_peak` copy now says peaks come later (dilution), per scientist v1. Resolved unless the spec changes. | Keep the event. | scientist |
-| OD-E4 | Event ids: keep `game-designer`'s ids unchanged. | Approve. They're already used across docs. | director |
+None open.
+- OD-E1: `mold_found` in the slice behind the debug time scale. Accepted, D-017.
+- OD-E2: rise-word bands. Set by the scientist (spec §14.1).
+- OD-E3: `fed_before_peak` says peaks come later (dilution). Settled with the scientist.
+- OD-E4: `game-designer`'s event ids kept.
+- OD-E5: no pink or orange tint in the MVP. Accepted, D-026. The two tint strings stay unused.

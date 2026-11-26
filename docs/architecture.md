@@ -29,7 +29,7 @@ Rules:
 1. **Only `Session.apply()` mutates the game state.** UI builds an action object and hands it over.
 2. **ui and view never reference each other.** They talk only through `Bus` signals (§3.3). That is what lets two tracks build them in parallel.
 3. sim strings are **keys**, never text. `tr()` happens in ui.
-4. Enforced by `tests/unit/sim/test_sim_purity.gd`, which scans `src/sim/**/*.gd` for forbidden tokens (`Node`, `get_tree`, `Time.`, `OS.`, `Engine.`, `Input.`, `FileAccess`, `load(`, `randi(`, `randf(`, `tr(`) and fails on any hit.
+4. Enforced by `qa-engineer`'s LINT-01, which scans `src/sim/**/*.gd` for forbidden tokens and fails on any hit: `extends Node`, `Node.new`, `get_tree(`, `Time.`, `OS.`, `Engine.`, `Input.`, `DisplayServer.`, `FileAccess`, `DirAccess`, `load(`, `preload(`, `randi(`, `randf(`, `randomize(`, `tr(`.
 
 ## 2. Directory layout (Phase 2 target)
 
@@ -67,7 +67,7 @@ spikes/        Phase 1 only, has .gdignore
 | Order | Name | Script | class_name | Role |
 |---|---|---|---|---|
 | 1 | `Bus` | `src/core/bus.gd` | none | Signals only. The ui and view contract. No state. |
-| 2 | `Session` | `src/core/game_session.gd` | `GameSession` | Owns the game state, the clock, the save store and the RNGs. The only mutator. |
+| 2 | `Session` | `src/core/game_session.gd` | `GameSession` | Owns the game state, the clock, the save store and `sim_rng`. The only mutator. |
 
 - The autoload names differ from the `class_name` on purpose. A `class_name` equal to an autoload name is a conflict.
 - `Clock`, `SaveStore` and the settings store are plain `RefCounted` objects that `Session` owns and receives through `setup()`. They are not autoloads, so tests construct them with fakes.
@@ -127,14 +127,15 @@ UI builds FeedAction ──► Session.apply(action) ──► ActionResult
    3. mutate   Sim.apply_feed(state, feed, sim_rng) / env replace / no-op for smell, inspect
    4. derive   StateDeriver.derive(state, env) → state id + rise phase
    5. history  PlayerHistory.record_action(...)
-   6. events   EventRules.evaluate(ctx, event_rng) → EventScheduler.admit(...) → ledger
+   6. events   EventRules.evaluate(ctx) → EventScheduler.admit(...) → ledger
    7. journal  JournalEntry appended
    8. save     SaveStore.save(...) (atomic, §6)
    9. signals  action_applied, state_changed, journal_appended, event_raised
   10. view     JarView: VisualMapper output → shader uniforms, tweened over 0.6 s
 ```
 
-- Every player act is an action, including `smell` and `inspect`. They change no sim variable, but they write the journal, `PlayerHistory` (seen counts) and milestone events. The readout comes back in `ActionResult.readout`.
+- Every player act is an action, including `smell` and `inspect`. They change no sim variable, but they update `PlayerHistory` (seen counts), can fire milestone events, and write the journal subject to the dedupe rule in `game-mechanics.md` §4. The readout comes back in `ActionResult.readout`.
+- A rejected action stops at step 2: no mutation, journal entry or save. The step 1 sync may still have advanced the state to `grid(now)`, which is time passing, not the action's effect.
 - Actions: `FeedAction`, `SetEnvironmentAction`, `SmellAction`, `InspectAction`, `RenameAction`, `AckEventAction`, `DiscardStarterAction` (after `moldy`: memorial, then a new starter). Fields are in `data-models.md`.
 - Actions apply at `grid(now)`, the last 60 s grid point at or before now. The journal records the real `at_unix`.
 
@@ -165,11 +166,13 @@ Let `gap = state.sim_time_unix - clock.now_unix()`.
 This amends D-013 ("latest clock time ever seen"). See ADR-006.
 
 ### 5.4 Catch-up
-`CatchUp.run(state, env, history, ledger, to_unix, utc_offset_s, event_rng, app_foreground: bool) -> CatchUpResult`, pure:
+`CatchUp.run(state, env, history, ledger, catalog, to_unix, utc_offset_s, app_foreground: bool) -> CatchUpResult`, pure. No RNG: catch-up contains no feeds, and event rules use none:
 1. Loop `Sim.step` per grid point up to `to_unix` (capped).
 2. After each step: derive, `PlayerHistory.record_step`, evaluate event rules, admit through the scheduler.
 3. Record state transitions (for the summary and the journal) and about 30 evenly spaced `VisualParams` snapshots (for the time-lapse replay).
 4. Return the result. `ReturnSummary.build(result)` picks at most 3 lines and 1 prompt.
+
+Local time inside one catch-up uses the offset read at resume for the whole window. A catch-up that spans a daylight-saving change applies quiet hours and day keys up to 1 h off for the part before the change (accepted limit). Live play reads `clock.local_utc_offset_s()` on every tick, so a change takes effect at once.
 
 ### 5.5 Tutorial demo (B6, `game-mechanics.md` §8.1 and §8.2)
 The only sped-up time a release build has, and it never touches the clock:
@@ -184,7 +187,7 @@ Cost: a toy 11-variable step loop ran **14 days in 22 ms on an Apple M4 [ran, Ma
 ### 6.1 Launch (`Session._ready`, before Main is in the tree)
 1. Parse dev flags (debug builds only): `--fixture=`, `--time-scale=`, `--perf-log=`, `--capture=`.
 2. `SaveStore.load()`: `save.json`, verify the checksum, migrate. On failure, `save.prev`. On failure, a new starter, with `meta.recovered_from` set and a calm notice.
-3. Restore the RNGs: create them, then set `state` from the saved decimal string. **Never set `seed` after `state`**, because that resets the stream **[ran]**.
+3. Restore `sim_rng`: create it, then set `state` from the saved decimal string. **Never set `seed` after `state`**, because that resets the stream **[ran]**.
 4. Apply the clock rules (§5.3) and run catch-up.
 5. Save immediately (the catch-up result is now the truth).
 6. Emit `session_ready(summary)`. UI shows "while you were away" if `summary.simulated_s >= AWAY_SUMMARY_MIN_S` (3,600 s, the return threshold agreed by `ux-designer` and `game-designer` in `game-mechanics.md` §8).
@@ -208,12 +211,12 @@ Cost: a toy 11-variable step loop ran **14 days in 22 ms on an Apple M4 [ran, Ma
 
 ## 7. Event system
 
-- **Rules** (`src/sim/events/rules/rule_<id>.gd`, each extending `EventRule`) are pure: `evaluate(ctx: EventContext, rng: RandomNumberGenerator) -> SimEvent` (or null). `ctx` holds `prev_state`, `state`, `env`, `history`, `ledger`, `now_unix`, `local_minute_of_day`, `app_foreground`, and `last_action` when the step follows an action.
+- **Rules** (`src/sim/events/rules/rule_<id>.gd`, each extending `EventRule`) are pure and deterministic: `evaluate(ctx: EventContext) -> SimEvent` (or null). `ctx` is defined in `data-models.md` §5. After an action, `ctx.prev_state` is the pre-action state.
 - **Evaluated at every grid step boundary**, live and in catch-up, and right after every action.
-- **Trigger types** (`game-designer`): `state_enter`, `threshold_cross`, `duration`, `action_outcome`, `milestone`, `calendar`, `ambient`. Only `ambient` uses the RNG.
+- **Trigger types** (`game-designer`): `state_enter`, `threshold_cross`, `duration`, `action_outcome`, `milestone`, `calendar`, `ambient`. `ambient` rules read stored per-feed values, not an RNG. For example, `big_bubble` fires when `rise_phase` enters `near_peak` and `feed_u >= 0.85` (spec §14.1). The sim produces the bubble, so the jar shows it (hard rule 2).
 - **`EventScheduler.admit(event, ledger, local_minute_of_day) -> bool`** is pure. It applies per-id cooldowns, daily caps (nudge 2, attention 1, info 4), at most 1 pending `attention`, and quiet hours 22:00 to 08:00 local (nudges are deferred with `not_before_unix`). Numbers are owned by `game-designer`.
 - **`EventLedger`** (saved) holds `next_uid`, last-fired per id, one-time flags, daily counts, and pending events.
-- **Two RNG streams**: `sim_rng` (feed jitter only) and `event_rng` (ambient events). Adding an event rule never changes the starter's outcome.
+- **One RNG**: `sim_rng`, with exactly one draw per feed (`feed_u`). Events have none, so adding an event rule can never change the starter's outcome or the RNG stream. A future rule that needs variety derives it from stored per-cycle values like `feed_u`.
 - **Presentation** is not pure and lives in ui: never interrupt an open sheet, and queue toasts.
 
 ## 8. Rendering
@@ -296,7 +299,7 @@ Command for humans and CI: **`tests/run.sh`** (owned by `qa-engineer`). It:
 - A test with zero assertions fails.
 - `quit(1)` on any failure gives exit 1.
 
-Seams for `qa-engineer`: `Clock` and `FakeClock`; `sim_rng` and `event_rng` injected; `SaveStore.new(base_dir)` plus `fault_point` (`before_tmp_write`, `mid_tmp_write`, `before_rename`, `after_rename`); `SaveStore.load_from_path()`; `--fixture=`; `Session.dump_state(path)`; pure entry points (`Sim.step`, `Sim.apply_feed`, `StateDeriver.derive`, `VisualMapper.from_state`, `EventRules.evaluate`, `EventScheduler.admit`, `SmellModel.read`, `Inspection.read`, `CatchUp.run`, `Forecast.peak_window`, `ReturnSummary.build`); `Session.on_background()` and `on_resume()`; a `time_override` uniform plus `--capture=<png>`; `--perf-log=<csv>`.
+Seams for `qa-engineer`: `Clock` and `FakeClock`; `sim_rng` injected (the only RNG); `SaveStore.new(base_dir)` plus `fault_point` (`before_tmp_write`, `mid_tmp_write`, `before_rename`, `after_rename`); `SaveStore.load_from_path()`; `--fixture=`; `Session.dump_state(path)`; pure entry points (`Sim.step`, `Sim.apply_feed`, `StateDeriver.derive`, `VisualMapper.from_state`, `EventRules.evaluate`, `EventScheduler.admit`, `SmellModel.read`, `Inspection.read`, `CatchUp.run`, `Forecast.peak_window`, `ReturnSummary.build`); `Session.on_background()` and `on_resume()`; a `time_override` uniform plus `--capture=<png>`; `--perf-log=<csv>`.
 
 ## 13. Project settings (set in the Phase 2 contracts commit)
 
@@ -330,7 +333,7 @@ Goal: at least three tracks in parallel git worktrees, with no file written by t
 | **T3 UI** | `src/ui/**`, `src/i18n/pending_ui.csv`, `tests/unit/ui/**` | `src/sim` types, `Bus`, `Session` API |
 | T4 events content (optional, can fold into T1) | `src/sim/events/rules/**`, `tests/unit/events/**` | `src/sim/**` |
 | Narrative | `src/i18n/en.csv` (generated) and its build script in `tools/i18n/` | the three narrative docs |
-| QA | `tests/run_tests.gd`, `tests/run.sh`, `tests/lib/**`, `tests/fixtures/**`, `tests/scenarios/**` | everything |
+| QA | Everything under `tests/` except `tests/unit/<track>/**`: `run_tests.gd`, `run.sh`, `runner_selftest/`, `lib/`, `fixtures/`, `golden/`, `property/`, `save/`, `clock/`, `integration/`, `ui/`, `lint/`, `visual/`, `perf/` (layout from `test-plan.md` §2) | everything |
 | Art | `assets/3d/**`, `art/**` | |
 
 ### 14.2 Shared files and their single owner

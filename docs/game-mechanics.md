@@ -9,7 +9,7 @@ Design intent: [`game-design.md`](game-design.md). Progression: [`progression.md
 | Mark | Meaning |
 |---|---|
 | **v0** | From `sourdough-scientist`'s draft v0 (message, 2026-11-26). |
-| **v1** | From the scientist's calibrated v1 answers (message, 2026-11-26). These replace v0 where both exist. Final numbers go in `starter-simulation-spec.md`, and the spec wins on biology. |
+| **v1** | From the scientist's calibrated v1 answers (message, 2026-11-26). These replace v0 where both exist. A v1 number here is only a reading aid for checking a design floor. [`starter-simulation-spec.md`](starter-simulation-spec.md) and `tools/sim-reference/sim.py` are the source and win on any difference. Peak times are cited, not copied (§2.2). |
 | **TBD (sim spec)** | Not yet given. Never invented here. |
 | **design** | A game number I own: caps, timings, UI rules. |
 
@@ -51,22 +51,16 @@ Design intent: [`game-design.md`](game-design.md). Progression: [`progression.md
 | "Tomorrow morning" | 10 to 16 h | 1:5:5 |
 
 **How the suggestion is picked:**
-- The game picks the preset whose forecast **`at_peak` start**, at the **current location**, falls inside the window. If several do, it picks the one closest to the window center. At the counter (v1), the starts are 6.1 h, about 8 h and 10.75 h, so each answer maps to exactly one preset. This is testable as BT-17.
+- The game picks the preset whose forecast **`at_peak` start**, at the **current location**, falls inside the window. If several do, it picks the one closest to the window center. At the counter, the spec §15 starts land one per window, so each answer maps to exactly one preset. This is testable as BT-17.
 - If no preset lands inside the window, it says so in plain words and suggests a location. For example: "Even 1:5:5 will peak early in the warm spot. The counter fits better."
 - In `fridge`: "It'll barely rise in the fridge. Feed it when you take it out, or feed now and let it start before it goes in." There's no blocking.
 - **Routine hint** (design): if the player's last 3 feeds were each at least 20 h apart, and the ratio's forecast peak was under 10 h, the feed sheet shows one non-blocking line, `FEED_ROUTINE_HINT` (narrative). The copy is about feeding rhythm, never about counting absences. It's shown at most once every 7 days. Why: a mismatched routine (once a day at 1:1:1) is hungry half of each day and matures about 3× slower (v1), so the game must say why rather than let it go silent.
 
-**Sim peak times** (v1, at `counter` 22 °C, white, 100%, mature):
-
-| Ratio | Peak after feeding | Peak height |
-|---|---|---|
-| 1:1:1 | 6.0 to 6.3 h | about 2.2× |
-| 1:2:2 | about 8 h | |
-| 1:5:5 | 10.75 to 11 h | |
-
-- Fed 1:5:5 at 21:00, it peaks at 08:00 to 09:00.
-- The windows above were widened to fit these, since 1:1:1 can't honestly be faster at 22 °C.
-- The sim also supports 1:10:10 (about 13 h). That's P2 only.
+**Sim peak times:** see [`starter-simulation-spec.md`](starter-simulation-spec.md) §15 (calibration table) and `tools/sim-reference/sim.py`. The spec is the source. This doc doesn't copy its numbers.
+- **Design requirement:** at `counter`, with a mature starter, white flour at 100%, each preset's `at_peak` start falls inside its window above. The scientist confirmed all three do.
+- 1:1:1 can't honestly be faster at 22 °C, so the first window starts at 4 h and ends at 7 h.
+- A 1:5:5 feed at 21:00 peaks the next morning.
+- The sim also supports 1:10:10, but that's P2 only.
 
 ### 2.3 Derived discard
 
@@ -94,7 +88,7 @@ For 1:5:5, flour and water are rounded to the nearest 5 g for readable numbers.
 
 ### 2.4 Feed timing (no grade shown)
 
-The state at feed time sets a timing class. Events, the journal and traits use it. The player never sees a score.
+The state at feed time sets a timing class. Events, the journal and traits use it. The player never sees a score. Rise-phase rows read the sim's `rise_phase`, not the state label, because `recovering` hides the phase (spec, scientist).
 
 | State at feed | Class | Sim effect | Player feedback |
 |---|---|---|---|
@@ -107,7 +101,7 @@ The state at feed time sets a timing class. Events, the journal and traits use i
 
 ### 2.5 The hooch step
 
-This is shown only when `hooch` is above a visible threshold (TBD sim spec). It is the first step of the feed sheet and has two choices:
+This is shown only when `hooch` ≥ 0.1, the spec's visible threshold (spec §15: about 17 h after a feed at the counter). It is the first step of the feed sheet and has two choices:
 - **Pour off** is the default. It sets `hooch` to 0 (v1).
 - **Stir in** sets `hooch` to 0 and raises culture hydration by 5 × hooch points, so the starter is a little runnier (v1). **No acid effect:** hooch is mostly water and alcohol (scientist, citing King Arthur). Copy must not say "more sour".
 
@@ -205,7 +199,7 @@ Mix is a plain tap, and no hold is required anywhere. During the stir beat, the 
 | `bubbles` | P0 | Close-up through the glass | Activity (`yeast`, `lab`, gas): bubble density and size | Activity level. Large bubbles high up mean near peak. |
 | `surface` | P0 | Top-down through the mouth | Dome, flat or sunken. `hooch`, `dryness` skin. Watch-stage signs (v1): thicker, darker hooch, and a dull dry skin if the cover allows. **Never fuzz or color before `moldy`.** Then mold. | Peak vs. collapse, hunger, warnings |
 | `consistency` | P1 | A spoon lifts some starter | Structure: thick, stretchy, or soupy (`maturity`, hunger, hydration) | Strength and maturity |
-| `development` | P1 | A slow orbit | Maturity stage plus how reliable recent rises were (journal) | Progress |
+| `development` | P1 | A slow orbit | Maturity stage, plus strength from `vigor`: `strong`, `steady` or `weakened` (spec §14). The sim keeps no rise history. | Progress |
 
 **Rules:**
 - No cost and no cooldown.
@@ -236,7 +230,7 @@ Mix is a plain tap, and no hold is required anywhere. During the stir beat, the 
 | `action_outcome` | The result of a player action. | `fed_before_peak` |
 | `milestone` | A one-time first. | `first_rise` |
 | `calendar` | Days since `adopted_at`. | `one_week` (progression) |
-| `ambient` | Eligible by state, then the seeded RNG decides. | `big_bubble` |
+| `ambient` | Eligible by phase, then decided by the stored per-feed draw `feed_u`. There is no RNG in event rules. | `big_bubble` |
 
 ### 7.2 Tiers
 
@@ -261,7 +255,9 @@ These are pure, in `src/sim/events/event_scheduler.gd`, with history saved in `E
 | Attention queue | If one is waiting, a new attention event replaces it **only** for `mold_found`. Otherwise it's held until the first is acknowledged. |
 | Open sheet | Nothing interrupts it, attention included. Events queue until it closes (UI layer). |
 | Same moment | When an event and a milestone fire for the same moment (for example `first_rise`), only the event shows. The milestone goes to the journal only, so there is never a double toast. |
-| Randomness | Only `ambient` rules, through the seeded RNG. |
+| Randomness | None in event rules. `ambient` rules read the sim's stored per-feed draw `feed_u` (spec §17), so events stay a pure function of state (CLAUDE.md rule 2). |
+| Thresholds | From spec §14.1: `RISE_NOTICEABLE` = rise 1.25 crossed upward after a feed, `HOOCH_VISIBLE` = hooch 0.10. Peak words: small under 1.5, near-double under 1.85, doubled under 2.4, big at 2.4 or more. |
+| Phase triggers | Triggers that mean a rise phase (`at_peak`, early feeds, `near_peak`) read `rise_phase`, never the state label. |
 
 ### 7.4 Event list
 
@@ -269,19 +265,19 @@ Narrative owns the final ids and copy in `events-catalog.md`. VS means the event
 
 | id | VS | Tier | Trigger type | Trigger (sim terms) | Cooldown | Choices |
 |---|---|---|---|---|---|---|
-| `first_rise` | ✓ | info | milestone | First real-time feed: `rise` crosses the "noticeably risen" level (TBD sim spec). | One-time | |
-| `peaked_while_away` | ✓ | info | state_enter | An `at_peak` phase starts and ends with `ctx.app_foreground` false. The payload has the peak time and `peak_rise`. Variant `peak_now` when in the foreground. | Once per rise cycle | |
+| `first_rise` | ✓ | info | milestone | After the first real-time feed, `rise` crosses `RISE_NOTICEABLE` (1.25) upward (spec §14.1). | One-time | |
+| `peaked_while_away` | ✓ | info | state_enter | `rise_phase` enters and leaves `at_peak` with `ctx.app_foreground` false. The payload has the peak time and `peak_rise`. Variant `peak_now` when in the foreground. | Once per rise cycle | |
 | `hungry_again` | ✓ | nudge | state_enter | Enters `hungry` | 12 h | Feed |
-| `hooch_forming` | ✓ | info | threshold_cross | `hooch` crosses the visible threshold (TBD sim spec) | 24 h | Pour off or stir in, inside the feed sheet |
-| `back_to_strength` | ✓ | info | action_outcome | A rise after a very_late feed or a fridge wake reaches at least 85% of the pre-neglect `peak_rise`. | 24 h | |
-| `warning_signs` | ✓ | attention | state_enter | Enters `unhealthy` (v0: `mold_risk` ≥ 0.5) | Once per episode. Re-armed after 24 h out of `unhealthy`. | Feed now |
+| `hooch_forming` | ✓ | info | threshold_cross | `hooch` crosses 0.1 (spec §15) | 24 h | Pour off or stir in, inside the feed sheet |
+| `back_to_strength` | ✓ | info | action_outcome | After a very_late feed or a fridge wake, the first cycle with `vigor_at_feed` ≥ 0.75 reaches at least 85% of `last_strong_peak_rise`. Gating on vigor stops it firing while the pill still says Recovering (scientist). | 24 h | |
+| `warning_signs` | ✓ | attention | state_enter | Enters `unhealthy` (v0: `mold_risk` ≥ 0.5) | Once per episode. Re-armed after 24 h out of `unhealthy`. | The primary is "Look first", which opens the `surface` inspect and teaches looking before feeding. The secondary is "Feed it now" (narrative). |
 | `first_acetone` | | info | milestone | The first smell result is `acetone` or `alcohol`. | One-time | |
 | `off_to_nap` | | info | state_enter | Moved to `fridge` | 24 h | |
 | `waking_up` | | info | action_outcome | The first rise after leaving `fridge` | Once per fridge stay | |
 | `fed_before_peak` | | nudge | action_outcome | `consecutive_early_feeds` reaches 3 | 72 h | |
-| `warm_and_quick` | | info | action_outcome | At a warm location, the feed-to-peak time is at most 75% of `last_counter_peak_s` | 72 h | |
+| `warm_and_quick` | | info | action_outcome | At a warm location, the feed-to-peak time is at most 0.85 × the forecast for the same feed at 22 °C (one extra forecast run). The sim's ratios at 26, 28 and 30 °C are 0.80, 0.76 and 0.73 (scientist). | 72 h | |
 | `getting_stretchy` | | info | threshold_cross | `maturity` reaches the `steady` threshold (P1; pairs with `consistency`) | One-time | |
-| `big_bubble` | | info | ambient | State is `active` or `near_peak`, then seeded RNG at p = 0.15 per eligible cycle (design) | 48 h, max 1 a day | |
+| `big_bubble` | | info | ambient | `rise_phase` enters `near_peak` and `feed_u` ≥ 0.85, the stored per-feed draw. That's 15% of cycles, deterministic (scientist). | 48 h, max 1 a day | |
 | `trait_revealed` | | info | milestone | The dominant trait is first set (P1) | One-time per trait | |
 | `mold_found` | | attention | state_enter | Enters `moldy` | Once | Discard (one action) |
 
@@ -295,7 +291,8 @@ These were sent to `tech-architect`.
 |---|---|
 | `last_fired[id]`, `one_time[id]`, `open_attention` | Every cooldown, cap and queue rule |
 | `consecutive_early_feeds` | `fed_before_peak` |
-| `last_counter_peak_s` | `warm_and_quick` |
+| `last_strong_peak_rise`: the last `peak_rise` from a cycle with `vigor_at_feed` ≥ 0.75 | `back_to_strength` |
+| `starved_h` read from the **pre-feed** state (the feed resets it) | The `comeback` milestone |
 | `smelled_descriptors`, `seen_count[result]` | The `nose_for_it` milestone and the meaning-line fade |
 | `adopted_at_unix` | Calendar milestones |
 | Rolling 14-day buckets: warm hours, cool hours, feeds, ratio sum, changes, comebacks | Traits (P1) |
@@ -311,7 +308,7 @@ These were sent to `tech-architect`.
 | Step 3 | The main screen, with at most 1 prompt: an `attention` sheet, or else the newest valid `nudge`. |
 | Selection | A pure function, `ReturnSummary.build(catch_up_result)`. |
 | Keep priority | attention > milestone > peak > hunger and hooch > other info > ambient |
-| Drop order | Ambient first, then same-kind info merged into one line ("It peaked twice"), then the oldest info. |
+| Drop order | Ambient first, then same-kind info merged into one line (for example hooch plus a sour smell becomes one hunger line), then the oldest info. A starter can't peak twice without a feed, so there are no repeated peaks to merge. |
 | Dropped items | Always written to the journal. |
 | Return to `moldy` | The time-lapse runs past the warning stages. The summary names when the warnings began. Then `mold_found`. |
 | More than 14 days away | Catch-up is capped (D-013). The summary says the time was long. A fridge starter is just `dormant`. |
@@ -347,8 +344,8 @@ At counter, loose lid, unless noted.
 | L-3 | Three days unfed: `dormant`. | 1 recovering feed, normal by feed 2 to 3 | 3 feeds or fewer | ✓ |
 | L-4 | The earliest `unhealthy` | 4.5 d at `counter`, 3.5 d at `warm_spot` | 4 d at `counter` | ✓ |
 | L-5 | The earliest `moldy` | 8.9 d at `counter`, 7.1 d at `warm_spot` | 7 d at `counter` | ✓ |
-| L-6 | From `unhealthy` onset to `moldy` | 106 h at `counter`, about 86 h at `warm_spot`. A multiplier cap guarantees at least 48 h at any temperature. | 72 h at `counter`, 48 h anywhere | ✓ |
-| L-7 | From the watch stage (faint musty note) to `moldy` | Watch at 3.1 d, so 138 h | 96 h | ✓ |
+| L-6 | From `unhealthy` onset to `moldy` | 106 h at `counter`, about 86 h at `warm_spot`. The spec guarantees at least 60 h at any temperature. | 72 h at `counter`, 48 h anywhere | ✓ |
+| L-7 | From the watch stage (faint musty note) to `moldy` | 138 h at `counter`. The spec guarantees at least 77 h at any temperature. | 96 h at `counter` | ✓ |
 | L-8 | `fridge` never molds within the 14-day catch-up cap. | 14 d: 1 recovering feed, normal on feed 2 | 2 feeds or fewer | ✓ |
 | L-9 | Feeding at any state before `moldy` lowers `mold_risk`. | Out of `unhealthy` after 1 feed, normal by feed 3 | 1 feed, 3 feeds | ✓ |
 | L-10 | No single action causes a loss. | | | design |
@@ -374,7 +371,7 @@ These are for `qa-engineer`. Scenario first, then the pass condition. "Steady st
 | BT-10 | Determinism | Same save and inputs give the same states, events and summary, byte for byte. |
 | BT-11 | Forecast | With the environment unchanged, the actual `at_peak` start falls inside the forecast window for 100% of feeds. |
 | BT-12 | Tutorial demo (B6) | From feed to `at_peak` in 90 to 120 s of wall time, at the tutorial time scale. The scale applies **only** inside B6 (§8.1). The saved starter's clock never runs at anything but 1:1. |
-| BT-13 | Taps | Feeding like last time takes 2 taps from the main screen (Feed, Mix). Returning with a pending attention event and feeding (skip the time-lapse, Feed now, Mix) takes 3 taps or fewer. |
+| BT-13 | Taps | Feeding like last time takes 2 taps from the main screen (Feed, Mix). Returning with a pending attention event and feeding (skip the time-lapse, the secondary "Feed it now", Mix) takes 3 taps or fewer. The safe path takes 4 taps, by design: skip the time-lapse, "Look first" (the surface check), "Feed now", Mix. |
 | BT-14 | Pacing, twice daily | Starting at maturity 0.2 with BT-1 care: `steady` by days 5 to 8, `mature` by days 12 to 18, `seasoned` by days 45 to 60. v1 gives days 6, 16 and 51.5. |
 | BT-14b | Pacing, once daily | Starting at maturity 0.2 with BT-2 care: each stage within 1.5× the BT-14 day. v1, with generation-weighted gain, gives days 8, 21 and 69 (1.31× to 1.34×). |
 | BT-15 | Return flow | Every catch-up gives at most 3 summary lines plus at most 1 prompt. Every dropped item appears in the journal. |
@@ -399,14 +396,14 @@ These are for `qa-engineer`. Scenario first, then the pass condition. "Steady st
 | Quiet hours | 22:00 to 08:00 | design |
 | Caps per day | info toasts 4, nudge 2, attention 1 | design |
 | Cooldowns | §7.4 | design |
-| `big_bubble` chance | 0.15 per eligible cycle | design |
+| `big_bubble` gate | `feed_u` ≥ 0.85 (15% of cycles) | design + scientist |
 | Return threshold | 60 min | design |
 | Return lines, prompts | 3, 1 | design |
 | Time-lapse length, samples | 3 to 6 s, ~30 | design + tech |
 | "Show time-lapse on return" setting | On | ux + design |
 | Meaning-line fade | After 3 views (never for warnings) | design |
 | Early-feed nudge count | 3 in a row | design |
-| `warm_and_quick` ratio | ≤ 75% of the counter time | design |
+| `warm_and_quick` ratio | ≤ 0.85 × the 22 °C forecast | design |
 | Tutorial demo speed (60 s sim steps per frame) | Set so B6 lasts 90 to 120 s | design + tech |
 | Trait window, drift window | 14 d, 14 d | design |
 
@@ -429,7 +426,7 @@ These are for `qa-engineer`. Scenario first, then the pass condition. "Steady st
 
 Also answered: maturity gain for a once-daily schedule. It is now generation-weighted (progression §2).
 
+Also settled: the `hooch` visible threshold is 0.1 (spec §15). The `first_rise` level is `RISE_NOTICEABLE` (rise 1.25, spec §14.1).
+
 **Still open:**
-- The `hooch` visible threshold.
-- The `first_rise` "noticeably risen" level.
 - Peak times for a young starter (maturity 0.2), for B6 and the first days.

@@ -85,7 +85,7 @@ Every starter has these. Traits (§7) color them but never change them.
 | Hunger, hooch, acetone (`hungry`, `collapsing`) | reassuring, practical | "That's hunger, not trouble. A feed fixes it." |
 | Cold (`dormant` in the fridge) | gentle, unbothered | "Cold and quiet. It can wait." |
 | Run down (`dormant` from neglect, `recovering`) | kind, practical | "Run down. Feed it today." |
-| Warning (`unhealthy`) | serious, kind, clear | "Warning signs. Feed it now." |
+| Warning (`unhealthy`) | serious, kind, clear | "Warning signs. Look, then feed." |
 | Loss (`moldy`) | plain, kind, final | "This is mold. Please discard it." |
 | Milestones | fond, one flourish | "First peak. Domed and very pleased with itself." |
 
@@ -101,7 +101,7 @@ Every starter has these. Traits (§7) color them but never change them.
 | Fridge | "Cold and quiet. Resting, and in no hurry." | "It's freezing to death." | Cold is a pause, not harm. |
 | Personifying | "It looks smug. It has doubled, so fair enough." | "Yay, I'm so full now, thank you!" | No first person, no speech. |
 | Baby talk | "Fed and settling in." | "Nom nom, wittle starter is full!" | Adults. Never childish. |
-| Warning signs | "It smells musty, and there's a dry skin on top. Warning signs. Feed it now." | "Hmm, it's probably fine, don't worry." | Warnings are direct. |
+| Warning signs | "It smells musty, and there's a dry skin on top. Warning signs. No mold yet. Look closely, then feed." | "Hmm, it's probably fine, don't worry." / "Musty, but not mold." | Warnings are direct, and teach the real habit: look first. Musty can come with mold, so never "not mold". |
 | Mold | "That fuzz is mold. A moldy starter can't be saved. Discard all of it." | "Just scrape off the fuzzy bit and carry on." | Never present contamination as fixable or safe. |
 | Explaining | "Peak: its tallest point, just before it falls." | "Optimal leavening window reached." | Plain language. |
 | Puns | One light pun in a name suggestion, rarely elsewhere. | "You're on a roll! Rise and shine! You knead this!" | Pun pileups read childish. |
@@ -131,7 +131,7 @@ The gloss strings are the `GLOSS_*` keys in [`game-copy.md`](game-copy.md) §12.
 | Feed | Fresh flour and water, so it has food again. |
 | Discard | The part you take out before feeding, so the jar doesn't overflow. |
 | Peak | Its tallest point after a feed, just before it falls. |
-| Hooch | Gray or brownish liquid on top. A hunger sign. |
+| Hooch | Liquid on top, gray to brown, sometimes black. A hunger sign. |
 | Ratio | Starter : flour : water by weight. 1:1:1 means equal parts. |
 | Hydration | Water ÷ flour × 100. 100% means equal weights. (P1, when hydration presets unlock.) |
 | Rubber band | Marks where it started after a feed, so you can see the rise. |
@@ -156,7 +156,7 @@ The gloss strings are the `GLOSS_*` keys in [`game-copy.md`](game-copy.md) §12.
 | Characters | Whatever the UI font renders. No emoji (font coverage). `ux-designer` and `tech-architect` set the exact filter. |
 | Empty input | Keeps the suggestion. Never an error. |
 | Profanity filter | None. Offline, single player, their kitchen. |
-| Rename later | **ASSUMED** yes, from the journal's starter page. Open decision. |
+| Rename later | Yes, in P1, from the journal's starter page (D-022). |
 | Suggestion order | Deterministic. First suggestion is `NAME_SUGGEST[(starter_seed) % 24]`. "Suggest another" steps to the next index, wrapping. `starter_seed` is the int saved when the starter is created. |
 
 ### 6.2 Naming strings
@@ -207,7 +207,7 @@ Notes: "Barm" is the old word for the yeasty foam on fermenting beer. "Mother" i
 
 ### 7.1 Rules
 
-- Four traits: `patient`, `energetic`, `sensitive`, `resilient`. **New ids, need director approval.**
+- Four traits: `patient`, `energetic`, `sensitive`, `resilient`. Approved (D-022).
 - One per starter, revealed at maturity stage `steady` through the `trait_revealed` event. How the trait is picked belongs to `game-designer` ([`progression.md`](progression.md)).
 - **Traits change wording, never biology.** A trait line describes manner or attitude only. It never states or implies speed, height, smell, timing, strength or safety.
 - **No trait variants** for status, smell, inspection, warnings, mold, or "while you were away" facts. Those stay neutral so the information is identical for everyone.
@@ -307,7 +307,7 @@ Slots: onboarding page title 26 and body 120, coach marks 60, buttons 18, badge 
 | `ONBOARD_TIMELAPSE_PEAK` | That's its peak: as tall as it gets. Time to feed it. | 60 |
 | `ONBOARD_FEED_COACH` | It's at its peak, so it's ready for a feed. Tap Feed. | 60 |
 | `ONBOARD_FEED_DISCARD` | First, the discard: take some out so it won't overflow. | 60 |
-| `ONBOARD_FEED_SCHEDULE` | More fresh flour means more food, so a later peak. | 60 |
+| `ONBOARD_FEED_SCHEDULE` | More fresh flour for the same starter means a later peak. | 60 |
 | `ONBOARD_FEED_DONE` | Fed. The rubber band marks its new starting line. | 60 |
 | `ONBOARD_HANDOFF_TITLE` | Now, the real clock | 26 |
 | `ONBOARD_HANDOFF_BODY` | From here, time runs for real. It should be at its best {window}. Look in then, or whenever suits you. | 120 |
@@ -331,7 +331,7 @@ Slots: onboarding page title 26 and body 120, coach marks 60, buttons 18, badge 
 - **No rush.** No timer, no repeated prompts, no notification about mold. The player can say "Not yet" and come back.
 - **Don't sniff it.** Smell is replaced by a short "Best not" card (scientist's request).
 
-Sources for the safety lines: King Arthur Baking says pink or orange streaks mean discard and that hooch is a hunger sign ([troubleshooting](https://www.kingarthurbaking.com/blog/2018/03/09/sourdough-starter-troubleshooting-2), [black liquid](https://www.kingarthurbaking.com/blog/2023/08/28/sourdough-starter-black-liquid)). USDA FSIS says mold "roots" can run deep in soft foods ([Molds on Food](https://www.fsis.usda.gov/food-safety/safe-food-handling-and-preparation/food-safety-basics/molds-food-are-they-dangerous)). Final authority: [`sourdough-science.md`](sourdough-science.md). **The scientist reviews every line in this section in wave B.**
+Sources for the safety lines: King Arthur Baking says pink or orange streaks mean discard and that hooch is a hunger sign ([troubleshooting](https://www.kingarthurbaking.com/blog/2018/03/09/sourdough-starter-troubleshooting-2), [black liquid](https://www.kingarthurbaking.com/blog/2023/08/28/sourdough-starter-black-liquid)). USDA FSIS says mold can reach below the surface of soft, moist foods, and bacteria can grow along with it ([Molds on Food, PDF](https://www.fsis.usda.gov/sites/default/files/media_file/2021-02/Molds_on_Food.pdf)). Final authority: [`sourdough-science.md`](sourdough-science.md). **The scientist reviews every line in this section in wave B.**
 
 ### 9.2 Flow
 
@@ -353,7 +353,7 @@ Slots: attention sheet title 26 and body 280; confirmation title 26 and body 120
 |---|---|---|
 | `MOLD_SHEET_TITLE` | This is mold | 26 |
 | `MOLD_SHEET_BODY` | There's fuzzy growth on the surface. That's mold. A moldy starter can't be saved. Mold reaches deeper than it shows, so discard all of it, even the parts that look clean. Please don't use it or taste it. Then wash the jar well. This happens, even to careful bakers. | 280 |
-| `MOLD_SHEET_BODY_TINT` | There's fuzzy growth on the surface, and pink or orange color. That's mold. A moldy starter can't be saved. Discard all of it, even the parts that look clean. Please don't use it or taste it. Then wash the jar well. This happens, even to careful bakers. | 280 |
+| `MOLD_SHEET_BODY_TINT` | There's fuzzy growth on the surface. That's mold, and the pink or orange color is spoilage too. A moldy starter can't be saved. Discard all of it, even the parts that look clean. Please don't use it or taste it. Then wash the jar well. This happens, even to careful bakers. | 280 |
 | `MOLD_BTN_DISCARD` | Discard it | 18 |
 | `MOLD_BTN_LATER` | Not yet | 18 |
 | `MOLD_FEED_BLOCKED` | Feeding can't fix mold. Please discard it. | 60 |
@@ -386,9 +386,11 @@ Slots: attention sheet title 26 and body 280; confirmation title 26 and body 120
 | `EMPTY_JAR_TITLE` | An empty jar | 26 |
 | `EMPTY_JAR_BODY` | Clean and waiting. Start again whenever you're ready. | 90 |
 
+**Tint variant:** art-director's v0 mold never shows pink or orange, so `MOLD_SHEET_BODY_TINT` has no trigger yet. It stays in the table, unused. D-026: no tint in the MVP. The rule "fuzz, or pink or orange color, means discard" is still taught in the `warning_signs` sheet and the unhealthy surface lines.
+
 **Epitaph pick (deterministic):** if a trait was revealed, use `MEMORIAL_EPITAPH_<TRAIT>`. Otherwise `MEMORIAL_EPITAPH_<1 + starter_seed % 3>`.
 
-**`{days}` in `MEMORIAL_CAUSE_UNFED`** is always 3 or more (mold needs several days unfed), so the plural is always correct. If the sim ever allows fewer, add a `_ONE` key.
+**`{days}` in `MEMORIAL_CAUSE_UNFED`** counts days since the last feed spent at `temp_c` ≥ 11 °C. Fridge days don't count toward mold (scientist). The in-game minimum is 6, so the plural is always correct.
 
 **Stat values** are numbers or short words (`{height}` such as "2.3×", a trait name). They use the 12-character value slot.
 
@@ -397,10 +399,6 @@ Slots: attention sheet title 26 and body 280; confirmation title 26 and body 120
 - **First loss:** M.'s spare in the fridge (`RESTART_BODY_FIRST`). It closes M.'s thread kindly. Agreed with `game-designer` (mechanics §8.2) and the scientist (fixture `SPARE_FROM_FRIDGE`: the mature fixture at 4 °C, `food` 0.02, `starved_h` 20, `vigor` 0.70, `hooch` 0.25): it starts cold `dormant` on the counter and warms up. The first feed gives `recovering`, and the rise is normal by the second. That reuses `REACT_FRIDGE_OUT_NEUTRAL`, `waking_up` and `back_to_strength`, so the restart is an active beat, not a wait.
 - **Later losses:** "a spoonful from a friend" (`RESTART_BODY_LATER`), starting at `at_peak`, so a second loss never brings another wait.
 
-## 10. Open decisions (narrative)
+## 10. Decisions (narrative)
 
-| ID | Decision | Recommendation | Owner |
-|---|---|---|---|
-| OD-N1 | Trait ids `patient`, `energetic`, `sensitive`, `resilient`. | Approve. | director |
-| OD-N2 | The journal frame: M., the previous keeper, signs the first note and the first restart only. | Approve. Zero scope cost. | director |
-| OD-N5 | Rename the starter later from its journal page. | Yes. Players regret names. | `ux-designer` |
+None open. OD-N1 (traits), OD-N2 (the M. frame) and OD-N5 (renaming, P1) were accepted in D-022. OD-N3 (skip path starts at `at_peak`) and OD-N4 (M.'s spare starts cold `dormant`) were settled with `game-designer` (game-mechanics §8.1, §8.2).

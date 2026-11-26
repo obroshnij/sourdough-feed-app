@@ -227,7 +227,9 @@ Counted from the main screen being visible. App-icon taps aren't counted. QA ass
 | Understand the status | Status pill → explainer | 1 | 1 |
 | **Feed like last time** | Feed → Mix ("Mix like last time") | **2** | **3** |
 | Feed like last time after a return | Skip the time-lapse → Feed → Mix | 3 | 3 |
-| Feed from an attention or nudge | (Skip) → Feed now → Mix | 3 | 3 |
+| Feed from a nudge (`hungry_again`) | (Skip) → Feed now → Mix | 3 | 3 |
+| Feed from `warning_signs`, quick (secondary button) | (Skip) → Feed it now → Mix | 3 | 3 |
+| Feed from `warning_signs`, safe path (primary button) | (Skip) → Look first → Feed now (on the surface result) → Mix | 4 | 4. The extra tap is deliberate: the safety check comes first (scientist's review) |
 | Feed with a different ratio | Feed → ratio option → Mix | 3 | 4 |
 | Feed with a different ratio and flour | Feed → ratio → flour → Mix | 4 | 4 |
 | Smell | Smell (the result card appears by itself) | 1 | 1 |
@@ -357,7 +359,14 @@ Tapping a chip moves the camera (500 ms, ease-in-out cubic). The camera then hol
                Lots of small bubbles all the way up the glass.   ← observation, 90 chars max
                It's busy and rising.                             ← meaning, 90 chars max, optional
                [ Smell it ]                                      ← only when ambiguous (§9)
+               [ Feed now ]                                      ← only when opened from warning_signs
 ```
+
+**Opened from `warning_signs`** ("Look first"):
+- The inspect sheet replaces the attention sheet and goes straight to the `surface` result.
+- The result says what the sim shows, then the check rule: fuzz or color means discard, and none means feed.
+- A primary "Feed now" button swaps this sheet for the feed sheet.
+- Closing without feeding is allowed. The status pill keeps showing `unhealthy`, and the attention event isn't shown again.
 
 | Kind | Camera target | Framing | Extra animation |
 |---|---|---|---|
@@ -393,7 +402,7 @@ Three layers, always in agreement because all three read the same sim state:
 | `hungry` | empty bowl | watch | low and loose, few bubbles, maybe thin gray hooch | Hungry. A feed will help. |
 | `dormant` | crescent moon | rest | flat and still, hooch common | Resting. Cold slows it down. |
 | `recovering` | half sun with rays | rest | like its rise phase, but lower and slower | Getting its strength back. |
-| `unhealthy` | wilted sprout | care (deep honey, 3 pt border, filled icon) | dull dry skin, thick dark hooch, flat, almost no bubbles | Needs care. Feed it today. |
+| `unhealthy` | wilted sprout | care (deep honey, 3 pt border, filled icon) | dull dry skin, thick dark hooch, flat, almost no bubbles | Warning signs. Look, then feed |
 | `moldy` | octagon with ! | stop (filled pill, cream word) | fuzzy spots, maybe a pink or orange tint | Mold. This starter must go. |
 
 **Red belongs to mold only.** Inside the jar, pink, orange and red mean discard, so the UI uses no red-family tone for anything recoverable (art-director). `unhealthy` is a deeper honey than `hungry`. It's told apart from hungry by its icon, its word and a heavier border, not by hue.
@@ -436,7 +445,7 @@ Three layers, always in agreement because all three read the same sim state:
 | `hungry_again` | nudge, with "Feed now" |
 | `hooch_forming` | info (its choice lives in the feed sheet) |
 | `back_to_strength` | info |
-| `warning_signs` | attention, with "Feed now" |
+| `warning_signs` | attention. Primary (bottom): "Look first", which opens the `surface` check (§10). Secondary: "Feed it now" (narrative-designer, after the scientist's safety review) |
 | `mold_found` | attention (later) |
 
 **`mold_found`:**
@@ -586,7 +595,7 @@ art-director adopted these hexes unchanged as the UI palette (art-direction.md).
 
 The first draft's terracotta care tone (#A4482C) was dropped: it was red-family.
 
-**Night surface** (the scene follows the local time of day; darkest backdrop about #1A1310, per art-director): sheets and cards switch to `surface_night` #EDE3D2 to cut glare, and the HUD plate uses it at alpha 0.94.
+**Night surface** (the scene follows the local time of day; darkest backdrop about #1A1310, per art-director): sheets and cards switch to `surface_night` #EDE3D2 to cut glare, and the HUD plate uses it at alpha 0.94. The switch cross-fades on the same blend factor as art-director's evening preset (art-direction.md §3).
 
 | On surface_night #EDE3D2 | ink | ink_muted | accent | outline | good / watch / care / rest / stop | disabled |
 |---|---|---|---|---|---|---|
@@ -721,7 +730,7 @@ These are hard maximums in characters, spaces included. They were computed on a 
 
 | Item | Waiting on |
 |---|---|
-| Icon set (11 status, 5 action, 5 inspection, on a 24 pt grid) | art-director (§17) |
+| Production icon SVGs: 21 icons, each with an outline and a filled variant, 42 files | art-director, Phase 2. Style rules are in art-direction.md §11. The status shapes in §11 here are the brief, and each must stay distinct in grayscale |
 | Fraunces width measurement before it's adopted for the name | needs a font download (approval) |
 | Rubber band at the fed mark as a jar element | art-director, sourdough-scientist |
 | Yaw limit (±70° or unlimited), depending on whether the set reads at 360° | art-director |

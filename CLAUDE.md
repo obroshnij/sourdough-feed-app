@@ -13,7 +13,7 @@ A cozy 3D virtual pet for iOS and Android. The player keeps a living sourdough s
 | [`production/board.md`](production/board.md) | Who is doing what right now. |
 | `.claude/agents/` | The studio's specialist agents and the shared team contract. |
 
-**Status:** Phase 1 (research and design). There is no game code yet, only throwaway spikes in `spikes/`.
+**Status:** Phase 1 (research and design) is consolidated on branch `phase-1-design` and waiting for the user's review. There is no game code yet, only throwaway spikes in `spikes/`. Start with [`docs/mvp-scope.md`](docs/mvp-scope.md) and [`docs/roadmap.md`](docs/roadmap.md).
 
 ## Toolchain (verified 2026-11-26)
 
@@ -34,6 +34,18 @@ Only commands that have actually been run go here.
 ```bash
 /Applications/Godot.app/Contents/MacOS/Godot --version      # 4.7.2.stable.official.ed1daf0bf
 /Applications/Blender.app/Contents/MacOS/Blender --version  # Blender 5.3.0
+
+# Reference simulation: checks test vectors V1 to V20 against the spec (about 3 s)
+python3 -I tools/sim-reference/sim.py vectors   # ends "Checks: 243 run, 0 failed", exit 0; exit 1 on any miss
+
+# Copy checker, the en.csv build gate: 612 strings, "OK: lengths, keys, em dashes, banned words..." and exit 0
+python3 -I tools/i18n/check_copy.py .
+
+# Jar GLB contract and triangle budgets: "PASS: contract nodes ..." and exit 0
+python3 -I art/blender/scripts/verify_glb.py assets/3d/jar_v0.glb
+
+# Rebuild the jar .blend, GLB and preview renders (about 100 s, run by art-director)
+/Applications/Blender.app/Contents/MacOS/Blender -b -P art/blender/scripts/build_jar.py
 ```
 
 ## Hard rules

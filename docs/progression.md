@@ -19,7 +19,7 @@ The stage ids are proposed and wait on the director (game-design OD-7). "Seasone
 
 | Stage | `maturity` (v1) | Day reached from 0.2, twice daily 1:2:2 (v1) | Once daily 1:5:5 (v1) | What the player sees (the sim decides how) | Introduced at this stage |
 |---|---|---|---|---|---|
-| `young` | below 0.33 | Day 0. The gifted starter begins at 0.2. | Day 0 | Uneven rises, smaller peaks, sometimes a `cheesy` smell | The P0 set |
+| `young` | below 0.33 | Day 0. The gifted starter begins at 0.2. | Day 0 | A little slower and lower for now, sometimes a `cheesy` smell (the sim doesn't vary young rises) | The P0 set |
 | `steady` | 0.33 | Day 6 | Day 8 | Reliable rise and fall | Trait reveal. P1: `rye`, hydration presets, `window_sill`, `consistency` and `development` chips |
 | `mature` | 0.50 | Day 16 | Day 21 | Reliably doubles ("ready to bake") | P1: `spelt`, `proofing_box` |
 | `seasoned` | 0.83 | Day 51.5 | Day 69 | Robust (game label) | P2: containers |
@@ -75,11 +75,11 @@ Milestones are one-time. Each writes a journal entry. If a milestone fires at th
 | `first_feed` | Starter | P0 | First real-time feed (B7) |
 | `first_rise` | Starter | P0 | Paired with the `first_rise` event |
 | `first_peak` | Starter | P0 | First real-time `at_peak`, seen or not |
-| `first_double` | Starter | P0 | `peak_rise` ≥ 2.0 for the first time |
+| `first_double` | Starter | P0 | `peak_rise` ≥ 1.85 for the first time, matching the spec's "doubled" words. Whole wheat and spelt peak at 1.91×. |
 | `first_hooch` | Starter | P0 | `hooch_forming` first fires |
 | `first_nap` | Starter | P0 | First move to `fridge` |
 | `first_wake` | Starter | P0 | Paired with the `waking_up` event |
-| `comeback` | Starter | P0 | `back_to_strength` after a feed with `starved_h` ≥ 24 |
+| `comeback` | Starter | P0 | `back_to_strength` after a feed whose **pre-feed** `starved_h` was ≥ 24 |
 | `rescued` | Starter | P0 | Out of `unhealthy` after a rescue feed |
 | `nose_for_it` | Player | P0 | 4 distinct smell descriptors smelled |
 | `stage_steady`, `stage_mature`, `stage_seasoned` | Starter | P0 | The stage is reached. `stage_mature` reads "ready to bake". |

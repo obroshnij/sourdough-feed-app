@@ -12,7 +12,7 @@ Sources: `starter-simulation-spec.md` v1 (§1, §12, §16, §17), `game-designer
 | Time | Absolute times are `int` Unix seconds, UTC, suffix `_unix`. Durations are `float` seconds (suffix `_s`) or hours (suffix `_h`) as noted |
 | Units | Grams `_g`, Celsius `_c`, percent `_pct`, meters `_m`. Unitless 0..1 fields say so |
 | Ranges | The sim clamps every stored float to its range after each step. A test asserts it (property test) |
-| Serialization | Each class has `to_dict() -> Dictionary` and `static from_dict(d: Dictionary) -> <Class>`. `from_dict` converts numbers explicitly (`int(d.x)`), because JSON gives back every number as a float **[ran]** |
+| Serialization | Each class has `to_dict() -> Dictionary` and `static from_dict(d: Dictionary) -> <Class>`. `from_dict` converts numbers explicitly (`int(d.x)`), because JSON gives back every number as a float **[ran]**. It checks `typeof()` before every read and returns null on a missing key or wrong type. Assigning a wrong-typed Variant to a typed variable logs a script error **[ran]**, which the test runner's Logger counts as a failure, so a corrupt file must fail silently |
 | 64-bit ints | RNG seeds and states are saved as **decimal strings**. As JSON numbers they lose precision above 2^53 **[ran]** |
 | Text | No player-facing text in data. Keys only (`architecture.md` §10). The player's starter name is the one exception |
 
@@ -42,12 +42,13 @@ Sim variables follow `starter-simulation-spec.md` §1 **v1** exactly (names, uni
 | `starved_h` | float | weighted h | 0..336 | Temperature-weighted hours since food ran out. Reset by a feed | spec |
 | `mold_risk` | float | 0..1 | 0..1 | Watch 0.3, warning 0.5, mold 1.0 | spec |
 | `moldy` | bool | | | Latched when `mold_risk` reaches 1.0. Never cleared | spec |
-| `temp_c` | float | °C | -5..45 | The starter's own temperature. Lags the environment (1.5 h time constant) | spec |
+| `temp_c` | float | °C | 0..40 | The starter's own temperature. Lags the environment (1.5 h time constant). The environment input is clamped to 0..40 too | spec |
 | `since_feed_s` | float | s | >= 0 | Time since the last feed. Relative, so rebasing (§2.1) never touches it | spec |
 | `mass_g` | float | g | >= 1 | Starter in the jar. Changes only at feeds | spec |
 | `culture_hydration` | float | % | 40..200 | Water / flour × 100 of the culture, blended at each feed | spec |
 | `flour_mix` | `Dictionary[StringName, float]` | share | each 0..1, sum 1 | Flour composition, blended at each feed | spec |
-| `feed_jitter` | float | multiplier | 0.95..1.05 | `sim_rng.randf_range` once per feed (never `randfn`), stored | spec |
+| `feed_u` | float | 0..1 | [0, 1) | The one uniform draw per feed, `sim_rng.randf()` (never `randfn`), stored. Also drives `big_bubble` (spec §14.1) | spec |
+| `feed_jitter` | float | multiplier | 0.95..1.05 | `0.95 + 0.10 * feed_u`, stored | spec |
 
 **Derived, never stored** (functions on `Sim` and `StateDeriver`): `rise_rate` (from the §7 equations, so no previous-step field is needed), `gas`, `ph`, `ferm(temp_c)`, `activity`, `state` id, `rise_phase`, the smell set.
 
@@ -69,6 +70,7 @@ class_name DerivedState extends RefCounted
 var state: StringName        # one of the 11 canonical ids
 var rise_phase: StringName   # always a rise-phase id, even when state is recovering or hungry
 var ferm: float              # 0..1, ferm(temp_c) from spec §3
+var dormant_cause: StringName  # &"cold" or &"starved" when state is dormant (cold wins), else &""
 var activity: float          # 0..1
 ```
 
@@ -136,16 +138,17 @@ The UI builds `FeedAction` from the player's ratio, flour and hydration choices 
 `next_uid: int`, `last_fired_unix: Dictionary[StringName, int]`, `once_flags: Dictionary[StringName, bool]`, `day_key: String` (local `YYYY-MM-DD`), `day_counts: Dictionary[StringName, int]` (per tier, current local day only), `pending: Array[SimEvent]` (cap 20; the oldest `info` is dropped first).
 
 ### `EventContext` (not saved)
-`prev_state`, `state: StarterState`, `derived: DerivedState`, `env`, `history: PlayerHistory`, `ledger`, `now_unix`, `local_minute_of_day`, `app_foreground: bool`, `last_action: GameAction` (null on plain steps).
+`prev_state`, `state: StarterState`, `derived: DerivedState`, `env`, `history: PlayerHistory`, `ledger`, `now_unix`, `local_minute_of_day`, `app_foreground: bool`, `last_action: GameAction` (null on plain steps), `catalog` (for `Forecast` calls such as `warm_and_quick`'s 22 °C run).
+- On a step that follows an action, `prev_state` is the state **before** the action (`comeback` reads its `starved_h`). On a plain step, it is the state one step earlier.
+- No RNG. Rules are deterministic functions of the context. Phase triggers read `derived.rise_phase`, not `derived.state`.
 
 ### `PlayerHistory` (saved; counters requested by `game-designer`)
 | Field | Type | Used by |
 |---|---|---|
 | `consecutive_early_feeds` | int | `fed_before_peak` |
-| `last_counter_peak_s` | float | `warm_and_quick` |
+| `last_strong_peak_rise` | float | `back_to_strength`: the last `peak_rise` from a cycle with `vigor_at_feed >= 0.75` |
 | `smelled_descriptors` | `Dictionary[StringName, bool]` | `nose_for_it` milestone |
 | `seen_counts` | `Dictionary[StringName, int]` | Meaning-line fade after 3. Keys `smell.<id>`, `inspect.<kind>.level_<n>` |
-| `starved_h_at_last_feed` | float | `comeback` milestone. Recorded before the feed applies |
 | `recent_feed_unix` | `Array[int]` (newest last, cap 3) | Feed-sheet routine hint (gaps between the last 3 feeds) |
 | `daily` | `Array[DailyBucket]` (P1) | Traits. Ring of 14: `day_key`, `hours_warm` (>= 24 °C), `hours_cool` (<= 18 °C), `feeds`, `ratio_sum`, `changes`, `comebacks` |
 
@@ -155,6 +158,7 @@ The UI builds `FeedAction` from the player's ratio, flour and hydration choices 
 | Field | Type | Notes |
 |---|---|---|
 | `uid` | int | |
+| `starter_id` | String | Which starter. The journal outlives a starter (memorial, then a new one) |
 | `at_unix` | int | Real time of the act (not grid time) |
 | `kind` | StringName | `feed`, `environment`, `smell`, `inspect`, `event`, `state_change`, `milestone`, `rename`, `memorial` |
 | `state_id` | StringName | State at that moment |
@@ -162,7 +166,7 @@ The UI builds `FeedAction` from the player's ratio, flour and hydration choices 
 | `args` | Dictionary | Primitives for `tr(key).format(args)` |
 | `data` | Dictionary | Facts, for example a feed's grams, ratio and hydration |
 
-Cap: 400 entries. On overflow, drop the oldest `state_change` entries first, then `inspect` and `smell`. Never drop `memorial` or `milestone`.
+Cap: 400 entries. On overflow, drop the oldest `state_change` entries first, then `inspect` and `smell`, then the oldest of any other kind. Never drop `memorial` or `milestone`. Smell and inspect entries also follow the dedupe rule in `game-mechanics.md` §4 (once per descriptor per rise cycle).
 
 ### `Memorial` (saved list)
 `starter_id`, `name`, `born_unix`, `ended_unix`, `feeds_count: int`, `cause: StringName` (`mold`).
@@ -189,6 +193,7 @@ Every field maps to a starter-shader uniform **with the same name**. Mapping rul
 | `fleck` | float | 0..1 | Bran flecks (whole_wheat, rye) |
 | `dullness` | float | 0..1 | `unhealthy` look, before any mold (art and scientist decide) |
 | `mold` | float | 0..1 | Nonzero **only** when the state is `moldy` (hard rule 2) |
+| `big_bubble` | float | 0..1 | Nonzero for the cycle's big bubble: from the step `rise_phase` enters `near_peak` while `feed_u >= 0.85` (spec §14.1). The look and the decay are art's |
 | `time_override` | float | -1 or >= 0 | -1 = use shader `TIME`. Tests and captures set a fixed value |
 
 Non-uniform fields: `cover: StringName` (which lid node is visible).
@@ -249,10 +254,17 @@ Renames use `DirAccess.open("user://saves").rename(...)`, **not** `DirAccess.ren
 Fault points for tests (`SaveStore.fault_point`): `before_tmp_write`, `mid_tmp_write` (writes half the bytes, then stops), `before_rename` (before step 2), `after_rename` (between steps 2 and 3).
 
 ### 9.4 Load
-Try in order: `save.json`, `save.tmp`, `save.prev`. The first file that passes all of these checks wins: header parses, `format` matches, `version <= CURRENT`, byte length and sha256 match, payload parses, migration succeeds, and `from_dict` succeeds. If none passes, first move every candidate file to `user://saves/quarantine/<unix>_<name>` (keep the newest 5 sets), then start a new starter with `meta.recovered_from = "quarantine"`. A decoder or migration bug in an update then costs nothing permanent, because a later patch can recover the files (`qa-engineer` SAVE-06). A file that fails while others pass is also quarantined, never deleted. A file with `version > CURRENT` is never overwritten: it is moved to quarantine as well.
+Mechanics (all silent on bad input, so no engine error is logged):
+- Read with `FileAccess.get_file_as_bytes()` (silent when the file is missing **[ran]**). Split at the first `0x0A` byte.
+- Hash the raw payload bytes with `HashingContext` (SHA-256). This equals `payload_text.sha256_text()` at write time **[ran]**. Decode to text only after the hash matches, because invalid UTF-8 decodes silently into a different string **[ran]**.
+- Parse with `JSON.new().parse()` and check the returned `Error`. **Never `JSON.parse_string()`**: it logs an engine error on bad JSON **[ran]**.
+
+Try in order: `save.json`, `save.tmp`, `save.prev`. If the winner is `save.tmp`, rename it to `save.json` at once, so the loaded file is the trusted `save.json` before any new write can overwrite `save.tmp`. The first file that passes all of these checks wins: header parses, `format` matches, `version <= CURRENT`, byte length and sha256 match, payload parses, migration succeeds, and `from_dict` succeeds. If none passes, first move every candidate file to `user://saves/quarantine/<unix>_<name>` (keep the newest 5 sets), then start a new starter with `meta.recovered_from = "quarantine"`. A decoder or migration bug in an update then costs nothing permanent, because a later patch can recover the files (`qa-engineer` SAVE-06). A file that fails while others pass is also quarantined, never deleted. A file with `version > CURRENT` is never overwritten: it is moved to quarantine as well.
 
 ### 9.5 Migration
-`SaveMigrations.migrate(payload: Dictionary, from_version: int) -> Dictionary` runs pure steps `_v1_to_v2`, `_v2_to_v3` and so on in order. The next save writes the current version. Every released version keeps a fixture forever in `tests/fixtures/saves/v<N>_*.json`, and a test loads each one.
+`SaveMigrations.migrate(payload: Dictionary, from_version: int) -> Dictionary` runs pure steps `_v1_to_v2`, `_v2_to_v3` and so on in order. The next save writes the current version. Every released version keeps a fixture forever in `tests/fixtures/saves/v<N>_*.json`, and a test loads each one. Those are full save files, with header and checksum.
+
+Dev fixtures: `--fixture=<path>` (debug builds only) and `SaveStore.load_from_path(path)` accept either a full save file or a **bare payload** JSON with no header line, so QA and the tracks can hand-write fixtures. A bare payload skips the checksum and still runs migration and `from_dict`.
 
 ### 9.6 Example payload v1 (synthetic values, pretty-printed here; the real file is one compact line)
 
@@ -263,20 +275,18 @@ Try in order: `save.json`, `save.tmp`, `save.prev`. The first file that passes a
   "events": {"day_counts": {"info": 1, "nudge": 0, "attention": 0}, "day_key": "2026-11-26",
              "last_fired_unix": {"peak_now": 1795640400}, "next_uid": 8,
              "once_flags": {"first_feed": true}, "pending": []},
-  "history": {"consecutive_early_feeds": 0, "daily": [], "last_counter_peak_s": 17400.0,
+  "history": {"consecutive_early_feeds": 0, "daily": [], "last_strong_peak_rise": 2.2,
               "recent_feed_unix": [1795536000, 1795579200, 1795622400],
-              "seen_counts": {"smell.fresh_yeasty": 2}, "smelled_descriptors": {"fresh_yeasty": true},
-              "starved_h_at_last_feed": 0.0},
+              "seen_counts": {"smell.fresh_yeasty": 2}, "smelled_descriptors": {"fresh_yeasty": true}},
   "journal": [{"args": {}, "at_unix": 1795622411, "data": {"flour_g": {"white_bread": 50.0},
                "kept_g": 50.0, "water_g": 50.0}, "kind": "feed", "state_id": "collapsing",
                "text_key": "journal.feed.basic", "uid": 7}],
   "memorials": [],
   "meta": {"app_version": "0.2.0", "clock_reanchors": 0, "created_unix": 1795500000,
            "recovered_from": "", "save_count": 41, "saved_unix": 1795651233},
-  "rng": {"event_seed": "123456789", "event_state": "-4117932630476122483",
-          "sim_seed": "987654321", "sim_state": "5043351203278607731"},
+  "rng": {"sim_seed": "987654321", "sim_state": "5043351203278607731"},
   "starter": {"acid": 0.42, "born_unix": 1795500000, "culture_hydration": 100.0,
-              "dryness": 0.05, "feed_jitter": 1.02, "flour_mix": {"white_bread": 1.0},
+              "dryness": 0.05, "feed_jitter": 1.02, "feed_u": 0.7, "flour_mix": {"white_bread": 1.0},
               "food": 0.18, "food_at_feed": 0.67, "hooch": 0.0, "id": "a3f09c1e5b7d2468",
               "lab": 0.95, "mass_g": 150.0, "maturity": 0.61, "mold_risk": 0.0,
               "moldy": false, "name": "Dough Nut", "peak_rate": 0.31, "peak_rise": 2.2,

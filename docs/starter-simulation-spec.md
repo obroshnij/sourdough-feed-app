@@ -2,9 +2,11 @@
 
 Owner: `sourdough-scientist`. This is the authority for every starter number. Science claims behind it live in [`sourdough-science.md`](sourdough-science.md) (cited as **SCI §n**).
 
-**Status:** v1, Phase 1. Every equation below was run in a throwaway Python model (60 s explicit Euler) and the numbers in §15 and §18 come from that run. Readout tables in §14 were derived from the same curves but the readout functions themselves were not coded yet. Each number is marked **sourced** (with an SCI reference) or **tuned** (tuned for game).
+**Status:** v1, Phase 1. Every equation below is implemented in the reference model [`tools/sim-reference/sim.py`](../tools/sim-reference/sim.py) (60 s explicit Euler, the §7 step order), and the numbers in §15 and §18 come from it. Regenerate them with `python3 -I tools/sim-reference/sim.py all`. Readout tables in §14 were derived from the same curves but the readout functions themselves were not coded yet. Each number is marked **sourced** (with an SCI reference) or **tuned** (tuned for game).
 
-Conventions: grams, °C, seconds in data; rates below are written **per hour**, so multiply by `dt_s / 3600`. `clamp(x, a, b)` limits x to [a, b]. All functions are pure: `step(state, env, dt_s) -> state`. No engine calls, no hidden randomness.
+Conventions: grams, °C, seconds in data; rates below are written **per hour**, so multiply by `dt_s / 3600`. `clamp(x, a, b)` limits x to [a, b]; one-argument `clamp(x)` means [0, 1]. Rate thresholds such as `rise_rate > 0.02` are in ×/h. All functions are pure: `step(state, env, dt_s) -> state`. No engine calls, no hidden randomness.
+
+**Domain:** `T_env` is clamped to [0, 40] °C before use. In-game locations only use 4 to 30 °C; the wider domain exists for fuzz tests, and every function below stays finite and non-negative in it.
 
 ---
 
@@ -30,12 +32,13 @@ Conventions: grams, °C, seconds in data; rates below are written **per hour**, 
 | `starved_h` | weighted h | 0..336 | stored | Temperature-weighted hours since food ran out. Reset by a feed. |
 | `mold_risk` | 0..1 | 0..1 | stored | Mold conditions. Watch 0.3, warning 0.5, mold 1.0. |
 | `moldy` | bool | | stored | Latched when `mold_risk` reaches 1.0. Never cleared. |
-| `temp_c` | °C | -5..45 | stored | Temperature of the starter itself. Lags the environment. |
+| `temp_c` | °C | 0..40 | stored | Temperature of the starter itself. Lags the environment. |
 | `since_feed_s` | s | ≥ 0 | stored | Time since the last feed. |
 | `mass_g` | g | ≥ 1 | stored | Starter in the jar. Changes only at feeds. |
 | `culture_hydration` | % | 40..200 | stored | Water ÷ flour of the culture, blended at each feed. |
 | `flour_mix` | share per flour id | sums to 1 | stored | Flour composition of the culture, blended at each feed. |
-| `feed_jitter` | × | 0.95..1.05 | stored | Per-feed rate multiplier (§17). |
+| `feed_u` | 0..1 | [0, 1) | stored | The uniform draw made at the last feed (§17). |
+| `feed_jitter` | × | 0.95..1.05 | stored | Per-feed rate multiplier, = 0.95 + 0.10 × `feed_u` (§17). |
 | `rise_rate` | ×/h | | derived | d rise / dt from §7. No `prev_rise` needed. |
 | `gas` | relative | | derived | Gas production (§7). Drives bubbles. |
 | `state`, `rise_phase` | id | | derived | §12. |
@@ -80,7 +83,7 @@ phi_y(T) = CTMI(T; 8, 27, 36)          yeast growth       sourced (SCI §2, Gän
 phi_l(T) = CTMI(T; 3.5, 32.5, 41)      LAB growth         sourced (SCI §2, Gänzle 1998)
 ferm(T)  = CTMI(T; -2, 34, 45) / CTMI(24; -2, 34, 45)       fermentation: food use, gas, acid, hooch   tuned
 dec(T)   = 2.2^((T - 24)/10), times (45 - T)/11 above 34 C  decay: starvation clock, vigor loss, death  tuned
-mold_t(T)= clamp(0.05 + 0.05 (T - 3), 0, 1.6) for T > 3, else 0.05 T/3   mold conditions   tuned
+mold_t(T)= clamp(0.05 + 0.05 (T - 3), 0, 1.6) for T > 3, else max(0, 0.05 T/3)   mold conditions   tuned
 
 temp_c <- temp_c + (T_env - temp_c)(1 - exp(-dt_h / 1.5))   starter warms or cools with a 1.5 h time constant
 ```
@@ -123,7 +126,7 @@ Evaluated before the reset. Maturity first: if `peak_rise ≥ 1.5` and `vigor �
 total       = kept_g + flour_g + water_g
 p           = kept_g / total                               inoculum fraction
 kept_flour  = kept_g × 100 / (100 + culture_hydration);  kept_water = kept_g - kept_flour
-if stir_in:   kept_water += 5 × hooch × kept_flour / 100   (+5 hydration points per unit hooch; tuned, untested)
+if stir_in:   kept_water += 5 × hooch × kept_flour / 100   (+5 hydration points per unit hooch; tuned)
 food        = (kept_flour × food + flour_g) / (kept_flour + flour_g)
 yeast, lab  = max(0.001, x × p)
 acid        = acid × p
@@ -131,8 +134,9 @@ culture_hydration = (kept_water + water_g) / (kept_flour + flour_g) × 100
 flour_mix   = flour-weighted blend;  mass_g = total
 reset: rise = 1, peak_rise = 1, peak_rate = 0, hooch = 0, dryness = 0, starved_h = 0, since_feed_s = 0
 mold_risk   = 0.3 × mold_risk                           (only if not moldy)
-food_at_feed = food;  vigor_at_feed = vigor;  feed_jitter = rng draw (§17)
+food_at_feed = food;  vigor_at_feed = vigor;  feed_u, feed_jitter = rng draw (§17)
 ```
+`pour_off` and `stir_in` both end with hooch = 0. `pour_off` has no other sim effect (journal only). `stir_in` adds a little water: at hooch 0.46 it raised culture hydration from 100.0 to 100.8% and changed the next peak by under 0.03 h (V20). Neither choice changes acid or flavor.
 Minimum keep is 1 g; it is simply a big dilution (1 g + 50 g flour + 50 g water peaks in about 18 h at 22 °C). Maximum mass is the container's job (UI rule), not the sim's.
 
 ## 7. Rate equations (per hour)
@@ -163,14 +167,23 @@ d vigor = -0.0075 × dec                           if starving and starved_h > 8
 d dryness = 0.045 × cover_dry × container_dry × (1 - RH/100) × (1 - dryness) × min(1.5, dec)
 d mold_risk: see §10
 ```
-After each step: clamp every variable to its §1 range, then `peak_rise = max(peak_rise, rise)`, `peak_rate = max(peak_rate, d rise)`, and update `temp_c`. While `moldy`, only `since_feed_s` advances.
+**Per-step procedure** (simultaneous explicit Euler, `dt_h = 1/60`):
+1. Clamp `T_env` to [0, 40]. If `moldy`, add 60 to `since_feed_s` and stop.
+2. Evaluate every rate above from the **start-of-step** state, using the start-of-step `temp_c`. `starving` is also decided from the start-of-step `food`.
+3. New value = old value + rate × dt_h, for every variable at once.
+4. Clamp every variable to its §1 range.
+5. If `mold_risk` ≥ 1.0, set `moldy = true`.
+6. `peak_rise = max(peak_rise, rise)` (the new rise). `peak_rate = max(peak_rate, d rise)` (the rate from step 2, before clamping).
+7. `temp_c = temp_c + (T_env - temp_c)(1 - exp(-dt_h / 1.5))`.
+8. `since_feed_s += 60`.
+A feed (§6) is applied between steps, at a grid point.
 
 `acid_f` is the flour `acid` column. Every coefficient in this section is **tuned** so that §15 matches its sources.
 
 ## 8. Rise, peak, collapse, hunger, hooch (what the equations produce)
 
 - Populations regrow from the inoculum. Gas tracks population, so rise accelerates. When food runs low, gas drops, the dome stops, and gas leaks out faster as acid weakens the gluten. That is the collapse.
-- The peak comes about when food falls under 0.1. Higher ratios start from fewer cells, so they take longer: about 2.2 h extra per tripling of dilution at 22 °C.
+- The peak comes about when food falls under 0.1. Higher ratios start from fewer cells, so they take longer: about 4 h extra per tripling of dilution at 22 °C (1:1:1 6.2 h, 1:4:4 10.5 h).
 - After the collapse the starter settles near 1.0 to 1.2x. `hooch` starts about 6 weighted hours after food runs out, faster when warm and wet.
 
 ## 9. Acid, vigor, maturity, recovery
@@ -210,7 +223,7 @@ feed: mold_risk × 0.3      moldy = true when mold_risk ≥ 1.0 (latched; feeds 
 
 **Guarantees** (all checked in the script):
 - No accrual in the first 24 weighted starved hours. A once-a-day feeder never accrues any risk at 22 to 24 °C.
-- The 2.2 multiplier cap guarantees at least 61 h from warning to mold, and at least 79 h from watch to mold, at any temperature.
+- The 2.2 multiplier cap guarantees at least 60 h from warning to mold (exact bound 60.6 h), and at least 77 h from watch to mold (bound 77.7 h), at any temperature in the domain. Measured: 60.6 h at 35 °C, cloth, 30% RH. Tests should assert ≥ 59 h and ≥ 76 h.
 - The fridge (`mold_t` = 0.06) reaches only 0.12 to 0.15 in 14 days.
 - Warning signs never include fuzz or pink, orange or red color. Those appear **only** in `moldy`, because in real life they mean discard (SCI §9).
 - All mold timings are **tuned**. Real mold timing is not predictable (SCI §9).
@@ -240,6 +253,8 @@ A skin forms on an undisturbed surface: fast under `cloth` in dry air, slowly un
 | 5 | `recovering` | vigor < 0.6 or vigor_at_feed < 0.75 | calm |
 | 6 | rise phase | `freshly_fed`, `developing`, `active`, `near_peak`, `at_peak`, `collapsing` | calm |
 
+`dormant_cause` (derived): `cold` if ferm(temp_c) < 0.30, otherwise `starved`. Cold wins when both hold. Copy uses it to pick `_COLD` or `_STARVED` lines.
+
 Typical day at 22 °C after a 1:1:1 feed: freshly_fed 0 to 0.3 h, developing to 1.0 h, active to 4.9 h, near_peak to 6.1 h, at_peak to 7.5 h, collapsing to 12.8 h, hungry after that. Counter neglect: dormant from 3.1 days, unhealthy from 4.5 days, moldy at 8.9 days.
 
 ## 13. Smell model
@@ -253,8 +268,8 @@ wet_flour        = clamp(1 - p/0.3)
 mildly_fruity    = 0.9 × gas_n × tri(p; 0.05, 0.3, 0.7)
 fresh_yeasty     = gas_n × clamp(yeast/0.5)
 yogurt           = tri(acid; 0.25, 0.45, 0.70) × clamp(0.3 + gas_n)
-pleasantly_tangy = tri(acid; 0.45, 0.68, 0.88)
-strongly_acidic  = clamp((acid - 0.72)/0.15)
+pleasantly_tangy = tri(acid; 0.40, 0.58, 0.72)
+strongly_acidic  = clamp((acid - 0.66)/0.15)
 alcohol          = 0.8 × clamp(starved_h/10) + 0.2 × hooch
 acetone          = clamp((starved_h - 14)/24)
 cheesy           = clamp((0.33 - maturity)/0.13) × (0.5 + 0.5 gas_n)
@@ -263,7 +278,9 @@ cold damping: every intensity except musty × clamp(0.35 + 0.65 × ferm(temp_c))
 moldy: {musty: 1.0} only
 ```
 `musty` is exempt from cold damping on purpose. It is the warning sign, so it shows and comes first whenever `mold_risk ≥ 0.3`, at any temperature (game rule; real cold does mute smells).
-Display the top 3 with intensity ≥ 0.15. `musty`, when present, is always listed first. Words: faint 0.15 to 0.35, clear 0.35 to 0.7, strong ≥ 0.7.
+Display the top 3 with intensity ≥ 0.15. `musty`, when present, is always listed first, and no "everything is faint" rule may hide it. Ties sort by the vision.md descriptor order (`wet_flour` first, `musty` last). Words: faint 0.15 to 0.35, clear 0.35 to 0.7, strong ≥ 0.7.
+
+Primary descriptor over a 1:1:1 cycle at 22 °C (script): wet_flour 0 to 2 h, fresh_yeasty 2 to 3.5 h, yogurt 3.5 to 5.5 h, pleasantly_tangy 5.5 to 16 h (peak, collapse and the first hours of hunger), alcohol from 16 h, acetone and alcohol trade the lead from about 48 h, strongly_acidic from about 72 h, musty from the watch stage on.
 
 | State | Typical set from the script (22 °C) |
 |---|---|
@@ -271,7 +288,7 @@ Display the top 3 with intensity ≥ 0.15. `musty`, when present, is always list
 | developing, active | wet_flour fading; fresh_yeasty, mildly_fruity, yogurt |
 | near_peak, at_peak | pleasantly_tangy, fresh_yeasty, yogurt |
 | collapsing | pleasantly_tangy, alcohol |
-| hungry | pleasantly_tangy and alcohol, then acetone after about a day, strongly_acidic after about 2.5 days |
+| hungry | pleasantly_tangy and alcohol at first, alcohol leads from about 16 h, acetone after about a day, strongly_acidic after about 2 days |
 | dormant (cold) | faint: alcohol, pleasantly_tangy, acetone |
 | dormant (neglect) | alcohol, acetone, strongly_acidic |
 | recovering | wet_flour longer, then yogurt and tangy (a slower version of the rise phases) |
@@ -281,17 +298,38 @@ Display the top 3 with intensity ≥ 0.15. `musty`, when present, is always list
 
 ## 14. Inspection readouts
 
-Readout keys are proposals for narrative-designer's copy. Thresholds come from the script's curves; the readout functions themselves are not coded yet.
+Readout keys are proposals; narrative-designer may key copy by state instead, as long as the observation never claims something the variables below don't show. Thresholds come from the script's curves; the readout functions themselves are not coded yet. "rising" means rise_rate > 0.02 ×/h, "falling" means rise_rate < -0.02 ×/h. Within each kind and each line, the **first match wins**.
 
-| Kind | Reveals | Key (condition) |
+| Kind | Reveals | Keys in first-match order |
 |---|---|---|
-| `bubbles` | gas, rise_phase | `none` (gas_n < 0.05 and state is hungry, dormant or unhealthy) · `few_tiny` (rise < 1.15) · `many_small` (active) · `large_at_top` (near_peak, at_peak) · `popped_craters` (collapsing, hungry with gas_n ≥ 0.05) |
-| `consistency` | h_eff, acid, phase | `stiff_dough` (h_eff < 75) · `thick_batter` (75 to 110, before active) · `loose_batter` (h_eff ≥ 110, before active) · `airy_webby` (active to at_peak) · `slack_soupy` (after peak and acid ≥ 0.75) |
-| `height` | rise, rise_rate, peak_rise | level: `at_mark` (< 1.1), `up_a_quarter` (< 1.4), `up_half` (< 1.75), `doubled` (< 2.25), `more_than_doubled`. trend: `rising` (rise_rate > 0.02), `steady`, `falling` (< -0.02). `streak_line` when peak_rise - rise ≥ 0.2 (it peaked, and the line on the glass shows how high). |
-| `surface` | rise_rate, hooch, dryness, mold_risk, rye share | shape: `smooth_flat`, `domed` (rising, rise ≥ 1.3), `flat_bubbly` (at_peak), `sunken` (collapsing), `cracked` (rye share ≥ 0.5 and rise ≥ 1.3). hooch: `hooch_thin` (0.1 to 0.4), `hooch_layer` (0.4 to 0.8), `hooch_dark` (≥ 0.8, or ≥ 0.4 with starved_h ≥ 72). skin: `skin` (dryness ≥ 0.3), `crust` (≥ 0.7). `fuzzy_spots` only when moldy. |
-| `development` | maturity, vigor, vigor_at_feed | stage: young, steady, mature, seasoned (§9). strength: `strong` (vigor ≥ 0.85), `steady` (≥ 0.6), `weakened` (< 0.6). `young` adds "rises still uneven". |
+| `bubbles` | gas, rise_phase | 1 `none`: gas_n < 0.05 and state is hungry, dormant or unhealthy. 2 `popped_craters`: rise_phase is collapsing or hungry. 3 `large_at_top`: rise_phase is near_peak or at_peak. 4 `few_tiny`: rise < 1.15. 5 `many_small`: otherwise. |
+| `consistency` | h_eff, acid, phase | 1 `stiff_dough`: h_eff < 75. 2 `slack_soupy`: rise_phase is collapsing or hungry, or state is dormant (starved) or unhealthy, with acid ≥ 0.66. 3 `airy_webby`: rise_phase is active, near_peak or at_peak. 4 `loose_batter`: h_eff ≥ 110. 5 `thick_batter`: otherwise. Cold dormant: `firm_cold` replaces 3 to 5. |
+| `height` | rise, rise_rate, peak_rise | level: `at_mark` < 1.1, `a_little` < 1.5, `nearly_doubled` < 1.85, `doubled` < 2.4, `more_than_doubled` ≥ 2.4. trend: `rising`, `falling`, else `steady`. `streak_line` when peak_rise - rise ≥ 0.2. |
+| `surface` | rise_phase, hooch, dryness, mold_risk, flour_mix | shape: 1 `fuzzy_spots` if moldy. 2 `sunken`: rise_phase collapsing. 3 `cracked`: rye share ≥ 0.5 and rise ≥ 1.3. 4 `flat_bubbly`: at_peak. 5 `domed`: rising and rise ≥ 1.3. 6 `smooth_flat`. hooch (separate line): `hooch_dark` if hooch ≥ 0.8, or hooch ≥ 0.1 with mold_risk ≥ 0.3; `hooch_layer` ≥ 0.4; `hooch_thin` ≥ 0.1. skin (separate line): `crust` ≥ 0.7, `skin` ≥ 0.3. |
+| `development` | maturity, vigor, vigor_at_feed | stage: young, steady, mature, seasoned (§9). strength: `strong` vigor ≥ 0.85, `steady` ≥ 0.6, `weakened` below. **Only these.** The sim keeps no record of past rises, so development can't report "how reliable recent rises were". |
+
+`recovering` overlaps every rise phase (§12.2). Recovering readouts must follow `rise_phase` (flat when freshly fed, domed when rising), with a "weaker than usual" note. A fixed "modest rise" line would be wrong right after a feed.
+
+What young vs mature looks like in the sim: a young starter (maturity 0.2) peaks a little later and lower (6.7 h at 1.95x vs 6.2 h at 2.18x, 1:1:1 at 22 °C) and smells cheesy. Its rises are **not** more variable: tested jitter of ±15% moved its peak only 6.3 to 7.0 h. Copy must not claim young rises "vary".
 
 Ambiguous pairs, where the readout should suggest smelling: freshly_fed vs dormant, near_peak vs at_peak, collapsing vs hungry, dormant vs unhealthy, young vs weakened.
+
+### 14.1 Event and copy thresholds
+
+For game-designer's triggers and narrative-designer's words. All are **tuned**.
+
+| Name | Rule | Basis |
+|---|---|---|
+| `RISE_NOTICEABLE` | rise ≥ 1.25, crossed upward after a feed | Clearly above the band. 1:1:1 at 22 °C: about 1.6 h; after 14 d in the fridge: about 7 to 8 h (interpolated from V2 and V7 checkpoints). |
+| `HOOCH_VISIBLE` | hooch ≥ 0.10 | Same as `hooch_thin`. Counter: about 17 h after a 1:1:1 feed. Fridge: about day 7. |
+| `HOOCH_DARK` | hooch ≥ 0.8, or hooch ≥ 0.1 with mold_risk ≥ 0.3 | Hooch darkens the longer it sits (SCI §8). |
+| Peak words (OD-E2) | `SMALL` < 1.5, `NEAR` 1.5 to 1.85, `DOUBLE` 1.85 to 2.4, `BIG` ≥ 2.4, from `peak_rise` | Normal 1:1:1 (2.1 to 2.25x) must read "doubled", per King Arthur. The proposed 2.2 edge sat right on it. 1:5:5 (2.5x) reads `BIG`, rye (1.66x) `NEAR`, whole wheat and spelt (1.91x) `DOUBLE`. |
+| `first_double` | peak_rise ≥ 1.85 | Recommend this over 2.0, so the milestone never disagrees with the "doubled" words. |
+| Peak time | the moment `rise` reaches `peak_rise` (the cycle maximum) | `at_peak` starts 0.05 to 0.15 h earlier. §18 gives both. |
+| `big_bubble` | at the step where rise_phase enters `near_peak`, if `feed_u` ≥ 0.85 | Deterministic, so the sim (not an event RNG) produces the bubble: 15% of cycles, the most vigorous ones. Replaces mechanics' event-side RNG. |
+| `back_to_strength` | rise reaches 0.85 × a reference peak in a cycle with vigor_at_feed ≥ 0.75 | The reference (the last peak_rise from a cycle with vigor_at_feed ≥ 0.75) is a game-layer field; the sim doesn't store it. Without the vigor gate, it fires on the first recovering feed (72 h away gives 88% of normal while the pill still says Recovering). |
+| `warm_and_quick` | peak time ≤ 0.85 × the forecast for the same feed at 22 °C | The sim's peak-time ratio at 26 / 28 / 30 °C is 0.80 / 0.76 / 0.73, nearly the same for 1:1:1 and 1:5:5. The proposed 0.75 never fires at warm_spot, and comparing with the last counter peak mixes in ratio changes. |
+| Memorial `{days}` | days since the last feed with temp_c ≥ 11 °C (not cold dormant) | Fridge days are not mold days. Minimum in-game value: 6 days (proofing box at 30 °C). |
 
 ## 15. Calibration table
 
@@ -301,14 +339,14 @@ Script run, jitter 1.0, mature (maturity 0.6), `white_bread` 100%, `loose_lid`, 
 |---|---|---|---|
 | 1:1:1 at 24 °C | peak 5.5 h, 2.21x | 4 to 6 h at about 25.5 °C, "doubled" | sourced: King Arthur 2025 (SCI §3) |
 | 1:2:2 at 24 °C | 7.3 h, 2.40x | peak between 4 and 8 h at 25.5 °C | sourced: same test |
-| 1:4:4 at 24 °C | 9.0 h | peak between 8 and 12 h at 25.5 °C | sourced: same test |
+| 1:4:4 at 24 °C | 9.2 h | peak between 8 and 12 h at 25.5 °C | sourced: same test |
 | 1:5:5 at 24 °C | 9.8 h, 2.54x | about 10 h at about 24 °C (with 30% rye) | sourced: Perfect Loaf (SCI §3) |
 | 1:1:1 at 22 °C | 6.0 to 6.3 h, 2.18x | 4 to 6 h (design ask) | tuned; 6 h is the fastest honest value |
-| 1:2:2 / 1:5:5 / 1:10:10 at 22 °C | 8.0 / 10.75 / 13.0 h | 6 to 9 / 9 to 13 / none | tuned (game-designer R1) |
-| 1:50:50 at 22 / 24 °C | 18.0 / 16.1 h | peaks within 24 h | tuned |
-| 1:1:1 at 18 / 20 / 28 / 32 / 35 °C | 8.9 / 7.2 / 4.7 / 4.5 / 5.1 h | slower when cool, a plateau then slowdown above about 32 | direction sourced (Gänzle 1998), times tuned |
+| 1:2:2 / 1:5:5 / 1:10:10 at 22 °C | 8.3 / 11.15 / 13.3 h | 6 to 9 / 9 to 13 / none | tuned (game-designer R1) |
+| 1:50:50 at 22 / 24 °C | 18.4 / 16.1 h | peaks within 24 h | tuned |
+| 1:1:1 at 18 / 20 / 28 / 32 / 35 °C | 8.7 / 7.2 / 4.7 / 4.55 / 5.1 h | slower when cool, a plateau then slowdown above about 32 | direction sourced (Gänzle 1998), times tuned |
 | Hungry after 1:1:1 at 22 °C | 12.4 to 12.8 h | ready to feed again after about 12 h | sourced: King Arthur 2025 |
-| Hooch visible (≥ 0.1), counter | 17 h | "thin sheen" when hungry | tuned |
+| Hooch visible (≥ 0.1), counter | 17.6 h | "thin sheen" when hungry | tuned |
 | Fed, then into the fridge | food out on day 3 to 4, hooch on day 7, vigor 0.64 at 14 days | weekly fridge feeding works | direction sourced (Perfect Loaf), tuned |
 | Neglect at counter, loose lid | dormant 3.1 d, watch 3.1 d, unhealthy 4.5 d, mold 8.9 d | floors: unhealthy ≥ 4 d, mold ≥ 7 d, warning to mold ≥ 72 h, watch to mold ≥ 96 h | tuned (game-mechanics §9) |
 | Neglect, counter cloth / tight lid | unhealthy 4.15 / 4.8 d, mold 8.2 / 10.0 d | as above | tuned |
@@ -318,7 +356,7 @@ Script run, jitter 1.0, mature (maturity 0.6), `white_bread` 100%, `loose_lid`, 
 | Away 24 h, then feeds every 12 h | first peak 2.12x (98% of normal) | ≥ 85% on feed 1 | tuned (R3) |
 | Away 72 h | recovering on feed 1 (1.91x, 9.4 h), normal by feed 2 to 3 | ≤ 2 feeds | tuned (vision) |
 | Unhealthy (5 d), then fed | out of unhealthy at once; feed 1 at 1.71x, 12 h; normal by feed 3 | ≤ 3 feeds | tuned (R3) |
-| Fridge 14 d, then fed | recovering on feed 1 (1.76x to 1.9x, about 13 h); normal on feed 2 | 1 to 2 feeds | sourced direction (King Arthur 2023), tuned |
+| Fridge 14 d, then fed | recovering on feed 1 (1.90 to 1.92x at 13.5 to 14.1 h, with the warm-up lag); normal on feed 2 (2.06x) | 1 to 2 feeds | sourced direction (King Arthur 2023), tuned |
 | Once a day, 1:1:1, 14 d at 22 / 24 °C | min vigor 0.89 / 0.83, mold 0 | "thrives" | vision |
 | Three feeds 3 h apart, before peak | next peak 10.5 h instead of 6.3 h | visibly weaker (R7) | tuned |
 
@@ -333,21 +371,30 @@ Script run, jitter 1.0, mature (maturity 0.6), `white_bread` 100%, `loose_lid`, 
 
 ## 17. Randomness
 
-Only `feed_jitter`, uniform in [0.95, 1.05], drawn once per feed from the passed-in seeded `RandomNumberGenerator` (`randf_range`, never `randfn`), then stored. It shifts peak times by up to ±0.5 h. Nothing else is random: mold onset, smells and readouts are deterministic. Every test vector below holds for every seed.
+One draw per feed: `feed_u = rng.randf()` in [0, 1) from the passed-in seeded `RandomNumberGenerator` (never `randfn`), stored. `feed_jitter = 0.95 + 0.10 × feed_u` scales growth and shifts peak times by up to ±0.5 h. `big_bubble` reuses `feed_u` (§14.1), so it needs no RNG of its own. Nothing else is random: mold onset, smells and readouts are deterministic. Every test vector below holds for every seed.
 
 ## 18. Test vectors (golden tests)
 
-Fixture `MATURE`: start from the stored defaults (food 0.05, yeast 0.9, lab 0.95, acid 0.85, rise 1.15, peak_rise 2.2, peak_rate 0.5, vigor 1, vigor_at_feed 1, maturity 0.6, mass 100 g, 100%, white_bread, temp_c 22, everything else 0). Feed 50 g + 50 g flour + 50 g water, then run 12 h at `counter` with a `loose_lid`. Unless noted, a vector feeds `MATURE` with 50 g kept at the stated ratio, white_bread 100%, loose lid, and sets temp_c to the test temperature before feeding. Rise ranges cover jitter 0.95 to 1.05. Allow a further ±0.3 h on times and ±0.05 on rise for float drift. Every row is **tuned**, except where a sourced target is named in §15.
+Fixture `MATURE`: start from the stored defaults (food 0.05, yeast 0.9, lab 0.95, acid 0.85, rise 1.15, peak_rise 2.2, peak_rate 0.5, vigor 1, vigor_at_feed 1, maturity 0.6, mass 100 g, 100%, white_bread, temp_c 22, everything else 0). Feed 50 g + 50 g flour + 50 g water, then run 12 h at `counter` with a `loose_lid`. Unless noted, a vector feeds `MATURE` with 50 g kept at the stated ratio (10 g kept for ratios above 1:2:2), white_bread 100%, loose lid, and sets temp_c to the test temperature before feeding.
+
+**Reading the table:**
+- "Peak" is the max-rise time (§14.1). "at_peak" is the start of that phase, 0.05 to 0.15 h earlier.
+- Stated ranges already cover jitter 0.95 to 1.05. Add ±0.3 h on times and ±0.05 on rise for float drift.
+- "About X" means X ± 5%, plus the drift allowance.
+- **Conversion feeds** (V5, V6): from `MATURE`, three feeds 12 h apart at 22 °C, each 50 g kept + 50 g of the test flour + water for the test hydration. The test feed is a fourth, identical feed, and t = 0 is that feed.
+- Every row is **tuned**, except where a sourced target is named in §15.
 
 | ID | Inputs | Expected |
 |---|---|---|
-| V1 | 1:1:1, 24 °C, 48 h | peak 5.4 to 5.6 h at 2.20 to 2.22x. 2 h: active, 1.37 to 1.38. 4 h: active or near_peak, 1.87 to 1.92. 8 h: collapsing, about 1.94. 12 h: collapsing or hungry, about 1.60. 24 h: hungry, 1.16, hooch yes, smell set {pleasantly_tangy, alcohol, acetone}. 48 h: hungry, 1.01, acetone. Mold stage none throughout. |
-| V2 | 1:1:1 at 20, 22, 28 °C | peaks 7.1 to 7.4 / 6.1 to 6.3 / 4.6 to 4.8 h. Order 28 < 24 < 20 for the same seed. 28 °C at 48 h: dormant (neglect). |
-| V3 | 1:5:5 and 1:10:10 (10 g kept), 24 °C | peaks 9.6 to 10.1 h (2.52 to 2.55x) and 11.4 to 12.1 h (2.57 to 2.60x). Later than V1 by 4.3 and 6.2 h. |
+| V1 | 1:1:1, 24 °C, 48 h | at_peak 5.3 to 5.5 h; peak 5.4 to 5.6 h at 2.20 to 2.22x. 2 h: active, 1.37 to 1.38. 4 h: active or near_peak, 1.87 to 1.92. 8 h: collapsing, about 1.94. 12 h: collapsing or hungry, about 1.60. 24 h: hungry, 1.16, hooch yes, smell set {alcohol, pleasantly_tangy, acetone} with alcohol first. 48 h: hungry, 1.01, set {acetone, alcohol, strongly_acidic}. Mold stage none throughout. |
+| V2 | 1:1:1 at 20, 22, 28 °C | at_peak 7.0 to 7.2 / 6.0 to 6.2 / 4.5 to 4.7 h; peak 7.1 to 7.4 / 6.1 to 6.3 / 4.6 to 4.8 h at 2.12 / 2.17 / 2.23x. Order 28 < 24 < 20 for the same seed. 28 °C at 48 h: dormant (starved). |
+| V3 | 1:5:5 and 1:10:10, 24 °C | at_peak 9.5 to 10.0 h and 11.3 to 12.0 h; peak 9.6 to 10.1 h (2.52 to 2.55x) and 11.4 to 12.1 h (2.57 to 2.60x). Later than V1 by 3.9 to 4.6 h and 5.8 to 6.6 h. |
+| V18 | 1:2:2, 22 °C | at_peak 8.0 to 8.4 h; peak 8.1 to 8.5 h at 2.34 to 2.36x. |
+| V19 | 1:5:5, 22 °C | at_peak 10.75 to 11.4 h; peak 10.85 to 11.5 h at 2.47 to 2.50x. |
 | V4 | 1:50:50 (2 g kept), 24 °C | peaks 15.6 to 16.7 h, 2.60 to 2.64x. Yes, within 24 h. |
 | V5 | rye, whole_wheat, spelt, 1:1:1, 22 °C, after 3 conversion feeds at 12 h | peaks 5.1 to 5.3 / 5.5 to 5.7 / 5.5 to 5.8 h at about 1.66 / 1.91 / 1.91x. Acid at 24 h: rye > whole_wheat > white. Speed: rye > whole_wheat ≥ spelt > white. |
-| V6 | white 60% vs 100% vs 125%, 22 °C, 3 conversion feeds | peaks 6.7 to 6.9 / 6.1 to 6.3 / 6.0 to 6.2 h. 60%: 2.34 to 2.36x, hooch never ≥ 0.1 in 48 h. |
-| V7 | fed, 1 h on the counter, then fridge 3 / 14 d, then fed 1:1:1 at the counter | at 3 d: dormant in the fridge, then a normal state after feeding (peak 10.2 to 10.6 h, not recovering). At 14 d: dormant, hooch ≥ 0.3, mold < 0.3, vigor 0.6 to 0.7. After feeding: recovering at 2, 4, 8, 12 h; peak 13.5 to 14.1 h at about 1.9x. The next feed is normal (not recovering). |
+| V6 | white 60% vs 100% vs 125%, 22 °C, 3 conversion feeds | peaks 6.75 to 7.0 / 6.2 to 6.4 / 6.0 to 6.2 h. 60%: 2.33 to 2.35x, hooch never ≥ 0.1 in 48 h. |
+| V7 | fed, 1 h on the counter, then fridge 3 / 14 d, then fed 1:1:1 at the counter. temp_c is **not** reset: the starter warms with the 1.5 h lag. | at 3 d: dormant in the fridge, then a normal state after feeding (peak 10.2 to 10.6 h, not recovering). At 14 d: dormant, hooch ≥ 0.3, mold < 0.3, vigor 0.6 to 0.7. After feeding: recovering at 2, 4, 8, 12 h; peak 13.5 to 14.1 h at about 1.9x. The next feed is normal (not recovering). |
 | V8 | 24 h unfed at the counter, then 1:1:1 | before the feed: hungry, hooch yes, vigor 0.92 to 0.96. Peak 6.7 to 6.9 h, ≥ 0.85 × the V2 22 °C peak. Not recovering. |
 | V9 | unfed at the counter, loose lid, 14 d | hungry 12.4 to 12.8 h. dormant 74 to 77 h. watch (0.3) 72 to 80 h. unhealthy 104 to 111 h. moldy 207 to 219 h. Gap from warning to mold ≥ 72 h; from watch to mold ≥ 96 h. |
 | V9b | V9 to 120 h (unhealthy), then 1:1:1 | out of unhealthy right after the feed (mold_risk < 0.3). recovering at 2 to 12 h. Peak 12.8 to 13.3 h at about 1.76x. Rise at peak ≥ 0.95 × normal by feed 3. |
@@ -356,9 +403,10 @@ Fixture `MATURE`: start from the stored defaults (food 0.05, yeast 0.9, lab 0.95
 | V12 | 1:1:1 at 32 °C and 35 °C | peaks 4.5 to 4.6 h and 5.0 to 5.2 h (slower above the optimum). At 48 h: dormant with mold stage watch and musty first. |
 | V13 | counter, unfed, 30 days away | catch-up caps at 14 d. moldy (latched) at about 8.9 d. Fridge variant: dormant, vigor 0.6 to 0.7, mold < 0.3. |
 | V14 | moldy, then feed | the feed is refused. State stays moldy, every field unchanged except since_feed_s. |
-| V15 | V7 to 14 d in the fridge (unfed after), then counter unfed | mold_risk 0.10 to 0.18 on leaving the fridge. unhealthy about 55 to 65 h after leaving; moldy about 150 to 165 h after. Gap ≥ 72 h. |
+| V15 | V7 to 14 d in the fridge (unfed after), then counter unfed | mold_risk 0.10 to 0.18 on leaving the fridge. unhealthy about 55 to 65 h after leaving; moldy 160 to 170 h after. Gap ≥ 72 h. |
 | V16 | once a day, 1:1:1, 14 d, 22 and 24 °C | vigor ≥ 0.8 always. mold_risk 0. Never recovering, dormant or unhealthy. |
 | V17 | catch-up split | any split of a 5-day run equals the unsplit run exactly (same build). |
+| V20 | 1:1:1 at 22 °C, 36 h unfed (hooch about 0.46), then 1:1:1 with `pour_off` vs `stir_in` | both: hooch 0 after the feed. Hydration 100.0% vs 100.8%. Peaks within 0.05 h and 0.01x of each other (about 7.4 h, 2.06x). Acid identical. |
 
 ## 19. Tuning knobs (for game-designer)
 

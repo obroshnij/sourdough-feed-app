@@ -98,19 +98,28 @@ Numbers taken from a draft are tagged, and they move when the owning spec moves.
 
 **Proposed test layout** (QA owns it in Phase 2):
 - `tests/run_tests.gd`, `tests/run.sh`, `tests/runner_selftest/`
-- `tests/unit/sim/`, `tests/golden/` (`vectors.json`), `tests/property/`
+- `tests/unit/<track>/**` belongs to each implementation track (for example `tests/unit/sim/` to T1, architecture §14.1). QA owns everything else under `tests/`.
+- `tests/golden/` (`vectors.json`), `tests/property/`
 - `tests/save/`, `tests/clock/`, `tests/integration/`, `tests/ui/`, `tests/lint/`
 - `tests/visual/` (plus `approved/<renderer>/`), `tests/perf/`
-- `tests/fixtures/`, with saves in `tests/fixtures/saves/` (data-models §9.5). Synthetic data only, because the repo is public.
+- `tests/fixtures/`, with saves in `tests/fixtures/saves/` (data-models §9.5). Synthetic data only, because the repo is public. Hand-written fixtures may be a bare payload with no header (`--fixture=` and `load_from_path()` accept that in debug builds). The `saves/v<N>_*` migration fixtures stay full files.
 
 ### 2.1 Pure sim unit tests (L2)
 
-- **Temperature response:** `ferm(T)` and `mold_t(T)` at −5 to 45 °C in 1 °C steps equal spec §3 within 1e-9 relative. `mold_t(T) = 0.05 + 0.05 × (T − 3)`, clamped to 0 to 1.6.
+- **Temperature response:** `ferm(T)`, `dec(T)` and `mold_t(T)` at 0 to 40 °C in 1 °C steps equal spec §3 within 1e-9 relative. `mold_t` ≥ 0 everywhere, and `dec` > 0 (1.6 at 40 °C). `T_env` outside 0 to 40 is clamped.
+- **Step procedure:** one test per spec §7 numbered step, in order:
+  - rates use the start-of-step state and `temp_c`
+  - clamp
+  - `moldy` latch
+  - `peak_rise` from the new rise
+  - `peak_rate` from the pre-clamp step-2 rate
+  - `temp_c`
+  - `since_feed_s += 60`
 - **Thermal lag:** `temp_c` approaches the location temperature with the spec's 1.5 h constant, with no overshoot.
 - **Feed math:**
   - Food, populations and acid after a feed follow spec §6 dilution for 1:1:1, 1:2:2 and 1:5:5 (slice presets), plus 1:10:10 and 1:50:50 (sim-level, for P2).
   - A feed multiplies `mold_risk` by 0.3 and resets `starved_h` and `dryness` to 0.
-  - `feed_jitter` = `sim_rng.randf_range(0.95, 1.05)`: one draw per feed, stored, never `randfn` (spec §17).
+  - One `sim_rng` draw per feed, stored as `feed_u` in [0, 1). `feed_jitter = 0.95 + 0.10 × feed_u` (spec §17). Never `randfn`.
 - **Derived discard** (game-mechanics §2.3): `keep_g = round(150 / (1 + f + w))`, `flour_g = keep_g × f`, `water_g = flour_g × hydration / 100`. Expected: 1:1:1 gives 50/50/50 (150 g), 1:2:2 gives 30/60/60 (150 g), 1:5:5 gives 14/70/70 (154 g, flour and water rounded to 5 g).
 - **Derivation thresholds** at value − ε, value and value + ε (§4.1), including every rise-phase rule in spec §12.1.
 - **Precedence:** every pair of overlapping states. Spec §12.2 order: `moldy` > `unhealthy` > `dormant` > `hungry` > `recovering` > rise phases.
@@ -138,7 +147,24 @@ Numbers taken from a draft are tagged, and they move when the owning spec moves.
 - Every vector runs for every seed: 100 per commit, 1,000 nightly. The spec says every vector holds for every seed.
 - A failure prints the vector id, seed, checkpoint, variable, range and actual value.
 - **Cross-platform floats:** runs on the same platform are bit-exact (V17). Across CPUs, `exp` and `pow` can differ in the last bits, which the drift allowance absorbs.
-- **Missing rows:** 1:2:2 at 22 °C (about 8 h, from game-mechanics §2.2) has no golden vector. Ask to scientist: add it, because it's the BT-1 ratio.
+- **Reference model:** `tools/sim-reference/sim.py` (spec v1, §7 step order).
+  - `sim.py vectors` checks every §18 range plus drift, prints one FAIL line per miss, and exits 1. **QA ran it: 243 checks, 0 failed, exit 0.**
+  - **Mutation check (QA, on a scratch copy):** `mu_y` +10% alone fails 18 checks with exit 1, so the checks catch a real change.
+  - It's the gate for every spec knob change (spec §19). It runs in CI wherever `python3` is available, and in Phase 2 it moves into `run.sh` as an optional step.
+- **DIFF-01 (differential test):** `python3 -I tools/sim-reference/sim.py trace OUTDIR` writes T01 to T24 plus `manifest.json`.
+  - 24 schedules, 3,988 hourly rows, about 3 MB.
+  - Every event carries an explicit `feed_u`, so no RNG is involved.
+  - The coverage includes fridge round trips, location moves mid-rise, stir-in, a refused feed on a moldy starter, and the 0 °C and 40 °C domain edges.
+  - **QA ran it twice: exit 0, and the two outputs were byte-identical.**
+  - In Phase 2 the traces are committed to `tests/golden/reference_traces/`. Only the scientist regenerates them, and only when the spec changes.
+  - The GDScript sim replays each schedule and must match every stored field, `state`, `rise_phase` and `dormant_cause` at every hourly row: `|a − b| ≤ 1e-9 × max(|a|, |b|) + 1e-12`. Labels may differ only within one 60 s step of a transition in the reference trace.
+  - The port must repeat the reference's exact operations (plain multiplication for integer powers, `log(x) / log(3)`, as listed in the README).
+  - This catches port bugs the range-based vectors would miss.
+- Vectors **V18** (1:2:2 at 22 °C, `at_peak` starts at 8.0 to 8.4 h) and **V19** (1:5:5 at 22 °C, 10.75 to 11.4 h) back BT-1, BT-2 and BT-17. **V20** covers stir-in.
+- **Definitions (spec §18):**
+  - "Peak" is the max-rise time. `at_peak` starts 0.05 to 0.15 h earlier, and V1 to V3, V18 and V19 give both.
+  - "About X" means X ± 5% plus drift.
+  - V5 and V6: three conversion feeds 12 h apart at 22 °C, then the identical 4th feed is t = 0.
 
 ### 2.3 Property tests (L4)
 
@@ -146,8 +172,8 @@ Generators produce random schedules: slice feeds, plus sim-level feeds (keep 1 g
 
 | ID | Property | Pass condition |
 |---|---|---|
-| PROP-01 | One long catch-up equals many short sessions | `CatchUp.run` over D, vs. 2 to 500 random sessions summing to D (session lengths not multiples of 60 s), D ≤ 14 d. **Exact equality** of the serialized state. Architecture §5.1 and spec §16 / V17: a fixed 60 s Euler grid aligned to Unix time, and actions apply at `grid(now)`. |
-| PROP-02 | Determinism | The same save, seed and action log give byte-identical payload text, including with a save and load midway. |
+| PROP-01 | One long catch-up equals many short sessions | `CatchUp.run` over D, vs. 2 to 500 random sessions summing to D (session lengths not multiples of 60 s), D ≤ 14 d. **Exact equality** of the serialized payload, excluding `meta`, because `saved_unix` and `save_count` legitimately differ. Architecture §5.1 and spec §16 / V17: a fixed 60 s Euler grid aligned to Unix time, and actions apply at `grid(now)`. |
+| PROP-02 | Determinism | The same save, seed and action log give byte-identical payload text (excluding `meta`), including with a save and load midway. |
 | PROP-03 | Ranges (spec §1) | After every step of 10,000 schedules, the ranges below hold. No NaN, no INF. |
 | PROP-04 | Mold only from its causes | `mold_risk` never rises unless `food` < 0.10 **and** `starved_h` > 24 weighted hours (spec §10). Any schedule with a feed at least every 24 h at ≤ 24 °C keeps `mold_risk` at 0. |
 | PROP-05 | Mold is latched | Once `moldy`, every later action and any elapsed time keeps it `moldy`. |
@@ -155,10 +181,10 @@ Generators produce random schedules: slice feeds, plus sim-level feeds (keep 1 g
 | PROP-07 | Ratio order | At 24 °C: 1:1:1 < 1:2:2 < 1:5:5 < 1:10:10 < 1:50:50. |
 | PROP-08 | Feeding never hurts | Feeding any non-moldy starter lowers `mold_risk` or leaves it unchanged (L-9). |
 | PROP-09 | Closed vocabulary | The state is always one of the 11 canonical ids, and smell descriptors come from the spec list. |
-| PROP-10 | Visual continuity | With no action, each `VisualParams` field changes by at most `max_delta` per 60 s step (TBD-ART). |
+| PROP-10 | Visual continuity | With no action, each `VisualParams` field changes by at most its art-direction §8 `max_delta` per 60 s step (for example rise 0.02, dome 0.03, hooch_depth 0.02). `peak_line` never decreases within a cycle. The mold field stays 0 except its latched 2 s fade-in. Feeds and `moldy` entry are exempt. The view adds 1.5 s smoothing on top (a capture check, not a sim check). |
 | PROP-11 | `VisualMapper` purity | The same state and environment give identical `VisualParams` on two calls and after a save round-trip. |
 | PROP-12 | Event determinism | The same save and clock schedule give the same events (id, time, tier). |
-| PROP-13 | RNG isolation | Adding or removing any event rule leaves every starter variable byte-identical. `sim_rng` and `event_rng` are separate (architecture). |
+| PROP-13 | Events consume no RNG | `EventRules.evaluate(ctx)` takes no RNG. Adding or removing any event rule leaves every starter variable and `sim_state` byte-identical (architecture §7). |
 | PROP-14 | Maturity only grows | `maturity` never decreases (spec §1). |
 | PROP-15 | Cover and container touch only dryness | Two runs that differ only in `cover` or `container` are identical in every field except `dryness` and `mold_risk`. The mold speed ratio is ≤ 1.4 (spec §2.2). |
 | PROP-16 | Mold signs only at `moldy` | Unless `moldy`, the mold-spot and tint `VisualParams` fields are 0, `surface` never returns `fuzzy_spots`, and no copy key from the moldy set is shown (spec §10 safety guarantee). |
@@ -173,10 +199,10 @@ Generators produce random schedules: slice feeds, plus sim-level feeds (keep 1 g
 | `rise`, `peak_rise` | 1.0 to 3.0 |
 | `peak_rate` | ≥ 0 |
 | `starved_h` | 0 to 336 |
-| `temp_c` | −5 to 45 |
+| `temp_c` | 0 to 40 |
 | `mass_g` | ≥ 1 |
 | `culture_hydration` | 40 to 200 |
-| `feed_jitter` | 0.95 to 1.05 |
+| `feed_u` / `feed_jitter` | 0 to 1 / 0.95 to 1.05 |
 | `flour_mix` | shares sum to 1 ± 1e-9 |
 | `since_feed_s` | ≥ 0 |
 | `moldy` | once true, always true |
@@ -193,18 +219,19 @@ Layout is per data-models §9.
 |---|---|---|
 | SAVE-01 | 1,000 random valid states are saved, then loaded | Deep-equal, including RNG strings, the journal, the event ledger and `meta`. |
 | SAVE-02 | Any save | The header parses. `sha256` and `bytes` match the payload bytes. The payload is sorted, full-precision JSON on one line. |
-| SAVE-03 | `save.json` has a wrong sha256 or byte count | `save.tmp`, else `save.prev`, loads. |
+| SAVE-03 | `save.json` has a wrong sha256 or byte count | `save.tmp`, else `save.prev`, loads. The bad `save.json` is moved to `quarantine/` at load time, byte-identical, never deleted (data-models §9.4). |
 | SAVE-04 | `save.json` truncated at 0, 1, 50% and len − 1 bytes, or the header line only | Same as SAVE-03. |
-| SAVE-05 | Binary garbage, a JSON array, missing fields, wrong types (`"rise": "high"`), `NaN` text, a wrong `format` | Same as SAVE-03. No crash, no logged script error (R-3 catches them). |
+| SAVE-05 | Binary garbage, a JSON array, missing fields, wrong types (`"rise": "high"`), `NaN` text, a wrong `format` | Same as SAVE-03. No crash. |
+| SAVE-20 | Every corrupt case in SAVE-03 to SAVE-05 and SAVE-10 | **0 logged engine or script errors** (the R-3 Logger count). The loader must use `JSON.new().parse()` and `typeof()` checks, not `JSON.parse_string()` or typed assignment, which log errors (architect ran this, data-models §1 and §9.4). Catches a loader regression. |
 | SAVE-06 | All candidate files are bad | First, every candidate moves to `user://saves/quarantine/<unix>_<name>`, keeping the newest 5 sets. Then a new starter with `meta.recovered_from = "quarantine"` and a calm notice. The quarantined bytes equal the originals. 6 failures in a row leave exactly 5 sets. (data-models §9.4) |
 | SAVE-07 | No save files | First-run flow. |
-| SAVE-08 | `fault_point` = `before_tmp_write`, `mid_tmp_write`, `before_rename`, `after_rename` | The next load gives exactly the old or exactly the new state. For `after_rename`, `save.tmp` loads, which is the new state. Never a mix, never a new starter. |
+| SAVE-08 | `fault_point` = `before_tmp_write`, `mid_tmp_write`, `before_rename`, `after_rename` | The next load gives exactly the old or exactly the new state. For `after_rename`, `save.tmp` loads (the new state) and is renamed to `save.json` at once, so after the load `save.json` holds the new state. Never a mix, never a new starter. |
 | SAVE-09 | A write error (disk full) | The old files are unchanged. The in-memory state is kept. `save_failed(reason_key)` fires once. The next trigger retries. |
 | SAVE-10 | `version` > CURRENT | Moved to quarantine, never overwritten. The next candidate loads. |
 | SAVE-11 | Migration | Every released version keeps `tests/fixtures/saves/v<N>_*.json` forever. Each one loads, migrates and equals the expected current-version payload. Fixtures are never edited. |
 | SAVE-12 | Triggers: each action, each state-id change, every 10 min in the foreground, `APPLICATION_PAUSED` (2015), `FOCUS_OUT` (2017), `WM_CLOSE_REQUEST`, Android back with no sheet open | Each produces a write with a newer `saved_unix` and a higher `save_count`. |
-| SAVE-13 | A synthetic year: 2 feeds a day, every event, the full journal | Size ≤ 128 KB. Write < 10 ms (Mac estimate, architecture §11). If the size fails, journal growth is the cause (OD-8). |
-| SAVE-14 | RNG `state` near 2^63 | Round-trips as a string. Restore sets `state` only, never `seed` after `state` (that resets the stream, architect ran this). 3 straight feeds equal 1 feed, save, load, 2 feeds. |
+| SAVE-13 | A synthetic year: 2 feeds a day, every event, every smell and inspect | Size ≤ 128 KB. Write < 10 ms (Mac estimate, architecture §11). The journal holds exactly 400 entries. Drop order: `state_change` first, then inspect and smell, then the oldest of any kind. `memorial` and `milestone` entries are never dropped (data-models §6). |
+| SAVE-14 | `rng.sim_state` near 2^63 (the save's `rng` section holds only `sim_seed` and `sim_state`) | Round-trips as a string. Restore sets `state` only, never `seed` after `state` (that resets the stream, architect ran this). 3 straight feeds equal 1 feed, save, load, 2 feeds. |
 | SAVE-15 | A fixed fixture | Fixed sha256 (golden). |
 | SAVE-16 | Killed during catch-up, before the post-catch-up save | The relaunch catches up again from the same file, to the same result. |
 | SAVE-17 | `save.json` corrupt, `save.prev` good. Load (from prev), save, then corrupt the new `save.json`. | The next load still finds a good file. The untrusted `save.json` is quarantined, never rotated into `save.prev` (data-models §9.3, fixed after this finding). |
@@ -222,8 +249,8 @@ Rules are from architecture §5.3, with `gap = sim_time_unix − now` and `CLOCK
 | CLK-03 | Open at T − 1 h | 0 steps. The anchor is kept. The state is unchanged. No repeated events or journal entries. |
 | CLK-04 | Close at T, open at T − 1 h, then open at T + 2 h | 2 h simulated in total. |
 | CLK-05 | The clock jumps 5 years ahead, the app opens (capped at 14 d), the clock is corrected (gap > 6 h, so it re-anchors), then the app opens 1 h later | The last launch simulates 1 h. `reanchored = true` once. `meta.clock_reanchors` = 1. |
-| CLK-06 | The local offset changes by +3600 and by −3600 (DST) | Sim results are byte-identical to a fixed-offset run. Quiet hours follow wall time. No nudge is created twice in the repeated hour. Caps count per local date (23 h and 25 h days). |
-| CLK-07 | The offset changes from UTC−5 to UTC+9 mid-day | The sim is unaffected. Quiet hours and the 08:00 deferral use the new offset from the moment of the change. |
+| CLK-06 | The local offset changes by +3600 and by −3600 (DST) | Sim results are byte-identical to a fixed-offset run. Quiet hours follow wall time. No nudge is created twice in the repeated hour. Caps count per local date (23 h and 25 h days). This holds in live play, where the offset is read every tick. **Catch-up:** one offset, read at resume, applies to the whole window, so quiet hours before a DST change inside it can be 1 h off (architecture §5.4, accepted limit). The test asserts exactly that documented behavior. |
+| CLK-07 | The offset changes from UTC−5 to UTC+9 mid-day | The sim is unaffected. In live play, quiet hours and the 08:00 deferral use the new offset from the moment of the change. In catch-up, the offset read at resume applies to the whole window (same accepted limit as CLK-06). |
 | CLK-08 | Elapsed is 14 d − 60 s, exactly 14 d, then 14 d + 60 s | `simulated_s` = min(elapsed, 14 d). Events exist only inside the simulated window. |
 | CLK-09 | Foreground: the wall delta exceeds the monotonic delta by 299 s, then by 301 s | 299 s: the wall delta is used. 301 s: the monotonic delta only. |
 | CLK-10 | The feed sheet is open, then the app is backgrounded for 8 h | On resume, catch-up runs first. The sheet's preview updates or the sheet closes (TBD-UX). The feed applies on Mix at `grid(now)`. Exactly 1 feed. |
@@ -238,7 +265,7 @@ Rules are from architecture §5.3, with `gap = sim_time_unix − now` and `CLOCK
 
 ### 2.6 Integration (L7)
 
-`Session` with `FakeClock`, a temp `SaveStore`, seeded RNGs and no rendering.
+`Session` with `FakeClock`, a temp `SaveStore`, a seeded `sim_rng` and no rendering.
 
 | ID | Action | Expected |
 |---|---|---|
@@ -247,25 +274,26 @@ Rules are from architecture §5.3, with `gap = sim_time_unix − now` and `CLOCK
 | INT-03 | `SmellAction` | No sim variable changes. The readout is in `ActionResult.readout`. The journal is written once per descriptor per rise cycle (game-mechanics §4). |
 | INT-04 | `InspectAction` for each slice kind | Same rules, and the readout comes from the state. |
 | INT-05 | `on_resume()` after 25 h | `resumed(summary)`. Event times are real. `ReturnSummary.build` follows §4.2. Dropped items are in the journal. |
-| INT-06 | `moldy`, then `DiscardStarterAction` | A memorial entry. The old journal is kept. The new starter starts clean. |
-| INT-07 | A rejected action (Mix while `moldy`) | `action_applied` reports rejected with a reason key. State, journal and save are byte-unchanged. |
+| INT-06 | `moldy`, then `DiscardStarterAction` | A memorial entry. The old journal is kept, and its entries keep the old `starter_id`. New entries get the new `starter_id`. The new starter starts clean. |
+| INT-07 | A rejected action (Mix while `moldy`), with `FakeClock` frozen so step 1 sync can't advance time | `action_applied` reports rejected with a reason key. State, journal and save are byte-unchanged. |
 | INT-08 | 100 pokes (`starter_tapped`) | The payload is byte-unchanged (UX §6: a poke never changes the sim). |
 
 ### 2.7 Lint and static checks (L1)
 
 | ID | Check | Enforces |
 |---|---|---|
-| LINT-01 | `src/sim/**` has none of: `Time.`, `OS.`, `Engine.`, `randi(`, `randf(`, `randomize(`, `extends Node`, `get_tree(`, `Input.`, `DisplayServer.` | Hard rule 1 |
+| LINT-01 | `src/sim/**` has none of: `Time.`, `OS.`, `Engine.`, `randi(`, `randf(`, `randomize(`, `extends Node`, `Node.new`, `get_tree(`, `Input.`, `DisplayServer.`, `FileAccess`, `DirAccess`, `\bload(`, `preload(`, `tr(` (matches architecture §1) | Hard rule 1 |
 | LINT-02 | `src/**` and `project.godot` have no `HTTPRequest`, `HTTPClient`, `StreamPeerTCP`, `StreamPeerTLS`, `PacketPeerUDP`, `WebSocketPeer`, `ENetMultiplayerPeer` or `JavaScriptBridge`, and no analytics plugin | Hard rule 6 |
 | LINT-03 | Every `.gd` under `src/` instantiates (R-8), with the project's warning-as-error settings | Hard rule 4 |
-| LINT-04 | `.tscn` `text`, `placeholder_text`, `tooltip_text` and `accessibility_name` values are empty or a key matching `^[a-z0-9_]+(\.[a-z0-9_]+)+$` (architecture §10). Every `tr()` key exists in `src/i18n/sim.csv`, `events.csv` or `ui.csv` with a non-empty `en` value. | Hard rule 3 |
+| LINT-04 | `.tscn` `text`, `placeholder_text`, `tooltip_text` and `accessibility_name` values are empty or a key matching `^[A-Z][A-Z0-9_]*$` (architecture §10, ADR-014). Every `tr()` key exists in `src/i18n/en.csv` (generated by narrative-designer from their docs) or in `pending_core.csv`, `pending_view.csv` or `pending_ui.csv`, with a non-empty `en` value. | Hard rule 3 |
 | LINT-05 | Starter `set_shader_parameter` calls appear only in the `JarView` adapter that consumes `VisualParams` | Hard rule 2 |
-| LINT-06 | **Safety copy.** For keys under `state.moldy.*`, `state.unhealthy.*`, `smell.musty.*`, `event.warning_signs.*` and `event.mold_found.*`: no "safe to", "still good", "scrape", "skim off", "just remove", "fine to use", "fine to eat", "ok to eat" or "okay to eat". The moldy keys contain the agreed discard wording (TBD-NAR). For `state.hungry.*`, `smell.acetone.*`, `smell.alcohol.*`, `smell.strongly_acidic.*`, `event.hooch_forming.*` and `event.hungry_again.*`: no "danger", "unsafe", "toxic", "sick", "poison", "throw it out" or "throw away". No key anywhere says "probiotic", "gut health", "health benefit" or "cure". Word lists get scientist sign-off in wave B. | Safety rules, hard rule 5 |
+| LINT-06 | **Safety copy** (prefixes from game-copy.md §16). Case-insensitive throughout. **Safety set** (`STATUS_MOLDY_`, `STATUS_UNHEALTHY_`, `SMELL_MUSTY_`, `SMELL_MOLDY_`, `INSPECT_*_MOLDY*`, `INSPECT_*_UNHEALTHY*`, `INSPECT_SURFACE_HOOCH_DARK_`, `EVENT_WARNING_SIGNS_`, `EVENT_MOLD_FOUND_`, `MOLD_`, `MEMORIAL_`, `NOTIF_WARNING_`): never "safe to", "still good", "scrape", "skim off", "just remove", "fine to use", "fine to eat", "ok to eat" or "okay to eat". **Must say "discard":** `STATUS_MOLDY_HINT`, `STATUS_MOLDY_TAP`, `SMELL_MOLDY_BODY`, `INSPECT_*MOLDY*_MEAN`, `MOLD_SHEET_BODY*`, `MOLD_FEED_BLOCKED`. **Hunger set** (`STATUS_HUNGRY_`, `STATUS_DORMANT_STARVED_`, `SMELL_ACETONE_`, `SMELL_ALCOHOL_`, `SMELL_STRONGLY_ACIDIC_`, `EVENT_HOOCH_FORMING_`, `EVENT_HUNGRY_AGAIN_`, `EVENT_FIRST_ACETONE_`, `INSPECT_SURFACE_HOOCH_`, `INSPECT_*_HUNGRY*`, `FEED_HOOCH_`, `GLOSS_HOOCH`): never "danger", "unsafe", "toxic", "sick", "poison", "throw it out" or "throw away". **Any key:** never "probiotic", "gut health", "health benefit" or "cure". Ported to GDScript over the CSVs in Phase 2. The same lists already pass narrative's `check_copy.py` over the docs: QA ran it, 614 strings, `OK`, exit 0. | Safety rules, hard rule 5 |
 | LINT-07 | Nothing tracked matches `*.keystore`, `*.jks`, `*.p12`, `*.mobileprovision`, `*.pem`, `export_credentials.cfg` or `.env*`. `.godot/` and `*.translation` are untracked. | Hard rule 10 |
 | LINT-08 | No U+2014 (em dash) in `src/i18n/*.csv` | Style |
 | LINT-09 | The code's state, action, flour, location, container, cover and inspection-kind constants equal the `vision.md` lists | Canonical ids |
 | LINT-10 | `DebugClock` and dev flags (`--fixture`, `--time-scale`, `--perf-log`, `--capture`) are reachable only behind `OS.is_debug_build()` | Vision time rules |
-| LINT-11 | No key is duplicated across the three CSVs | Track separation |
+| LINT-11 | No key is duplicated across `en.csv` and the three `pending_*.csv` files | Track separation (ADR-014) |
+| LINT-12 | At the Phase 3 exit and before any release, all `pending_*.csv` files are empty, so no placeholder copy ships | Hard rule 3 |
 
 ---
 
@@ -275,7 +303,7 @@ Every Then is measurable. "Looks good" is never a pass condition. Slice scope co
 - Ratio presets 1:1:1, 1:2:2 and 1:5:5
 - Flours `white_bread` and `whole_wheat`
 - Hydration fixed at 100%, discard derived
-- Locations `counter` 22 °C, `warm_spot` 26 °C and `fridge` 4 °C (v0)
+- Locations `counter` 22 °C, `warm_spot` 26 °C and `fridge` 4 °C (spec §2.2)
 - `loose_lid` and `classic_jar`, both fixed
 - Inspect kinds `height`, `bubbles` and `surface`
 - 6 events
@@ -284,11 +312,11 @@ Every Then is measurable. "Looks good" is never a pass condition. Slice scope co
 
 | ID | Given | When | Then | Check |
 |---|---|---|---|---|
-| AC-01.1 | The jar GLB in `assets/3d/` | Imported headless | It has nodes `Jar_Glass`, `Starter_Body`, `Starter_Liner`, `Rubber_Band`, `Cloth_Cover`, `Counter` and at least one `Jar_Lid_*`. Every mesh has normals and UV0. | auto |
+| AC-01.1 | The jar GLB in `assets/3d/` | Imported headless, and checked with `python3 art/blender/scripts/verify_glb.py` | The nodes in art-direction's mesh contract exist: `Jar_Glass`, `Starter_Body` (with UV2), `Starter_Liner`, `Jar_Lid_Loose`, `Jar_Lid_Tight`, `Cloth_Cover`, `Rubber_Band`, `Counter`, and the empties `StarterFloor` and `StarterRim`. Every mesh has normals and UV0. The checker exits 0. The checker also asserts each cover's visible set ≤ 16k. **QA re-ran it after the cloth rebuild: PASS, exit 0.** Visible sets: loose lid 13,568, tight lid 12,512, cloth 14,552. All variants: 18,680. | auto |
 | AC-01.2 | The jar scene | Loaded | Glass draws back faces before front faces (render priority back < front, D-009). Every material inside the glass is opaque or alpha-scissor. | auto |
-| AC-01.3 | Fixture `at_peak`, default zoom | 36 captures at 10° yaw steps across the yaw range | The reviewer finds 0 frames where the starter or liner draws in front of the near glass, 0 flicker between neighbors and 0 z-fighting at the rim. | capture + review |
+| AC-01.3 | Fixture `at_peak`, from the art-direction §7 preview pose: target (0, 0.105, 0), distance 0.58 m, pitch −15°, vertical FOV 33.4° (KEEP_HEIGHT), near 0.01 | 36 captures at 10° yaw steps across the yaw range | The reviewer finds 0 frames where the starter or liner draws in front of the near glass, 0 flicker between neighbors and 0 z-fighting at the rim. | capture + review |
 | AC-01.4 | Mobile Tier A, Mobile Tier B, Compatibility Tier A, captured at the art-direction "preview pose" | Compared with `art/previews/jar_v0_<state>.png` and the per-state tells in `art-direction.md` "Reference renders" | art-director ticks all of MAN-01. The references are Blender Cycles renders, so a Godot capture must match the **tells**, not the pixels. Compatibility has no missing object and no black or magenta surface. | review |
-| AC-01.5 | Main scene, idle | `Performance` monitors | ≤ 16k triangles. Fewer than 10 draw surfaces for the jar. Fewer than 30 draw calls total (architecture §11). | capture |
+| AC-01.5 | Main scene, idle, slice configuration (loose lid, no cloth) | `Performance` monitors | ≤ 16k rendered triangles. From the checker's per-node counts, jar_v0's visible set is 13,568. Fewer than 10 draw surfaces for the jar. Fewer than 30 draw calls total (architecture §11). | capture |
 | AC-01.6 | Default pose, iPhone SE and 17 Pro Max sizes | Projected jar AABB | The jar is centered in the jar region (UX §2: between the HUD plate and the action bar) within ±4% of its height. It fills at least TBD-UX % of the region. | capture |
 
 ### AC-02 An animated starter
@@ -330,8 +358,8 @@ Input is injected with `InputEventScreenTouch` and `InputEventScreenDrag`. Numbe
 | AC-04.1 | The scientist's vectors | 100 seeds per commit, 1,000 nightly | Every checkpoint is in range for every seed. | auto |
 | AC-04.2 | The §4.3 recipes | Run | All 11 states are reached at their checkpoints. | auto |
 | AC-04.3 | Overlapping-state fixtures | Derived | Precedence matches the spec. | auto |
-| AC-04.4 | BT-1 to BT-10 and BT-14 (§4.2) | Run | Every pass condition holds. | auto |
-| AC-04.5 | L-1 to L-10 (§4.2) | Run | Every floor holds. A v0 number under a design floor is reported to the director, not tuned by QA. | auto |
+| AC-04.4 | BT-1 to BT-12, BT-14, BT-14b, BT-16, BT-17 (§4.2) | Run | Every pass condition holds. | auto |
+| AC-04.5 | L-1 to L-11 (§4.2) | Run | Every floor holds. A v1 number under a design floor is reported to the director, not tuned by QA. | auto |
 | AC-04.6 | PROP-01 to PROP-09, PROP-13 | Run | All hold. | auto |
 
 ### AC-05 Feeding interaction
@@ -341,8 +369,9 @@ Input is injected with `InputEventScreenTouch` and `InputEventScreenDrag`. Numbe
 | AC-05.1 | A non-moldy starter | Mix with each preset and flour | Keep, flour and water equal the game-mechanics §2.3 table. The next derivation is `freshly_fed`. `since_feed_s` = 0. One journal entry. `state_changed` fires. A save is written. | auto |
 | AC-05.2 | The feed sheet | It opens | Last time's ratio, flour and hooch choice are preselected. The slice offers no free keep, hydration or ratio input. Mix is disabled with a shown reason only when the starter is `moldy`. | auto |
 | AC-05.3 | An earlier feed, the main screen visible | Feed, then Mix | **2 taps.** The stored `FeedAction` equals the previous one, field by field, except the time (BT-13). | auto |
-| AC-05.4 | A return with the time-lapse, or a pending attention | Skip, then Feed (or Feed now), then Mix | **3 taps or fewer** (BT-13, UX §7). | auto |
-| AC-05.5 | `hooch` above the visible threshold (TBD-SCI) | The feed sheet opens | The hooch step comes first, with "Pour off" as the default. Each choice changes acid per the spec (TBD-SCI). Below the threshold there's no hooch step. | auto |
+| AC-05.4 | A return with the time-lapse, or a pending attention | Skip, then Feed (or the secondary "Feed it now"), then Mix | **3 taps or fewer** (BT-13, UX §7). | auto |
+| AC-05.4b | `warning_signs` attention pending on return | The primary path: Skip, "Look first" (runs the `surface` check), "Feed now", Mix | **4 taps or fewer** (UX §7). "Look first" is the bottom, primary button on the sheet. "Feed it now" is secondary, and still reaches fed in 3 or fewer (AC-05.4). | auto |
+| AC-05.5 | `hooch` ≥ 0.1 (spec §15, "visible") | The feed sheet opens | The hooch step comes first, with "Pour off" as the default. `stir_in` adds hydration with no acid effect (V20: +0.8 hydration points at hooch 0.46, and the peak moves by ≤ 0.05 h). `pour_off` is journal-only, with no sim change beyond the feed reset. At 0.1 − ε, there's no hooch step. `hooch_forming` fires when hooch crosses 0.1. | auto |
 | AC-05.6 | The state at Mix | Each state | The timing class matches §2.1. `early` shows the non-blocking line. | auto |
 | AC-05.7 | After Mix | The sequence runs | It lasts about 6 s, can be skipped after the first feed, and the band snaps on. The forecast card shows words, never a countdown or digits. | auto + manual |
 | AC-05.8 | Mix tapped | The process is killed at Mix, mid-sequence and after the sequence | After relaunch, the feed exists exactly once, in both the state and the journal. | auto + manual |
@@ -353,9 +382,9 @@ Input is injected with `InputEventScreenTouch` and `InputEventScreenDrag`. Numbe
 
 | ID | Given | When | Then | Check |
 |---|---|---|---|---|
-| AC-06.1 | Each of `counter`, `warm_spot`, `fridge` | Selected | It applies instantly, with no confirmation. The temperature equals the spec preset (v0: 22, 26, 4 °C) and is read-only. Humidity is the fixed per-location constant and is never shown. | auto |
+| AC-06.1 | Each of `counter`, `warm_spot`, `fridge` | Selected | It applies instantly, with no confirmation. The environment equals spec §2.2: `counter` 22 °C / 50% RH, `warm_spot` 26 °C / 40%, `fridge` 4 °C / 70%. Temperature is read-only. RH is never shown. `temp_c` approaches the new temperature with the 1.5 h thermal constant, with no overshoot. | auto |
 | AC-06.2 | A move at time t | Advance | The result is byte-equal to a run that changes the environment at `grid(t)`. | auto |
-| AC-06.3 | 1:1:1 in each location | Run | Peak order: `warm_spot` < `counter`. `fridge` reaches `dormant` within TBD-SCI h, including any thermal lag the spec adds. | auto |
+| AC-06.3 | 1:1:1 in each location | Run | Peak order: `warm_spot` < `counter` (v1 at 22 °C: 6.1 to 6.3 h). `fridge` gives `dormant` within 3 h of the move, once `ferm(temp_c)` < 0.30. Moving a cold `dormant` back to the counter leaves `dormant` within 6 h (L-11). | auto |
 | AC-06.4 | The environment sheet | Opened | It shows the location and the temperature in °C. The move tweens the jar to its spot and the light changes. No `VisualParams` field jumps more than `max_delta`. | auto + capture |
 | AC-06.5 | 50 moves between fridge and counter in 1 min | Run | Byte-equal to one segment per actual stay. `off_to_nap` and `waking_up` respect their cooldowns. | auto |
 | AC-06.6 | Slice scope | The environment sheet | No cover or container control is offered (both fixed). `window_sill` and `proofing_box` are absent until their P1 unlock. | auto |
@@ -365,10 +394,10 @@ Input is injected with `InputEventScreenTouch` and `InputEventScreenDrag`. Numbe
 
 | ID | Given | When | Then | Check |
 |---|---|---|---|---|
-| AC-07.1 | Every state fixture | `SmellModel.read` | Descriptors and intensity equal the spec table (TBD-SCI). | auto |
-| AC-07.2 | The same state | Smell 10 times | The same descriptor and copy-variant key every time (the deterministic rule, TBD-NAR). Over 300 feeds, every variant of every descriptor appears. | auto |
-| AC-07.3 | `mold_risk` ≥ the watch threshold (v0 0.3) | Smell | `musty` is present. Its meaning line shows every time (it never fades) and says it's a warning sign. | auto |
-| AC-07.4 | `hungry` with hooch | Smell | `strongly_acidic`, `alcohol` or `acetone` is present (TBD-SCI). The meaning says normal and feed it. LINT-06 passes. | auto |
+| AC-07.1 | Every state fixture | `SmellModel.read` | Intensities equal the spec §13 formulas within 1e-9. The displayed set is the top 3 with intensity ≥ 0.15. Ties sort by the vision descriptor order, and `musty` is always first. The intensity words match the bands. The sets match spec §13's typical-set table at 22 °C and the V1 checkpoint sets. | auto |
+| AC-07.2 | The same state and the same `feed_count` | Smell 10 times | The same variant key every time. The rule is `n = 1 + (feed_count + DESCRIPTOR_ORDER.find(d)) % 3`, and the faint level uses `1 + feed_count % 2` (game-copy §16). Every variant appears within any 3 consecutive feeds, and no line repeats on consecutive cycles. | auto |
+| AC-07.3 | `mold_risk` ≥ 0.3, at any `temp_c` from 0 to 40 | Smell | `musty` is shown (≥ 0.2, exempt from cold damping, spec §13) and listed first. Its meaning line shows every time and says it's a warning sign. Below 0.3, there's no `musty`. | auto |
+| AC-07.4 | `hungry` | Smell | The set follows spec §13 and the V1 checkpoints. `alcohol` takes over from `pleasantly_tangy` at about 16 h. `acetone` and `strongly_acidic` follow later. The meaning says normal and feed it. LINT-06 passes. | auto |
 | AC-07.5 | A descriptor's 1st, 2nd, 3rd and 4th appearance | Smell | The meaning line shows on the first 3 appearances. After that it's one tap away (except `musty`). | auto |
 | AC-07.6 | The main screen | 1 tap on `smell` | The moment lasts about 1.2 s (dolly 600 ms in, 400 ms out). Then the card shows a descriptor word and no digits. | auto |
 | AC-07.7 | A smell moment in progress | An event triggers | It waits until the moment ends. | auto |
@@ -378,11 +407,11 @@ Input is injected with `InputEventScreenTouch` and `InputEventScreenDrag`. Numbe
 
 | ID | Given | When | Then | Check |
 |---|---|---|---|---|
-| AC-08.1 | Each of the 11 state fixtures | The main screen | The pill shows that state's icon shape (UX §11), its word key `state.<id>.name` and its hint key `state.<id>.hint`, all non-empty. All 11 icons differ. The word renders in ink, and the tone is on the icon and border only. | auto |
+| AC-08.1 | Each of the 11 state fixtures | The main screen | The pill shows that state's icon shape (UX §11) and its `STATUS_<ID>_WORD`, `STATUS_<ID>_HINT` and `STATUS_<ID>_TAP` keys, all non-empty. `dormant` uses `STATUS_DORMANT_COLD_*` when `ferm(temp_c)` < 0.30, else `STATUS_DORMANT_STARVED_*`. All 11 icons differ. The word renders in ink, and the tone is on the icon and border only. | auto |
 | AC-08.2 | App open | The state changes | The pill updates when `state_changed` fires: a 250 ms crossfade plus a pulse, crossfade only with reduce motion. | auto |
 | AC-08.3 | The main screen, its toasts and cards | All visible text | No `[0-9]` outside the player-typed name (UX §4). | auto |
-| AC-08.4 | Inspect `height`, `bubbles`, `surface` | Each chip | The camera reaches the kind's framing in 500 ms. The card appears within 3 s. The readout is words from the spec variables (TBD-SCI). Two taps (UX §7). `consistency` and `development` are absent in the slice. | auto |
-| AC-08.5 | `moldy` | `surface` inspect, smell, the status explainer | Each says discard. The scientist signs off on every `unhealthy` and `moldy` string. LINT-06 passes. | auto + review |
+| AC-08.4 | Inspect `height`, `bubbles`, `surface` | Each chip | The camera reaches the kind's framing in 500 ms. The card appears within 3 s. The readout keys follow spec §14 at its thresholds. Two taps (UX §7). `consistency` and `development` are absent in the slice. | auto |
+| AC-08.5 | `moldy` | Every action | Only inspect, journal and Discard are enabled. Feed, smell and environment are disabled, each with a visible reason (game-mechanics §1). `mold_found` can be closed with "Not now", but Discard stays on screen. The `surface` inspect and the status explainer say discard. The scientist signs off on every `unhealthy` and `moldy` string. LINT-06 passes. | auto + review |
 | AC-08.6 | Grayscale captures of all 11 states, in random order | Reviewed | Every state is named from the icon and word alone. | review |
 | AC-08.7 | A state shown for the first time | The main screen | The pill shows the "new" dot until tapped, and once only. | auto |
 | AC-08.8 | Status pill tapped | Explainer card | Body ≤ 120 characters. "Show me" moves the camera to the state's main cue. | auto |
@@ -414,7 +443,7 @@ Slice events (game-mechanics §7.4):
 
 | ID | Given | When | Then | Check |
 |---|---|---|---|---|
-| AC-10.1 | Each slice event | Positive and negative scenarios | It fires in the positive scenario, with the right tier and payload, and never in the negative one. | auto |
+| AC-10.1 | Each slice event | Positive and negative scenarios | It fires in the positive scenario, with the right tier and payload, and never in the negative one. The thresholds are tested at value ± ε: `first_rise` when rise crosses 1.4, `hooch_forming` when hooch crosses 0.1, `warning_signs` when `mold_risk` crosses 0.5. | auto |
 | AC-10.2 | 30-day random schedules, 1,000 seeds | Evaluate | Per local date: ≤ 2 nudges and ≤ 1 attention created, ≤ 4 live info toasts, all info logged. **Never more than 1 attention waiting.** | auto |
 | AC-10.3 | Same | Same | Each cooldown in §4.2 holds. | auto |
 | AC-10.4 | Quiet hours 22:00 to 08:00 local, including DST and offset-change days | Evaluate | Info is logged. A nudge is deferred to 08:00, re-checked, and dropped if stale. Attention is never deferred or dropped. | auto |
@@ -423,7 +452,7 @@ Slice events (game-mechanics §7.4):
 | AC-10.7 | An event and a milestone at the same moment | Released | Only the event shows. The milestone goes only to the journal. | auto |
 | AC-10.8 | An open sheet, the feed sequence, the smell moment, inspection or the time-lapse | An event triggers | It waits until that closes. That includes attention. | auto |
 | AC-10.9 | BT-1, BT-2, BT-3, BT-9 | Run | 0 attention events. | auto |
-| AC-10.10 | BT-7 | Run | `warning_signs` is created at least 72 h before `mold_found` (48 h in the worst combination) (L-6). | auto |
+| AC-10.10 | BT-7 and SIM-WARN-03 | Run | At `counter`: `warning_signs` (unhealthy onset) comes ≥ 72 h before `mold_found`. v1 is about 106 h, within V9's ranges (unhealthy 104 to 111 h, moldy 207 to 219 h). At any location or temperature from 4 to 40 °C: ≥ 59 h. Spec §10 guarantees ≥ 60 h (bound 60.6 h), and 59 h is the scientist's test floor. Well above L-6's 48 h. | auto |
 | AC-10.11 | `back_to_strength` | A rise after a very_late feed | It fires only if `peak_rise` ≥ 85% of the pre-neglect value. | auto |
 | AC-10.12 | `peaked_while_away` | A peak phase with `ctx.app_foreground` false, then one in the foreground | The first gives `peaked_while_away`, the second `peak_now`. Once per rise cycle. | auto |
 
@@ -453,7 +482,7 @@ Slice events (game-mechanics §7.4):
 | AC-12.11 | Android back | A sheet open, then no sheet | It closes the top sheet. With no sheet, it saves and quits. | auto |
 | AC-12.12 | Sheet transitions | Captured | No regression over 20% (Mac and simulator estimates, §7). | capture |
 | AC-12.13 | UX wireframes | MAN-12 | ux-designer and art-director tick every item. | review |
-| AC-12.14 | Strings | LINT-04, LINT-08, LINT-11 | Pass. | auto |
+| AC-12.14 | Strings | LINT-04, LINT-06, LINT-08, LINT-11, LINT-12 | Pass. | auto |
 
 ---
 
@@ -472,15 +501,15 @@ Slice events (game-mechanics §7.4):
 | `recovering`: `vigor` < 0.6, or `vigor_at_feed` < 0.75 | SIM-DER-05, SIM-DER-06, each at its boundary |
 | Rise phases, first match wins (§12.1) | SIM-PHASE-01 to 07, each rule at its boundary: food 0.10, `since_feed_s` 3,600, rise 1.05 and 1.15, 0.94 × `peak_rise`, `rise_rate` 0.2 and 0.75 × `peak_rate`, food 0.25 × `food_at_feed` |
 | Precedence (§12.2) | SIM-PREC-01, every pair |
-| `feed_jitter` is uniform 0.95 to 1.05, one `randf_range` per feed, stored | SIM-RNG-01 (within bounds, stored, never redrawn on load), PROP-13 |
+| One `sim_rng` draw per feed, stored as `feed_u`. `feed_jitter = 0.95 + 0.10 × feed_u`. `big_bubble` is deterministic from `feed_u`. | SIM-RNG-01 (within bounds, stored, never redrawn on load, exactly 1 draw per feed), PROP-13 |
 | 60 s Euler grid, exactly invariant to splits | PROP-01, V17, CLK-18 |
 | Keep from 1 g up to `mass_g`. Keep 0 is rejected. | V11, plus a rejection test. Unreachable from the slice UI (derived discard). |
 | 12 feeds, 10 min apart | V10, EC-04 |
 | 1:50:50 | V4, V11 (sim-level, P2) |
 | Optimum and falloff | PROP-06, V2, V12 |
 | Mold accrues only with `food` < 0.10 and `starved_h` > 24. `mold_t` ramps with temperature. | PROP-04, SIM-MOLD-01 (24 − ε / 24 + ε weighted h) |
-| Multiplier cap 2.2: warning to mold ≥ 61 h, watch to mold ≥ 79 h at any temperature | SIM-WARN-03: sweep 4 to 45 °C in 1 °C steps, every cover, RH 30 to 70%. Assert warning to mold ≥ **58 h** (the scientist's test floor, measured 60 h at 35 °C with `cloth` and 30% RH) and watch to mold ≥ 79 h. Both exceed L-6's 48 h "anywhere" floor. |
-| Watch stage: `musty` shows and is listed first at any temperature (§13, fixed after QA's cold-damping finding) | SIM-WARN-01: no `musty` below 0.3. From 0.3, `musty` ≥ 0.2 and listed first, at `temp_c` −5 to 45. |
+| Multiplier cap 2.2: warning to mold ≥ 60 h (bound 60.6 h), watch to mold ≥ 77 h (bound 77.7 h), at any temperature | SIM-WARN-03: sweep 4 to 40 °C in 1 °C steps, every cover, RH 30 to 70%. Assert warning to mold ≥ **59 h** and watch to mold ≥ **76 h** (the spec's test floors). Both exceed L-6's 48 h "anywhere" floor. |
+| Watch stage: `musty` shows and is listed first at any temperature (§13, fixed after QA's cold-damping finding) | SIM-WARN-01: no `musty` below 0.3. From 0.3, `musty` ≥ 0.2 and listed first, at `temp_c` 0 to 40. |
 | Fridge `mold_risk` reaches 0.12 to 0.15 in 14 d | L-8, V13, V15 |
 | A feed multiplies `mold_risk` by 0.3 | PROP-08, V9b |
 | Counter neglect (V9): hungry 12.4 to 12.8 h, dormant 74 to 77 h, watch 72 to 80 h, unhealthy 104 to 111 h, moldy 207 to 219 h | V9, BT-7, L-4 to L-7 |
@@ -499,18 +528,18 @@ Defaults: `white_bread`, 100%, `loose_lid`, `counter` 22 °C. Steady state means
 | BT-4 | Weekend in the fridge | 0 attention events. `mold_risk` < 0.3. `peak_rise` ≥ 85% of the pre-weekend value within 2 feeds. |
 | BT-5 | 24 h away | `hungry`, no attention event. 1 feed gives ≥ 85% `peak_rise`. |
 | BT-6 | 14 d in the fridge | Never `unhealthy`. Normal rise within 2 feeds. |
-| BT-7 | Neglect on the counter | `unhealthy` ≥ 96 h. `moldy` ≥ 168 h. At least 72 h from `unhealthy` to `moldy`. At any location or temperature: at least 48 h (SIM-WARN-03 asserts 58 h). |
+| BT-7 | Neglect on the counter | `unhealthy` ≥ 96 h. `moldy` ≥ 168 h. At least 72 h from `unhealthy` to `moldy`. At any location or temperature: at least 48 h (SIM-WARN-03 asserts 59 h). |
 | BT-8 | Rescue at `unhealthy` onset | Out of `unhealthy` after 1 feed. Normal rise within 3 feeds. |
 | BT-9 | 30 d of BT-1 | 0 attention events. ≤ 2 nudges per local day. |
 | BT-10 | Determinism | Same states, events and summary, byte for byte (PROP-02, PROP-12). |
 | BT-11 | Forecast | With the environment unchanged, `at_peak` starts inside the forecast window for 100% of feeds. Run over all slice presets, flours and locations, 1,000 seeds. |
-| BT-12 | Tutorial demo (B6) | From feed to `at_peak` in 90 to 120 s of wall time. The demo steps a **temporary copy** of the state and never scales `Clock` (game-mechanics §8.1, tech-architect to confirm). The real save is created at `at_peak` with timestamps set to now. The saved state's `sim_time_unix` equals `grid(now)` at creation, and `meta` shows no time scale. |
+| BT-12 | Tutorial demo (B6) | From feed to `at_peak` in 90 to 120 s of wall time. The demo steps a **temporary copy** of the state and never scales `Clock` (game-mechanics §8.1, `Demo.run` in architecture §5.5). The real save is created at `at_peak` with timestamps set to now. The saved state's `sim_time_unix` equals `grid(now)` at creation, and `meta` shows no time scale. |
 | BT-13 | Taps | AC-05.3, AC-05.4 |
 | BT-14 | Pacing, twice daily, from maturity 0.2 | `steady` by days 5 to 8, `mature` by 12 to 18, `seasoned` by 45 to 60 (v1: 6, 16, 51.5). |
 | BT-14b | Pacing, once daily | Each stage within 1.5× its BT-14 day (v1: 8, 21, 69). |
 | BT-15 | Return flow | AC-09.3 |
 | BT-16 | No dead ends (L-11) | For each non-`moldy` state fixture, apply the corrective action (a feed, or a move to `counter` for a cold `dormant`). Within 6 h, the state is equal or lower in precedence and `mold_risk` hasn't risen. |
-| BT-17 | Schedule question | Mature starter, `counter`, defaults. The forecast `at_peak` start falls in 4 to 7 h for 1:1:1, 7 to 10 h for 1:2:2 and 10 to 16 h for 1:5:5. Each answer suggests exactly its preset. v1 starts: 6.1 h, about 8 h, 10.75 h. |
+| BT-17 | Schedule question | Mature starter, `counter`, defaults. The forecast `at_peak` start falls in 4 to 7 h for 1:1:1, 7 to 10 h for 1:2:2 and 10 to 16 h for 1:5:5. Each answer suggests exactly its preset. v1 `at_peak` starts: 6.1 h, 8.0 to 8.4 h (V18), 10.75 to 11.4 h (V19). |
 
 | ID | Leniency floor (game-mechanics §9) | Test |
 |---|---|---|
@@ -520,7 +549,7 @@ Defaults: `white_bread`, 100%, `loose_lid`, `counter` 22 °C. Steady state means
 | L-4 | Earliest `unhealthy` ≥ 4 d at `counter` (v1: 4.5 d at counter, 3.5 d at `warm_spot`) | BT-7, V9 |
 | L-5 | Earliest `moldy` ≥ 7 d at `counter` (v1: 8.9 d at counter, 7.1 d at `warm_spot`) | BT-7, V9 |
 | L-6 | `unhealthy` to `moldy` ≥ 72 h at `counter`, ≥ 48 h anywhere (v1: 106 h at counter, about 86 h at `warm_spot`) | BT-7, AC-10.10, SIM-WARN-03 |
-| L-7 | Watch stage (`musty`) to `moldy` ≥ 96 h at `counter` (v1: 138 h) | SIM-WARN-02 at `counter`. At `warm_spot`, the spec's cap gives ≥ 79 h. QA asserts that and reports the measured value. |
+| L-7 | Watch stage (`musty`) to `moldy` ≥ 96 h at `counter` (v1: 138 h) | SIM-WARN-02 at `counter`. At any temperature, the spec's cap gives ≥ 77 h (asserted at ≥ 76 h, SIM-WARN-03). QA reports the measured `warm_spot` value. |
 | L-8 | `fridge` never molds within the 14-day cap. Normal within 2 feeds. | EC-02, V7, V13 |
 | L-9 | Any feed before `moldy` lowers `mold_risk`. Out of `unhealthy` after 1 feed, normal by feed 3. | PROP-08, BT-8, V9b |
 | L-10 | No single action causes a loss | For every state fixture except `moldy` and every slice action: the result is never `moldy`. |
@@ -531,7 +560,7 @@ Defaults: `white_bread`, 100%, `loose_lid`, `counter` 22 °C. Steady state means
 - **One-time cooldowns:** `first_rise`, `first_acetone`, `getting_stretchy`, `trait_revealed` (per trait), `mold_found`.
 - **Timed cooldowns:** `hungry_again` 12 h, `hooch_forming` 24 h, `back_to_strength` 24 h, `off_to_nap` 24 h, `fed_before_peak` 72 h, `warm_and_quick` 72 h, `big_bubble` 48 h (max 1 a day).
 - **Per-episode cooldowns:** `waking_up` once per fridge stay. `peaked_while_away` once per rise cycle. `warning_signs` once per `unhealthy` episode, re-armed after 24 h out of it.
-- **Randomness:** only `ambient` rules (`big_bubble`, p = 0.15 per eligible cycle) use `event_rng`.
+- **Randomness:** `big_bubble` is now deterministic from the stored `feed_u` (spec §17). The same save always gives the same ambient events.
 
 **Return flow** (§8):
 - Show it only when away ≥ 60 min with a change.
@@ -577,15 +606,15 @@ Each check time below sits at least 0.3 h inside its window, to absorb jitter an
 
 | ID | Player | Setup | Expected | Check |
 |---|---|---|---|---|
-| EC-01 | Leaves for a month, starter on the counter | Reopen at T + 30 d | Capped at 14 d, so `moldy` (v0). The time-lapse passes the warning stages. The summary names when the warnings began. `mold_found` shows, with no guilt copy. `warning_signs` is in the journal at least 72 h before mold. The memorial is offered. | auto + review |
-| EC-02 | Leaves for a month, starter in the fridge | Same, in the fridge | `dormant`, with `mold_risk` < 0.3 throughout. Normal rise within 2 feeds. | auto |
+| EC-01 | Leaves for a month, starter on the counter | Reopen at T + 30 d | Capped at 14 d. `moldy` latched at about 8.9 d (V13). The time-lapse passes the warning stages. The summary names when the warnings began. `mold_found` shows, with no guilt copy. `warning_signs` is in the journal at least 72 h before mold. The memorial is offered. | auto + review |
+| EC-02 | Leaves for a month, starter in the fridge | Same, in the fridge | `dormant`, vigor 0.6 to 0.7, `mold_risk` < 0.3 throughout (V13). After a counter feed: `recovering` at 2, 4, 8 and 12 h, peak 13.5 to 14.1 h. The next feed is normal (V7). | auto |
 | EC-03 | Keeps it in the fridge for weeks, feeding weekly | 8 weeks, a feed every 7 d in the fridge | Never `unhealthy`. Status after each feed per OD-7. | auto |
-| EC-04 | Feeds every 10 minutes | 12 feeds of 1:1:1 in 2 h | Stays `freshly_fed`. Ranges hold, populations stay ≥ 0.001. The timing class is `early` every time, so `fed_before_peak` fires once (72 h cooldown). 12 journal lines, one per feed (game-mechanics §2.6). 12 saves, no slowdown. A peak still comes afterwards (v0). | auto |
-| EC-05 | Discards everything | Slice: impossible (derived discard). Sim-level: keep 0 → rejected. Keep 1 g at 1:1:1 → 3 g. | `VisualMapper` still shows a visible layer (min height TBD-ART). No divide by zero. | auto |
-| EC-06 | Chooses 1:50:50 | Slice: impossible (presets). Sim-level P2: 1 g + 50 g + 50 g at 24 °C | Peaks within about 18 to 24 h (v0). Not `hungry` before the peak. The jar shows the mass within capacity (P2 needs a max-mass rule, OD-6). | auto |
-| EC-07 | Gets mold, then tries to keep playing | `moldy` fixture | Mix is disabled with a reason. Smell, `surface` inspect and the explainer all say discard. The environment can still be changed (TBD-GD). Relaunch, clock back, and the `save.prev` fallback plus catch-up all give `moldy` again. Discard leads to the memorial and a new starter. | auto |
+| EC-04 | Feeds every 10 minutes | 12 feeds of 1:1:1 in 2 h | `freshly_fed` or `developing` throughout. Ranges hold, and `yeast` and `lab` sit at or near the 0.001 floor (V10). The timing class is `early` every time, so `fed_before_peak` fires once (72 h cooldown). 12 journal lines, one per feed (game-mechanics §2.6). 12 saves, no slowdown. The next peak comes about 25 h later at about 2.6× (V10). | auto |
+| EC-05 | Discards everything | Slice: impossible (derived discard). Sim-level: keep 0 is rejected. Keep 1 g at 1:1:1 gives 3 g and behaves like V2 at 22 °C (V11). | `VisualMapper` still shows a visible layer (min height TBD-ART). No divide by zero. | auto |
+| EC-06 | Chooses 1:50:50 | Slice: impossible (presets). Sim-level P2: 1 g + 50 g + 50 g at 22 °C, and 2 g kept at 24 °C | Peaks at about 18 h (V11), and at 15.6 to 16.7 h with 2.60 to 2.64× (V4). Not `hungry` before the peak. P2 free steppers need a max-mass rule (OD-6). | auto |
+| EC-07 | Gets mold, then tries to keep playing | `moldy` fixture | AC-08.5: only inspect, journal and Discard work. A feed through the API is refused with every field unchanged (V14). Relaunch, clock back, and the `save.prev` fallback plus catch-up all give `moldy` again. Discard leads to the memorial and a new starter. | auto |
 | EC-08 | Checks in every 5 minutes all day | 200 opens and smells in 16 h | Caps hold. One smell journal line per descriptor per cycle. No save slowdown. | auto |
-| EC-09 | Feeds in the fridge | `fridge`, then Mix | v0 precedence says `dormant` beats `freshly_fed`, so the pill says dormant right after feeding. The designer allows it with an advisory line (§2.2). Confirm the status (OD-7). | auto |
+| EC-09 | Feeds in the fridge | `fridge`, then Mix | `dormant` beats `freshly_fed` (spec §12.2), so the pill says dormant right after feeding. Intended: `STATUS_DORMANT_COLD_TAP` explains it (game-mechanics §1). The feed is still recorded, and the journal has the entry. | auto |
 | EC-10 | Flips locations constantly | AC-06.5 | No drift, no spam. | auto |
 | EC-11 | Flies across time zones | CLK-07 | The sim is unchanged. Quiet hours follow the new local time. | auto |
 | EC-12 | Moves the clock a week ahead to skip waiting | Set +7 d, open | It's a real week away: allowed and harmless offline. Setting it back afterwards (gap > 6 h) re-anchors with no rewind and no freeze. | auto |
@@ -597,7 +626,7 @@ Each check time below sits at least 0.3 h inside its window, to absorb jitter an
 | EC-18 | Leaves a sheet open overnight | CLK-10 | Correct state on resume. 1 feed only. | auto |
 | EC-19 | Phone call during a pinch | Canceled touches (AC-03.12) | No stuck finger. | auto + manual |
 | EC-20 | Names the starter oddly | Empty, spaces only, 200 characters, emoji, RTL text | Rules per TBD-UX/NAR. Byte-exact save and restore (UTF-8). The pill never overflows. The only digits allowed on the main screen are the player's (AC-08.3). | auto |
-| EC-21 | Dead-end hunt | Every non-moldy state fixture | A feed (or, for a cold `dormant`, a move to the counter) leads to a non-worse state within TBD-GD h. `moldy` has a discard and new-starter path. No soft lock. | auto |
+| EC-21 | Dead-end hunt | Every non-moldy state fixture | BT-16 and L-11: the corrective action gives a state that is equal or lower in precedence, with `mold_risk` not rising, within 6 h. `moldy` has a discard and new-starter path. No soft lock. | auto |
 | EC-22 | Android split screen or a resized window | Height down to 50% | No crash. Layout follows the safe area. | manual (Phase 5) |
 | EC-23 | Low power mode or a hot phone | Device | The frame cap still applies. No sim or visual difference. | manual (device) |
 | EC-24 | Taps the starter 100 times | INT-08 | The sim is byte-unchanged. | auto |
@@ -751,7 +780,7 @@ A feature is done when:
 2. Each `auto` row has a test, merged with the feature.
 3. `tests/run.sh` passes: exit 0, `RESULT: n passed, 0 failed`, and n has grown. The output is pasted into the report. No test is called passing without its output.
 4. LINT-01 to LINT-11 pass.
-5. New strings have keys in the owning track's CSV.
+5. New strings have UPPER_SNAKE keys in `en.csv`, or as placeholders in the track's `pending_*.csv` (ADR-014).
 6. If the schema changed: the version is bumped, a fixture is frozen in `tests/fixtures/saves/`, and the migration test passes.
 7. If it's visual: captures are reviewed against the references by art-director (and ux-designer for UI).
 8. No perf regression over 20% on the Mac baseline.
@@ -795,12 +824,14 @@ All of these were accepted by tech-architect. The names are from `architecture.m
 |---|---|---|
 | Clock | `Clock.now_unix()`, `local_utc_offset_s()`. `SystemClock`, `DebugClock` (debug only), and `FakeClock` with `set_now`, `advance`, `set_offset`. | CLK-*, AC-10.4 |
 | Clock policy | `src/core/time_policy.gd`, `CLOCK_REANCHOR_GAP_S` = 21600, 300 s monotonic guard | CLK-05, CLK-09, CLK-16, CLK-17 |
-| RNG | `sim_rng`, `event_rng`, saved as decimal strings, restored with `state` only | PROP-02, PROP-13, SAVE-14 |
+| RNG | `sim_rng` only (one draw per feed, stored as `feed_u`). `sim_seed` and `sim_state` are saved as decimal strings and restored with `state` only. Events take no RNG. | PROP-02, PROP-13, SAVE-14, SIM-RNG-01 |
+| Derived and view fields | `DerivedState.dormant_cause` (cold wins), `VisualParams.big_bubble`, `PlayerHistory.last_strong_peak_rise` (data-models §2, §5, §7) | AC-08.1, PROP-10, AC-10.11 |
 | Files | `SaveStore.new(base_dir)`, `fault_point`, `load_from_path()` | SAVE-* |
 | Fixtures | `--fixture=res://tests/fixtures/<name>.json`, `Session.dump_state(path)` | L7 to L9 |
 | Pure entry points | `Sim.step`, `Sim.apply_feed`, `StateDeriver.derive`, `VisualMapper.from_state`, `EventRules.evaluate`, `EventScheduler.admit`, `SmellModel.read`, `Inspection.read`, `CatchUp.run`, `Forecast.peak_window`, `ReturnSummary.build` | L2 to L4 |
 | Lifecycle | `Session.on_background()`, `on_resume()` | CLK-10, CLK-11, SAVE-12 |
 | Capture | `time_override` uniform, `--capture=<png>` | AC-01, AC-02, AC-08.6 |
+| Presets and demo | `StarterPresets.make`, `StarterState.rebase_to`, `Demo.run` (B6 tutorial, architecture §5.5) | BT-12, §4.3 recipes, fixtures |
 | Perf | `PerfLog`, added by Main when `--perf-log=<csv>` is passed (debug builds) | PERF-* |
 
 ---
@@ -810,13 +841,13 @@ All of these were accepted by tech-architect. The names are from `architecture.m
 | ID | Item | Owner | Status or proposal |
 |---|---|---|---|
 | OD-1 | D-013 froze the sim after a corrected forward clock jump | tech-architect | **Resolved**: architecture §5.3 re-anchors when gap > 6 h. Needs a decisions.md update (director). |
-| OD-2 | Warning gap: v0 says ≥ 48 h from the watch stage to mold, L-7 requires ≥ 96 h | scientist, designer, director | Tests assert L-7. A fun-vs-biology call for the director if the spec stays under it. |
+| OD-2 | Mold warning gap | scientist, designer | **Resolved by spec v1.** At `counter`: unhealthy to mold about 106 h, watch to mold 138 h, meeting L-6 and L-7. Anywhere: the 2.2 cap gives ≥ 48 h. Spec §10 now guarantees ≥ 60 h warning to mold and ≥ 77 h watch to mold at any temperature. SIM-WARN-03 asserts 59 h and 76 h. |
 | OD-3 | What the player sees when every save is bad | ux, narrative | Architecture: a new starter plus a calm notice. Copy is needed. |
 | OD-4 | A save from a newer version | tech-architect | **Resolved**: it's moved to quarantine and never overwritten (data-models §9.4). |
 | OD-5 | Ratio vs. hydration | designer | **Resolved**: ratio presets, hydration fixed at 100% in the slice. |
 | OD-6 | Jar capacity | designer | **Resolved for the slice**: 150 g total. P2 free steppers need a max-mass rule. |
-| OD-7 | Feeding in the fridge shows `dormant` immediately | designer, ux | Confirm, and add a hint line. |
-| OD-8 | Journal growth over a year or more, against the 128 KB budget | tech-architect | Cap or roll up. SAVE-13 will show it. |
+| OD-7 | Feeding in the fridge shows `dormant` immediately | designer | **Resolved**: intended, and the tap line explains it (game-mechanics §1). |
+| OD-8 | Journal growth over a year or more, against the 128 KB budget | tech-architect | **Resolved**: capped at 400 entries with a fixed drop order (data-models §6). SAVE-13 asserts it. |
 | OD-9 | Release-build and device checks need export templates (1,281 MB) | director | Approve before Phase 5. |
 | OD-10 | Android SDK pieces missing | director | Install before Phase 5. |
 | OD-11 | Does Control layout resolve under `--headless`? | godot-developer | A 10-minute spike check. Otherwise L8 runs windowed. |
@@ -824,3 +855,4 @@ All of these were accepted by tech-architect. The names are from `architecture.m
 | OD-13 | `AWAY_SUMMARY_MIN_S` was 30 min in architecture, 60 min in game-mechanics | tech-architect | **Resolved**: 3,600 s. |
 | OD-14 | iPhone SE is in UX §2 but not in the role-file matrix | director | Include it: it's the smallest layout, and the simulator is installed. |
 | OD-15 | Clock set back > 6 h and later corrected credits the gap (≤ 14 d) | tech-architect | Accepted limit, documented in ADR-006. Tested by CLK-17, with the boundary in CLK-16. |
+| OD-17 | Triangle budget: the art checker and architecture disagreed | art-director | **Resolved**: the checker now asserts ≤ 16k per visible cover set. It caught the cloth set at 17,408, rebuilt to 14,552. QA re-ran it: PASS. |
