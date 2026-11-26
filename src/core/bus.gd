@@ -25,6 +25,11 @@ signal smell_moment_finished()
 @warning_ignore("unused_signal")
 signal feed_moment(step: StringName)
 
+## ui to view. The free space between the HUD plate and the action bar, in UI units (pt), emitted on every
+## layout change (text size, safe areas, rotation). The camera frames the jar to it (ux-design §2, §19.5).
+@warning_ignore("unused_signal")
+signal jar_region_changed(region: Rect2)
+
 ## view to ui. where is &"starter" or &"glass". A poke never changes the sim.
 @warning_ignore("unused_signal")
 signal starter_tapped(where: StringName)
