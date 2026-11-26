@@ -1,0 +1,2 @@
+FAIL res://tests/lint/test_lint_03_typing.gd::test_no_directory_rule_covers_src_or_tests
+res://src covers res://src

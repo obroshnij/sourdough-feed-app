@@ -1,0 +1,2 @@
+FAIL res://tests/test_untyped.gd::<load> cannot load or instantiate
+has no static type

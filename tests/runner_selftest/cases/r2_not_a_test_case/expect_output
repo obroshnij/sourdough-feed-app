@@ -1,0 +1,1 @@
+FAIL res://tests/test_plain_refcounted.gd::<load> must extend TestCase
