@@ -8,7 +8,7 @@ extends RefCounted
 ##   m4_save     SaveStore, SaveCodec, fault_point, load_from_path, quarantine
 ##   m5_catchup  CatchUp.run
 
-const LANDED: Array[StringName] = [&"contracts", &"m2_sim"]
+const LANDED: Array[StringName] = [&"contracts", &"m2_sim", &"m3_clock", &"m4_save", &"m5_catchup"]
 
 
 static func has(id: StringName) -> bool:
