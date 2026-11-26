@@ -29,6 +29,7 @@ func _initialize() -> void:
 		else:
 			_pose(img, state)
 		_no_orange(img)
+		_clipped(img)
 	print("SUMMARY %d pass, %d fail" % [passed, failed])
 	quit()
 
@@ -179,6 +180,19 @@ func _residue(img: Image) -> void:
 		passed += 1
 	else:
 		failed += 1
+
+
+## §3 "nothing clips": share of pixels with a channel at 254 or more (the board pose: 0.07%).
+func _clipped(img: Image) -> void:
+	var clip: int = 0
+	var n: int = 0
+	for y: int in range(0, img.get_height(), 2):
+		for x: int in range(0, img.get_width(), 2):
+			var c: Color = img.get_pixel(x, y)
+			n += 1
+			if maxf(c.r, maxf(c.g, c.b)) >= 254.0 / 255.0:
+				clip += 1
+	print("ROW clipped %.2f%% of pixels" % (100.0 * float(clip) / float(maxi(n, 1))))
 
 
 ## §2.3: nothing under hue 25 at saturation over 50% (orange is reserved for mold).

@@ -54,7 +54,9 @@ static func face_dir(face: int, u: float, v: float) -> Vector3:
 
 
 static func env_color(d: Vector3) -> Color:
-	var floor_c := Vector3(0.22, 0.20, 0.17)
+	# The floor is the pale oak counter (art-direction.md §2.1), not a dark room floor: seen from
+	# above, the inner glass reflects it, and a dark floor made the walls look smoky.
+	var floor_c := Vector3(0.52, 0.48, 0.42)
 	var wall_c := Vector3(0.50, 0.52, 0.46)
 	var ceil_c := Vector3(0.70, 0.67, 0.62)
 	var c: Vector3 = wall_c.lerp(ceil_c, smoothstep(0.1, 0.9, d.y))

@@ -74,8 +74,11 @@ float hooch_flat() {
 }
 
 // Height added at the cap center (it fades to 0 at the rim as 1 - r^2).
+// Lumps fade out near the pole: the 48-triangle fan shares one center vertex, and lifting it
+// alone draws the cap to a point (art review of 293b09c).
 float cap_offset(vec2 xz, float t) {
-	float lump = lumps * LUMPS_MAX_M * (fbm3(xz * 70.0) - 0.5);
+	float pole = smoothstep(0.0, 0.15, length(xz) / starter_r);
+	float lump = lumps * LUMPS_MAX_M * (fbm3(xz * 70.0) - 0.5) * pole;
 	float breath = activity * BREATH_M * sin(t * 0.9 + 1.7);
 	return (dome * DOME_MAX_M + lump + breath) * (1.0 - hooch_flat());
 }

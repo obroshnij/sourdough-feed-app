@@ -35,6 +35,8 @@ var pocket_tilt: float = 0.25
 var pocket_k: float = 0.75
 var cap_spec: float = 0.6
 var cap_value: float = 0.86
+## Glass reflection and specular multiplier.
+var glass_grade: float = 1.0
 var hooch_value: float = 1.0
 var hooch_desat: float = 0.0
 var backdrop_energy: float = 0.75
@@ -57,6 +59,7 @@ static func for_renderer(renderer: String) -> ViewLook:
 		look.hooch_desat = 0.5
 		look.clearcoat_on = 0.0
 		look.starter_saturation = 0.9
+		look.glass_grade = 0.35
 	return look
 
 
