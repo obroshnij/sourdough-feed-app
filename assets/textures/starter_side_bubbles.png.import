@@ -15,7 +15,7 @@ dest_files=["res://.godot/imported/starter_side_bubbles.png-d6de2e6c628105027245
 
 [params]
 
-compress/mode=2
+compress/mode=3
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

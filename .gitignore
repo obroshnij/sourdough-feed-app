@@ -33,3 +33,7 @@ export_credentials.cfg
 __pycache__/
 *.pyc
 .DS_Store
+
+# View close-up captures are regenerated on demand (scrubber --capture); only pose captures are committed (D-045)
+captures/view/*_side.png
+captures/view/*_top.png

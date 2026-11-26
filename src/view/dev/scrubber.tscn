@@ -1,0 +1,10 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://src/view/dev/scrubber.gd" id="1_scrub"]
+[ext_resource type="PackedScene" path="res://src/view/world.tscn" id="2_world"]
+
+[node name="Scrubber" type="Node"]
+script = ExtResource("1_scrub")
+
+[node name="World" parent="." instance=ExtResource("2_world")]
+follow_session = false

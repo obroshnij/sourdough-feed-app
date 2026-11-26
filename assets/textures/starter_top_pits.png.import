@@ -15,7 +15,7 @@ dest_files=["res://.godot/imported/starter_top_pits.png-0898d426d01d012f5f7cdea3
 
 [params]
 
-compress/mode=2
+compress/mode=3
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
