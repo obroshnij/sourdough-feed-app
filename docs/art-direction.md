@@ -124,12 +124,12 @@ Every GLB material is a placeholder. Godot assigns shader materials by node and 
 | `M_Glass` (surface 0), `M_Glass_Inner` (surface 1) | Clear, thick base, long highlights, faint green at grazing edges, a whisper of smudge | Principled, transmission 1, IOR 1.5, roughness 0.008 to 0.045 from noise. Shadow rays see a transparent BSDF (light shadows). No volume absorption: with two surfaces, Cycles floods the cavity | Two passes on one node: `cull_front` then `cull_back`, `blend_mix`, `depth_draw_never`. Alpha and reflection from fresnel (Schlick, F0 0.04). Cubemap reflection. Screen-texture refraction (`hint_screen_texture`, mip blur 1 to 2) offset by the view-space normal times 0.02. Edge tint `#CFE3D6` weighted by fresnel stands in for thick-edge absorption. `fog` uniform for fridge condensation | Same two passes without the screen texture: fresnel alpha, cubemap reflection, edge tint |
 | `M_Starter` | Creamy, glossy, soft, alive | Principled with subsurface 0.22 (scale 1.8 mm, 0.08 inside bubble pockets), coat by state. Voronoi bubbles (domain-warped, size per cell), crackle for dryness, flecks, hooch band by height, mold colonies | One opaque spatial shader (D-010). Vertex: the formula in §5. Fragment: the side-bubble and top-pit masks (§16.3), plus a small noise for tone and crackle. No 3D noise at runtime. Warm `BACKLIGHT` instead of SSS, glossy cap from `sheen` (§16.5). Hooch band from the vertex height against `u_level` | Same masks and math. The cavity shading is baked from two extra mask taps, so Tier A loses nothing but the optional normal tilt |
 | `M_Starter_Liner` | Cream residue ring at `peak_line`, streaks down to the surface; aged streaks dry and break up; mold colonies on the glass for `moldy` | Mix of transparent and Principled by a streak mask from UV v | Residue from the liner mask anchored at the peak line (§16.5g). Alpha scissor (threshold 0.5) with blue-noise dither for soft edges, `cull_disabled`. Stays in the opaque pass, so no sorting with the glass | Same |
-| `M_Lid_Wood` | Oiled oak, horizontal growth rings, cathedral grain on top | Wave bands along Z, noise-warped | 512 px tileable oak albedo + roughness baked from the Blender material, triplanar on object space | Same |
+| `M_Lid_Wood` | Oiled oak, horizontal growth rings, cathedral grain on top | Wave bands along Z, noise-warped | `lid_oak_detail.png` (256 px, gray, tiles), triplanar in object space, mixing T2's oak colors (§17) | Same |
 | `M_Lid_Enamel` | Cream enamel, clearcoat, knurled skirt | Principled + coat, knurl from a radial-angle sine bump | StandardMaterial3D, clearcoat 0.6. Knurl from `sin(atan(z,x) * 120)` in a tiny shader, skirt only | StandardMaterial3D, no knurl |
 | `M_Cloth_Linen`, `M_Twine` | Oatmeal linen with sage tea-towel stripes, fine weave | Stripes from UV, weave from two wave textures, sheen 0.6 | 512 px tileable linen albedo + normal, stripes from UV in shader, rim (sheen) 0.4, `cull_disabled` | Same |
 | `M_Rubber_Band` | Deep sage rubber, soft matte | Principled, roughness 0.55 | StandardMaterial3D | Same |
-| `M_Counter_Wood` | Pale oak butcher block, fine grain | Brick-strip planks multiplied by wave grain | 1024 x 512 albedo + roughness baked from Blender | Same |
-| `M_Backdrop` | Sage zellige, out of focus | Brick texture tiles, glossy glaze bump, real DOF | Pre-blurred 1024 px image baked from a Blender render with DOF, unshaded with a time-of-day tint | Same |
+| `M_Counter_Wood` | Pale oak butcher block, fine grain | Brick-strip planks multiplied by wave grain | `counter_oak_detail.png` (512 px, gray, tiles) on world XZ, mixing T2's oak colors (§17) | Same |
+| `M_Backdrop` | Sage zellige, out of focus | Brick texture tiles, glossy glaze bump, real DOF | `kitchen_backdrop.png` (1024 x 512): the lit wall, pre-blurred, unshaded, with a time-of-day tint (§17) | Same |
 | `M_Mold_Fuzz_preview` | Render-only hair, not in the GLB | GN curves | See §6, `moldy` | |
 
 ## 5. Starter shader contract
@@ -256,7 +256,7 @@ Budget: at most 64 particles on screen, 2 systems at once, 2 overdraw layers. Ev
 
 v0: a kitchen corner. Oak butcher-block counter, sage tile wall, soft focus. The window is off-screen left as the key light.
 
-- Godot: Counter mesh plus `Backdrop_placeholder`, a wall card with a pre-blurred image. No real DOF needed on mobile.
+- Godot: Counter mesh plus `Backdrop_placeholder`, a wall card showing the baked, pre-blurred wall (§17). No real DOF needed on mobile. The card fills the frame to about ±15 degrees of yaw. Beyond that, T2's `kitchen_sky` shows. A set that holds up over the whole ±70 degree orbit is an open item (§15).
 - Props (P1, soft-focus only, never competing with the jar): a flour canister, a folded linen towel, a small herb pot.
 
 ## 11. Icons (style for ux-designer's set)
@@ -325,7 +325,7 @@ All variants: 18,680 tris (budget 30k). **Visible set** (base + one cover, `arch
 
 | Asset | Why it's a placeholder | Replaced by |
 |---|---|---|
-| `Backdrop_placeholder` | Flat card | Baked soft-focus kitchen image, Phase 2 |
+| `Backdrop_placeholder` | Still a flat card. The look is final (the §17 bake), and the node keeps its name because names are the interface | A wider or curved backdrop, if the full ±70 degree orbit needs one (§15) |
 | All GLB materials | By design | Godot shaders (§4) |
 | `M_Mold_Fuzz_preview` | Blender-only hair | Godot shells (§6) |
 
@@ -333,6 +333,7 @@ All variants: 18,680 tris (budget 30k). **Visible set** (base + one cover, `arch
 
 - **Icon import check (T3):** import one filled file with holes (`status_moldy_filled.svg`) through Godot's SVG importer at 2x and 3x, and confirm the evenodd holes survive. rsvg-convert renders them correctly; ThorVG was not run here.
 - **`surface` inspection pitch (ux-designer, T2):** at the 60 degree preset (D-036, ux-design §10), the line of sight to the cap center crosses the shoulder glass whenever the cap is lower than 111 mm above the jar base, which is every state (`at_peak` center is about 85 mm). At 76 degrees it passes through the open mouth at every level. **Agreed with ux-designer: 76 degrees** (ux-design §10). At 76 degrees the cap must sit at least 33.6 mm above the jar base. The lowest cap of any state is about 36 mm (`unhealthy` and `moldy`: 8 mm floor + 0.95 x 30 mm, dome -0.5 mm). `freshly_fed` is 39 mm. 72 degrees would fail below 65 mm. The reference board uses 76 degrees (§16.2).
+- **Backdrop beyond ±15 degrees of yaw:** the 1.0 m wall card ends there, and the kitchen sky takes over. To keep the soft-focus kitchen over the whole ±70 degree orbit, art would add a curved wall node to the GLB with a wider bake. It's not needed while the home pose sits near yaw 0.
 - **Mask import (T2):** confirm on first import that a gray + alpha PNG samples as (L, L, L, A) in 4.7.2 on both renderers (§16.3).
 - Pink or orange mold tint: not in v0. sourdough-scientist agrees this is the conservative choice for safety: text already teaches "fuzz, pink or orange means discard". A visual variant can come later as an optional P1 item. Either way, the hard rule stays: never pink, orange or red outside `moldy`.
 - `moldy` from the default pose relies on glass colonies. Consider an automatic `surface` close-up on entering `moldy` (game-designer and ux-designer).
@@ -575,5 +576,59 @@ I sign off when every row passes in all three captures and the board's tells (§
   - **Shadow maps off on both renderers, with the counter shader drawing the drop shadow: accepted.** The drop shadow must follow the key direction. The lid shadow offset is a known gap to fix.
   - **Masks VRAM Uncompressed: accepted** (§16.3).
   - **Directional rim light: accepted** (§3).
-  - **Home yaw:** reference captures and sign-off stay at yaw 0 (§7). The in-game home pose may use ux-designer's slight 3/4 angle. I propose -12 degrees, which moves the camera toward the key side so more of the lit cream faces the player. The kitchen set I'm building covers the ±70 degree orbit either way.
+  - **Home yaw:** reference captures and sign-off stay at yaw 0 (§7). The in-game home pose may use ux-designer's slight 3/4 angle. I propose -12 degrees, which moves the camera toward the key side so more of the lit cream faces the player. The baked backdrop card covers about ±15 degrees of yaw. Past that, the kitchen sky shows (§10).
   - **Also accepted:** key light direction and color (§3), backlight_k 0.15 instead of 0.35, Filmic plus a grade on Compatibility, band `#7A9271` (§2.1), pale dried residue.
+
+## 17. Kitchen set textures (for T2)
+
+Generator: `/Applications/Blender.app/Contents/MacOS/Blender -b -P art/blender/scripts/bake_kitchen_set.py` (about 30 s on an M4, seeded). It also writes `art/previews/kitchen_set_check.png`: the §7 pose at `at_peak` with these textures, the wall unshaded, no depth of field, which is how Godot draws it on a phone.
+
+| File | Size | Format | What it is | Import |
+|---|---|---|---|---|
+| `assets/textures/kitchen_backdrop.png` | 1024 x 512 | RGB, color (`source_color`) | The sage zellige wall under the afternoon lights. It is stored as scene-linear radiance with the sRGB curve and no tonemap, blurred by the §7 lens (sigma 8 mm on the wall, from a 21 mm circle of confusion) | VRAM Compressed, mipmaps off (it is always magnified). About 0.5 MB |
+| `assets/textures/counter_oak_detail.png` | 512 x 512 | Gray, data | Butcher-block strips (9 per tile, about 40 mm), latewood lines, pores, glue lines, a few end joints. Tiles; strips run along u. Tile = 0.36 m | Mipmaps on. 0.35 MB |
+| `assets/textures/lid_oak_detail.png` | 256 x 256 | Gray, data | Oak growth rings (26 per tile) with one cathedral arch, plus pores. Tiles; grain runs along u. Tile = 64 mm | Mipmaps on. 0.09 MB |
+
+**Check render against the original preview** (31 px patches, §3 rows):
+
+| Patch | Original preview | Check render with these textures |
+|---|---|---|
+| Tile wall (360, 150) | `#A7A183` | `#A49F80` (H 52, S 22%, V 64%) |
+| Counter (600, 1150) | `#E3D7C9` | `#E6D9CC` (S 11%) |
+| Lid top (330, 350) | `#C9AE91` | `#CEB498` (S 26%) |
+
+**What T2 changes.** Node names and UVs stay as in §12. Only the three materials change.
+
+1. **`Backdrop_placeholder`, `M_Backdrop` slot, `backdrop.gdshader`.**
+   - Replace the procedural tiles and the `shade` falloff with the image. The light is baked, so drop the falloff.
+   - The card's UV0 maps the image 1:1, and row 0 of the PNG is the top of the wall.
+   - Keep `unshaded` and `tod_tint`.
+   - Start `ViewLook.backdrop_energy` at 1.0 and tune each renderer to the §3 tile row. Cycles with the texture as emission strength 1.0 under AgX gives `#A49F80`.
+   ```glsl
+   uniform sampler2D wall_tex : source_color, filter_linear, repeat_disable;
+   ALBEDO = texture(wall_tex, UV).rgb * tod_tint * energy;
+   ```
+2. **`Counter`, `M_Counter_Wood`, `counter.gdshader`.**
+   - Replace the plank function with the map, and keep the measured `oak_light` and `oak_dark`, the contact shadow and the drop shadow.
+   - The strips run left to right along world x.
+   ```glsl
+   uniform sampler2D oak_detail : filter_linear_mipmap, repeat_enable;
+   float d = texture(oak_detail, v_world.xz / 0.36).r;
+   vec3 oak = mix(oak_dark, oak_light, d);
+   ROUGHNESS = mix(0.62, 0.42, d);
+   ```
+3. **`Jar_Lid_Loose`, `M_Lid_Wood`, `lid_wood.gdshader`.**
+   - Triplanar in object space, so the grain runs around the side (horizontal rings) and shows the cathedral arch on top.
+   - Pass the object-space `VERTEX` and `NORMAL` as varyings.
+   ```glsl
+   uniform sampler2D grain : filter_linear_mipmap, repeat_enable;
+   vec3 w = pow(abs(v_nrm), vec3(4.0));
+   w /= w.x + w.y + w.z;
+   float d = texture(grain, v_pos.zy / 0.064).r * w.x    // sides facing +-X
+           + texture(grain, v_pos.xz / 0.064).r * w.y    // top
+           + texture(grain, v_pos.xy / 0.064).r * w.z;   // sides facing +-Z
+   vec3 oak = mix(oak_dark, oak_light, d);
+   ROUGHNESS = mix(0.6, 0.4, d);
+   ```
+
+Total texture memory for the set is about 0.95 MB, inside the §13 budget. Time of day stays a tint on the wall (§3): the bake is the afternoon preset.
