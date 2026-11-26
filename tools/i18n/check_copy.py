@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
-"""Copy check for Sourdough narrative docs. Usage: check_copy.py <repo_root>"""
+"""Copy check for Sourdough: the narrative docs' string tables and the code tracks'
+src/i18n/pending_*.csv placeholder rows. Usage: check_copy.py <repo_root>"""
+import csv
 import re
 import sys
 from pathlib import Path
 
 root = Path(sys.argv[1])
 DOCS = ["docs/narrative.md", "docs/events-catalog.md", "docs/game-copy.md"]
+PENDING_GLOB = "src/i18n/pending_*.csv"
+CATALOG = "src/i18n/en.csv"
 
 WORST = {
     "name": 16, "window": 18, "time": 8, "hours": 2, "days": 2,
@@ -38,7 +42,38 @@ MUST_DISCARD = re.compile(r"^(STATUS_MOLDY_(HINT|TAP)|SMELL_MOLDY_BODY|INSPECT_\
                           r"MOLD_SHEET_BODY\w*|MOLD_FEED_BLOCKED|REASON_MOLDY_LOCKED)$")
 
 ROW = re.compile(r"^\|\s*`([^`]+)`\s*\|\s*(.*?)\s*\|\s*(\d+)\s*\|\s*$")
+PLACEHOLDER = re.compile(r"\{(\w+)\}")
 errors, rows, seen = [], [], {}
+
+
+def lint(where: str, key: str, val: str) -> None:
+    """Key format, placeholders, banned words and the safety lists. Shared by doc rows
+    and pending CSV rows. Length is checked only for doc rows, which carry a Max."""
+    if not re.fullmatch(r"[A-Z][A-Z0-9_]*", key):
+        errors.append(f"{where}: bad key {key}")
+    for ph in PLACEHOLDER.findall(val):
+        if ph not in WORST:
+            errors.append(f"{where}: unknown placeholder {{{ph}}} in {key}")
+    low = val.lower()
+    for b in BANNED:
+        if re.search(r"(?<![a-z])" + re.escape(b) + r"(?![a-z])", low):
+            errors.append(f"{where}: banned '{b}' in {key}")
+    if "!" in val and not key.startswith(("MILESTONE_", "ACH_")):
+        errors.append(f"{where}: exclamation mark in {key}")
+    if QA_SAFETY_PREFIX.match(key):
+        for b in QA_SAFETY_BAD:
+            if b in low:
+                errors.append(f"{where}: QA safety lint '{b}' in {key}")
+    if QA_HUNGER_PREFIX.match(key):
+        for b in QA_HUNGER_BAD:
+            if b in low:
+                errors.append(f"{where}: QA hunger lint '{b}' in {key}")
+    for b in QA_ANY_BAD:
+        if b in low:
+            errors.append(f"{where}: QA any lint '{b}' in {key}")
+    if MUST_DISCARD.match(key) and "discard" not in low:
+        errors.append(f"{where}: moldy message {key} lacks 'discard'")
+
 
 for d in DOCS:
     text = (root / d).read_text(encoding="utf-8")
@@ -51,39 +86,13 @@ for d in DOCS:
         key, val, mx = m.group(1), m.group(2), int(m.group(3))
         val = val.replace("**(sci)**", "").strip()
         rows.append((d, i, key, val, mx))
-        if not re.fullmatch(r"[A-Z][A-Z0-9_]*", key):
-            errors.append(f"{d}:{i}: bad key {key}")
         if key in seen:
             errors.append(f"{d}:{i}: duplicate key {key} (also {seen[key]})")
         seen[key] = f"{d}:{i}"
-        def sub(mm):
-            ph = mm.group(1)
-            if ph not in WORST:
-                errors.append(f"{d}:{i}: unknown placeholder {{{ph}}} in {key}")
-                return "X" * 10
-            return "X" * WORST[ph]
-        worst = re.sub(r"\{(\w+)\}", sub, val)
+        lint(f"{d}:{i}", key, val)
+        worst = PLACEHOLDER.sub(lambda mm: "X" * WORST.get(mm.group(1), 10), val)
         if len(worst) > mx:
             errors.append(f"{d}:{i}: {key} is {len(worst)} > {mx} (worst case): {val}")
-        low = val.lower()
-        for b in BANNED:
-            if re.search(r"(?<![a-z])" + re.escape(b) + r"(?![a-z])", low):
-                errors.append(f"{d}:{i}: banned '{b}' in {key}")
-        if "!" in val and not key.startswith(("MILESTONE_", "ACH_")):
-            errors.append(f"{d}:{i}: exclamation mark in {key}")
-        if QA_SAFETY_PREFIX.match(key):
-            for b in QA_SAFETY_BAD:
-                if b in low:
-                    errors.append(f"{d}:{i}: QA safety lint '{b}' in {key}")
-        if QA_HUNGER_PREFIX.match(key):
-            for b in QA_HUNGER_BAD:
-                if b in low:
-                    errors.append(f"{d}:{i}: QA hunger lint '{b}' in {key}")
-        for b in QA_ANY_BAD:
-            if b in low:
-                errors.append(f"{d}:{i}: QA any lint '{b}' in {key}")
-        if MUST_DISCARD.match(key) and "discard" not in low:
-            errors.append(f"{d}:{i}: moldy message {key} lacks 'discard'")
 
 keys = set(seen)
 DESCS = ["wet_flour", "mildly_fruity", "fresh_yeasty", "yogurt", "pleasantly_tangy",
@@ -119,13 +128,54 @@ for idx, dsc in enumerate(DESCS):
     if any((1 + (fc + idx) % 3) == (1 + (fc + 1 + idx) % 3) for fc in range(300)):
         errors.append(f"variant rule repeats back-to-back for {dsc}")
 
+# Pending CSVs (architecture §10): the code tracks' placeholder rows. Same word and safety
+# lint as the docs, no length check (no Max). A key must not be in the catalog (the docs,
+# or the en.csv on disk) or in two pending files: keys are unique across all CSVs (LINT-11).
+catalog_where = dict(seen)
+cat_path = root / CATALOG
+if cat_path.exists():
+    with cat_path.open(newline="", encoding="utf-8") as f:
+        for r in list(csv.reader(f))[1:]:
+            if r and r[0] not in catalog_where:
+                catalog_where[r[0]] = CATALOG
+pending_where, by_pending = {}, {}
+for p in sorted(root.glob(PENDING_GLOB)):
+    rel = p.relative_to(root).as_posix()
+    with p.open(newline="", encoding="utf-8") as f:
+        reader = csv.reader(f)
+        header = next(reader, None)
+        if header != ["keys", "en"]:
+            errors.append(f"{rel}:1: header must be keys,en (got {header})")
+            continue
+        by_pending[rel] = 0
+        for r in reader:
+            where = f"{rel}:{reader.line_num}"
+            if not r or r == [""]:
+                continue
+            if len(r) != 2:
+                errors.append(f"{where}: expected 2 columns (keys,en), got {len(r)}")
+                continue
+            key, val = r
+            by_pending[rel] += 1
+            if key in catalog_where:
+                errors.append(f"{where}: {key} is also in the catalog ({catalog_where[key]}). "
+                              f"Delete the pending row")
+            if key in pending_where:
+                errors.append(f"{where}: duplicate key {key} (also {pending_where[key]})")
+            pending_where[key] = where
+            if "—" in val:
+                errors.append(f"{where}: em dash in {key}")
+            lint(where, key, val)
+
 by_doc = {}
 for d, *_ in rows:
     by_doc[d] = by_doc.get(d, 0) + 1
 print("strings:", len(rows), by_doc)
+print("pending:", sum(by_pending.values()), by_pending)
 if errors:
     print(f"{len(errors)} problem(s):")
     for e in errors:
         print("  " + e)
     sys.exit(1)
-print("OK: lengths, keys, em dashes, banned words, QA lint lists, coverage, variant rule")
+print("OK: lengths, keys, em dashes, banned words, QA lint lists, coverage, variant rule, "
+      "pending CSVs")

@@ -297,6 +297,7 @@ JOURNAL_LOG_MOVE_FRIDGE,Moved to the fridge.
 JOURNAL_LOG_MOVE_PROOFING_BOX,Into the proofing box.
 JOURNAL_LOG_MOVE_WARM_SPOT,Moved to the warm spot.
 JOURNAL_LOG_MOVE_WINDOW_SILL,Moved to the window sill.
+JOURNAL_LOG_RENAME,Renamed to {name}.
 JOURNAL_LOG_SMELL,Smell: {smell}.
 JOURNAL_RENAME_BTN,Rename
 JOURNAL_RENAME_TITLE,A new name
