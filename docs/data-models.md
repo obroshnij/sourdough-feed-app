@@ -1,20 +1,21 @@
 # Data models
 
-Owner: `tech-architect`. Status: **draft v0, wave A** (2026-11-26).
-Sources: `starter-simulation-spec.md` v1 (§1, §12, §16, §17), `game-designer` event and history needs (by message), `art-director` mesh contract (by message). Numbers marked **pending sim spec** wait for `docs/starter-simulation-spec.md` v1.
+Owner: `tech-architect`. Status: **v1, synced to the T1 code** on `phase-2-foundation` (2026-11-26, D-039 to D-042). The class files in `src/sim/` and `src/core/` are the source of truth for field names; this doc gives units, ranges and rules.
+Sources: `starter-simulation-spec.md` v1 (§1, §2, §4, §12, §13, §14, §16, §17), `game-designer` event and history needs (by message), `art-director` mesh contract (by message).
 
 ## 1. Conventions
 
 | Topic | Rule |
 |---|---|
-| Classes | Runtime data is `RefCounted` with a `class_name`. Data-driven profiles are `Resource` subclasses saved as `.tres` under `data/`. Everything lives in `src/sim/` unless noted |
+| Classes | Runtime data is `RefCounted` with a `class_name`. Profiles are `Resource` subclasses, but **no `data/*.tres` file exists yet** (D-042): the numbers live in `SimConstants` and `SimCatalog.builtin()` builds the profiles in code (§3). Everything lives in `src/sim/` unless noted |
 | Ids | `StringName`, exactly the canonical ids in `vision.md` |
 | Time | Absolute times are `int` Unix seconds, UTC, suffix `_unix`. Durations are `float` seconds (suffix `_s`) or hours (suffix `_h`) as noted |
 | Units | Grams `_g`, Celsius `_c`, percent `_pct`, meters `_m`. Unitless 0..1 fields say so |
 | Ranges | The sim clamps every stored float to its range after each step. A test asserts it (property test) |
 | Serialization | Each class has `to_dict() -> Dictionary` and `static from_dict(d: Dictionary) -> <Class>`. `from_dict` converts numbers explicitly (`int(d.x)`), because JSON gives back every number as a float **[ran]**. It checks `typeof()` before every read and returns null on a missing key or wrong type. Assigning a wrong-typed Variant to a typed variable logs a script error **[ran]**, which the test runner's Logger counts as a failure, so a corrupt file must fail silently |
 | 64-bit ints | RNG seeds and states are saved as **decimal strings**. As JSON numbers they lose precision above 2^53 **[ran]** |
-| Floats | Every `float` in the save payload is saved as a **16-character hex string of its IEEE-754 bits**: the 8 bytes from `PackedByteArray.encode_double(0, x)`, then `hex_encode()` (little-endian byte order). Examples: 0.25 is `"000000000000d03f"`, 150.0 is `"0000000000c06240"`. Reason: Godot 4.7.2's JSON number parser isn't correctly rounded (for example, 1.9469610637576158 reads back as 1.946961063757616), so about a third of doubles come back 1 ulp off (33,968 of 100,000 between 1e-6 and 1e3), even with `full_precision` **[ran]**, found by `qa-engineer`. The bit pattern round-trips exactly (0 of 100,000 off) **[ran]**. The decoder also accepts a plain JSON number for a float field (lossy), so hand-written dev fixtures stay writable. The writer always writes hex |
+| Floats | Every `float` in the save payload is saved as a **16-character hex string of its IEEE-754 bits**: the 8 bytes from `PackedByteArray.encode_double(0, x)`, then `hex_encode()` (little-endian byte order). Examples: 0.25 is `"000000000000d03f"`, 150.0 is `"0000000000c06240"`. Reason: Godot 4.7.2's JSON number parser isn't correctly rounded (for example, 1.9469610637576158 reads back as 1.946961063757616), so about a third of doubles come back 1 ulp off (33,968 of 100,000 between 1e-6 and 1e3), even with `full_precision` **[ran]**, found by `qa-engineer`. The bit pattern round-trips exactly (0 of 100,000 off) **[ran]**. The decoder also accepts a plain JSON number for a float field (lossy), so hand-written dev fixtures stay writable. The writer always writes hex (`SaveCodec.pack_floats`, D-040) |
+| Free-form dictionaries | `JournalEntry.args` and `.data` and `SimEvent.payload` go through `DictReader.canonical()` on save and load: a whole number becomes an int, so `50.0` saves as `50`. Any other float is a hex string in the file **and stays a hex string after a load**, because nothing knows its type. So a value read from these dictionaries can be a float (in memory, before any reload), an int, or a hex string. **Always read numbers from them with `DictReader.float_of(v)`**, which accepts all three (NaN for anything else). `args` are formatted straight into text (`Keys.format()`, §6), so they hold only ints, Strings and bools. A decimal in `args` would print as 16 hex characters after a reload; format it into a String first |
 | Text | No player-facing text in data. Keys only (`architecture.md` §10). The player's starter name is the one exception |
 
 ## 2. `StarterState` (stored)
@@ -24,7 +25,7 @@ Sim variables follow `starter-simulation-spec.md` §1 **v1** exactly (names, uni
 | Field | Type | Unit | Range | Meaning | Source |
 |---|---|---|---|---|---|
 | `id` | String | | 16 hex chars | Unique per starter (for memorials) | architect |
-| `name` | String | | 1 to 24 chars | Player-given name | architect |
+| `name` | String | | 1 to 16 chars after trim | Player-given name. 16 is the `ux-design.md` §18 name slot, and every `{name}` string is length-checked at 16 (`game-copy.md`) | architect |
 | `born_unix` | int | s | | Adopted at. Calendar milestones | designer |
 | `sim_time_unix` | int | s | multiple of 60 | Time this state represents. The clock anchor | architect |
 | `food` | float | 0..1 | 0..1 | Fermentable food per gram of flour (1 = fresh flour) | spec |
@@ -51,7 +52,7 @@ Sim variables follow `starter-simulation-spec.md` §1 **v1** exactly (names, uni
 | `feed_u` | float | 0..1 | [0, 1) | The one uniform draw per feed, `sim_rng.randf()` (never `randfn`), stored. Also drives `big_bubble` (spec §14.1) | spec |
 | `feed_jitter` | float | multiplier | 0.95..1.05 | `0.95 + 0.10 * feed_u`, stored | spec |
 
-**Derived, never stored** (functions on `Sim` and `StateDeriver`): `rise_rate` (from the §7 equations, so no previous-step field is needed), `gas`, `ph`, `ferm(temp_c)`, `activity`, `state` id, `rise_phase`, the smell set.
+**Derived, never stored** (`StateDeriver.derive()` returns them in `DerivedState`, below): `rise_rate` (from the spec §7 equations, so no previous-step field is needed), `gas`, `ferm(temp_c)`, `activity`, `state` id, `rise_phase`, `dormant_cause`. Also derived on demand: the mold stage (`StateDeriver.mold_stage()`: `none`, `watch`, `warning`, `mold`), the smell set (`SmellModel`).
 
 ### 2.1 Start presets and rebasing
 `StarterPresets.make(preset_id: StringName, now_unix: int) -> StarterState` (pure, `src/sim/starter_presets.gd`). Values from `game-mechanics.md` §8.1 and §8.2:
@@ -62,62 +63,70 @@ Sim variables follow `starter-simulation-spec.md` §1 **v1** exactly (names, uni
 | `first_restart` | First new starter after mold | `dormant`, `temp_c` 4, `counter` |
 | `restart` | Later new starters | `at_peak` |
 
-`StarterState.rebase_to(now_unix)` sets `sim_time_unix = grid(now_unix)` and `born_unix = now_unix`, and clears `PlayerHistory.recent_feed_unix` entries from the demo. Relative fields (`since_feed_s`, `starved_h`) are unchanged. Used after the tutorial demo (`architecture.md` §5.5).
+`StarterState.rebase_to(now_unix)` sets `sim_time_unix = grid(now_unix)` and `born_unix = now_unix`. Relative fields (`since_feed_s`, `starved_h`) are unchanged. The caller, `Session.adopt_starter(state, name)`, also clears `PlayerHistory.recent_feed_unix` entries from the demo. Used after the tutorial demo (`architecture.md` §5.5). Every preset starts at the `counter` (`StarterPresets.environment_for()`).
 
 **State derivation** (spec §12, first match wins): `moldy`, `unhealthy`, `dormant`, `hungry`, `recovering`, then the rise phases (`freshly_fed`, `developing`, `active`, `near_peak`, `at_peak`, `collapsing`). `recovering` overlaps a rise phase, so `StateDeriver.derive()` returns both:
 
 ```gdscript
 class_name DerivedState extends RefCounted
-var state: StringName        # one of the 11 canonical ids
-var rise_phase: StringName   # always a rise-phase id, even when state is recovering or hungry
-var ferm: float              # 0..1, ferm(temp_c) from spec §3
+var state: StringName          # one of the 11 canonical ids
+var rise_phase: StringName     # a rise-phase id, even when state is recovering or hungry. &"" only when moldy
+var ferm: float                # ferm(temp_c), spec §3. Not clamped: about 1.33 at 35 °C
 var dormant_cause: StringName  # &"cold" or &"starved" when state is dormant (cold wins), else &""
-var activity: float          # 0..1
+var activity: float            # 0..1, the clamped gas term (spec §13 gas_n). Breathing and bubble motion
+var rise_rate: float           # d rise / dt in x/h, from the spec §7 equations at this state
+var gas: float                 # gas production (spec §7), unclamped
 ```
+
+`rise_phase` is `&""` for a moldy starter because the reference model computes no phase there. Code that indexes by phase checks for it.
 
 ## 3. `EnvironmentState` (stored) and profiles
 
 | Field | Type | Unit | Range | Notes |
 |---|---|---|---|---|
-| `location` | StringName | | `counter`, `warm_spot`, `window_sill`, `fridge`, `proofing_box` | Designer may trim |
-| `temperature_c` | float | °C | 2..35 (pending sim spec) | Effective temperature. Set from the preset when the location changes. Whether the player can nudge it inside the preset's range: **pending game-designer** |
-| `humidity_pct` | float | % | 20..95 (pending) | From the preset |
-| `container` | StringName | | MVP: `classic_jar` only | |
-| `cover` | StringName | | `loose_lid`, `cloth`, `tight_lid` | |
+| `location` | StringName | | `counter`, `warm_spot`, `window_sill`, `fridge`, `proofing_box` | `&""` only for a raw environment (`EnvironmentState.make()`, reference traces and tests). A game save always has a canonical id |
+| `temperature_c` | float | °C | presets 4..30 | Effective temperature. Set from the preset when the location changes (`EnvironmentState.at_location()`). Only `proofing_box` lets the player pick, 24..30. The sim clamps its input to 0..40 |
+| `humidity_pct` | float | % | presets 40..70 | Fixed per location, not a player control (D-018). `Session` fills it from the preset on every move |
+| `container` | StringName | | the 4 canonical ids | MVP ships `classic_jar` only (D-019) |
+| `cover` | StringName | | `loose_lid`, `cloth`, `tight_lid` | MVP is a fixed `loose_lid` (D-019) |
 | `changed_unix` | int | s | | Last environment change, applied at a grid point |
 
-Profiles (`Resource`, one `.tres` per id; all numbers **pending sim spec**):
+Profiles (`Resource`):
 
-| Class | File | Fields |
-|---|---|---|
-| `FlourProfile` | `data/flours/<id>.tres` | `id`, `speed_mult`, `acid_mult`, `water_absorption`, `food_value`, `tint: Color` (for `VisualMapper`), `fleck: float` 0..1 |
-| `LocationPreset` | `data/locations/<id>.tres` | `id`, `temperature_c`, `temperature_min_c`, `temperature_max_c`, `humidity_pct`. A daily swing (for example `window_sill`) would need local time in `Sim.step`: **pending sim spec** |
-| `ContainerProfile` | `data/containers/<id>.tres` | `id`, `inner_radius_m`, `inner_height_m`, `liner_height_m`, `scene_path`. classic_jar v0 (art contract, 2026-11-26): outer D 84 mm, H 170 mm, wall 3.5 mm, base 8 mm, inner r 0.0385, inner height 0.162, liner top 0.125 |
-| `CoverProfile` | `data/covers/<id>.tres` | `id`, `dryness_mult`, `evaporation_mult`, `mold_risk_mult`, `node_name` |
+| Class | Fields |
+|---|---|
+| `FlourProfile` | `id`, `speed_mult`, `acid_mult`, `water_absorption`, `gas_retention` (spec §4 `retain`: how well the paste holds gas), `food_value` (nothing reads it yet), `tint: Color` (for `VisualMapper`), `fleck: float` 0..1 |
+| `LocationPreset` | `id`, `temperature_c`, `temperature_min_c`, `temperature_max_c`, `humidity_pct`. No daily swing in v1 |
+| `ContainerProfile` | `id`, `inner_radius_m`, `inner_height_m`, `liner_height_m`, `scene_path`, `dryness_mult` (spec §2.2 `container_dry`). classic_jar v0 (art contract, 2026-11-26): outer D 84 mm, H 170 mm, wall 3.5 mm, base 8 mm, inner r 0.0385, inner height 0.162, liner top 0.125 |
+| `CoverProfile` | `id`, `dryness_mult` (spec §2.2 `cover_dry`), `node_name`. The v0 `evaporation_mult` and `mold_risk_mult` are **dropped**: spec §2.2 says covers and containers change only `dryness`, and mold only through it |
 
-Profiles are loaded once by `Session` and passed into the sim as a `SimCatalog` (`Dictionary[StringName, FlourProfile]` and so on). The sim never calls `load()`.
+**Where the numbers live (D-042).** `SimConstants` holds every sim number and table, mirroring `P`, `FLOURS`, `COVER_DRY`, `CONTAINER_DRY` and `LOCATIONS` in `tools/sim-reference/sim.py` exactly, so `qa-engineer`'s DIFF-01 has one source to check. `FLOURS` rows are `[speed, acid, absorb, retain]`. `LOCATIONS` rows are `[temperature_c, humidity_pct, temperature_min_c, temperature_max_c]`. `Sim`, `StateDeriver` and the action validators read `SimConstants` directly. `VisualMapper` reads `SimCatalog.TINTS` and `SimCatalog.FLECKS` (placeholders until art-director's per-flour values land).
+
+**No `data/*.tres` file exists.** `SimCatalog.builtin()` builds the four profile dictionaries (`Dictionary[StringName, FlourProfile]` and so on) in code from those tables. `Session` builds it once and passes it to `validate()`, `CatchUp.run()` and `EventContext`, so data-driven profiles can replace it later without a signature change. The sim never calls `load()`. Moving numbers into `.tres` files would add a second copy to keep in sync, so it waits until a designer needs to tune without code.
 
 Cover id to GLB node (art-director contract): `loose_lid` = `Jar_Lid_Loose`, `tight_lid` = `Jar_Lid_Tight`, `cloth` = `Cloth_Cover`.
 
 ## 4. Actions
 
-Base `GameAction` (`RefCounted`): `kind: StringName`, `at_unix: int` (set by `Session`, never by UI), `validate(state, env, catalog) -> StringName` (empty means ok, otherwise a reason key such as `&"reason.keep_too_little"`).
+Base `GameAction` (`RefCounted`): `kind: StringName`, `at_unix: int` (set by `Session` to the real time, never by UI), `validate(state, env, catalog) -> StringName` (`&""` means ok, otherwise a reason key). Reason keys are tr keys in the `architecture.md` §10 format, constants on `GameAction` (`REASON_KEEP_RANGE`, `REASON_MASS` and so on) with rows in `src/i18n/pending_core.csv`. A feed on a moldy starter returns narrative's `MOLD_FEED_BLOCKED`.
 
-| Class | `kind` | Fields | Validation |
+| Class | `kind` | Fields | Validation, in order |
 |---|---|---|---|
-| `FeedAction` | `feed` | `kept_g: float`, `flour_g: Dictionary[StringName, float]`, `water_g: float` | `1 <= kept_g <= state.mass_g`. Flour ids canonical, each >= 0, total > 0. `water_g >= 0`. Hydration and post-feed fill within limits (**pending sim spec and designer**: container capacity at 3.0x rise) |
-| `SetEnvironmentAction` | `environment` | `env: EnvironmentState` (full replacement) | Ids canonical, temperature inside the preset range |
+| `FeedAction` | `feed` | `kept_g: float`, `flour_g: Dictionary[StringName, float]`, `water_g: float`, `hooch_choice: StringName` (`pour_off` default, or `stir_in`; spec §2.1) | Not moldy. `1 <= kept_g <= state.mass_g`. Flour ids canonical, each >= 0, total > 0. `water_g >= 0`. Hydration 40..200%. `abs(mass_after_g - 150) <= 5` (below). `hooch_choice` canonical |
+| `SetEnvironmentAction` | `environment` | `env: EnvironmentState` (full replacement). Build with `SetEnvironmentAction.to_location(id, temperature_c = NAN)` | Not moldy (`REASON_MOLDY_LOCKED`). Ids canonical, temperature inside the preset's min..max |
 | `SmellAction` | `smell` | none | Always ok |
 | `InspectAction` | `inspect` | `inspect_kind: StringName` (`bubbles`, `consistency`, `height`, `surface`, `development`) | Canonical kind |
-| `RenameAction` | `rename` | `new_name: String` | 1 to 24 chars after trim |
-| `AckEventAction` | `ack_event` | `event_uid: int`, `choice: StringName` (may be empty) | Event is pending |
-| `DiscardStarterAction` | `discard_starter` | `new_name: String` | Only when the state is `moldy` |
+| `RenameAction` | `rename` | `new_name: String` | 1 to 16 chars after trim (`GameAction.NAME_MAX_CHARS`) |
+| `AckEventAction` | `ack_event` | `event_uid: int`, `choice: StringName` (may be empty) | `event_uid > 0`. `Session` also checks the ledger, because `validate` can't see it |
+| `DiscardStarterAction` | `discard_starter` | `new_name: String` (the new starter's) | Only when moldy, and a valid name |
 
-The UI builds `FeedAction` from the player's ratio, flour and hydration choices with the formulas in `game-mechanics.md` §2.3 (total after feeding fixed at `target_total_g` = 150 g, keep derived). The action still carries grams, so the sim and the journal never depend on UI math. Validation adds `abs(mass_after_g - target_total_g) <= 1`.
+**Hooch choice.** Both choices end with `hooch = 0`. `stir_in` adds `5 × hooch` hydration points to the kept culture. `pour_off` has no other sim effect (spec §2.1, §6, V20). The journal's feed `data` records it.
 
-`FeedAction` derived values: `flour_total_g`, `ratio` (`1 : flour_total_g/kept_g : water_g/kept_g`), `hydration_pct = water_g / flour_total_g * 100`, `mass_after_g`.
+**Feed mass (D-042).** The UI builds a feed with `FeedAction.from_ratio(f, w, flour_id, hydration_pct = 100)`, the `game-mechanics.md` §2.3 formula: total after feeding near `TARGET_TOTAL_G` = 150 g, keep derived, and flour and water rounded to 5 g when `f >= 5`. The 1:5:5 preset therefore gives keep 14, flour 70, water 70, which is **154 g**. Validation allows `MASS_TOLERANCE_G` = **±5 g** around 150 (v0 said ±1 g, which rejected that preset). The action still carries grams, so the sim and the journal never depend on UI math.
 
-`ActionResult`: `ok: bool`, `reason_key: StringName`, `readout: RefCounted` (a `SmellReadout`, `InspectionReadout` or null), `events: Array[SimEvent]`, `journal_entry: JournalEntry`.
+`FeedAction` derived values: `flour_total_g()`, `ratio() -> Vector2` (x = `flour_total_g/kept_g`, y = `water_g/kept_g`, read as `1 : x : y`), `hydration_pct() = water_g / flour_total_g * 100`, `mass_after_g()`.
+
+`ActionResult`: `ok: bool`, `reason_key: StringName`, `action_kind: StringName`, `readout: RefCounted` (a `SmellReadout`, `InspectionReadout` or null), `events: Array[SimEvent]`, `journal_entry: JournalEntry` (null when rejected, or when a smell or inspect was deduped per `game-mechanics.md` §4).
 
 ## 5. Events
 
@@ -125,11 +134,11 @@ The UI builds `FeedAction` from the player's ratio, flour and hydration choices 
 | Field | Type | Notes |
 |---|---|---|
 | `uid` | int | From `EventLedger.next_uid` |
-| `id` | StringName | Rule id, for example `&"peak_now"`. Text keys `event.<id>.title` and `.body` |
+| `id` | StringName | Rule id, for example `&"peak_now"`. Text keys come from the id in the `events-catalog.md` format, never stored: `EVENT_<ID>_TOAST`, `EVENT_<ID>_JOURNAL_TITLE`, `EVENT_<ID>_JOURNAL_BODY`, plus personality variants (`EVENT_PEAK_NOW_PATIENT`) |
 | `tier` | StringName | `info`, `nudge`, `attention` |
 | `created_unix` | int | Sim time of the step that fired it |
 | `local_minute_of_day` | int | 0..1439 |
-| `payload` | Dictionary | Primitives only (int, float, String, bool). For example `{"peak_unix": ..., "peak_rise": 2.3}` |
+| `payload` | Dictionary | Primitives only (int, float, String, bool). For example `{"peak_unix": ..., "peak_rise": 2.3}`. After a load, `peak_rise` is a hex string: read numbers with `DictReader.float_of()` (§1) |
 | `expires_unix` | int | 0 = never |
 | `expires_if` | StringName | Condition id that drops a stale event, for example `&"state_not_hungry"`. Empty = none |
 | `not_before_unix` | int | Quiet-hours deferral |
@@ -139,7 +148,7 @@ The UI builds `FeedAction` from the player's ratio, flour and hydration choices 
 `next_uid: int`, `last_fired_unix: Dictionary[StringName, int]`, `once_flags: Dictionary[StringName, bool]`, `day_key: String` (local `YYYY-MM-DD`), `day_counts: Dictionary[StringName, int]` (per tier, current local day only), `pending: Array[SimEvent]` (cap 20; the oldest `info` is dropped first).
 
 ### `EventContext` (not saved)
-`prev_state`, `state: StarterState`, `derived: DerivedState`, `env`, `history: PlayerHistory`, `ledger`, `now_unix`, `local_minute_of_day`, `app_foreground: bool`, `last_action: GameAction` (null on plain steps), `catalog` (for `Forecast` calls such as `warm_and_quick`'s 22 °C run).
+`prev_state`, `prev_derived: DerivedState` (the derivation of `prev_state`, so `state_enter` rules compare labels without re-deriving), `state: StarterState`, `derived: DerivedState`, `env`, `history: PlayerHistory`, `ledger`, `now_unix`, `local_minute_of_day`, `utc_offset_s: int` (for day keys via `LocalDay.day_key()`), `app_foreground: bool`, `last_action: GameAction` (null on plain steps), `catalog` (for `Forecast` calls such as `warm_and_quick`'s 22 °C run).
 - On a step that follows an action, `prev_state` is the state **before** the action (`comeback` reads its `starved_h`). On a plain step, it is the state one step earlier.
 - No RNG. Rules are deterministic functions of the context. Phase triggers read `derived.rise_phase`, not `derived.state`.
 
@@ -160,12 +169,12 @@ The UI builds `FeedAction` from the player's ratio, flour and hydration choices 
 |---|---|---|
 | `uid` | int | |
 | `starter_id` | String | Which starter. The journal outlives a starter (memorial, then a new one) |
-| `at_unix` | int | Real time of the act (not grid time) |
+| `at_unix` | int | Real time of the act (not grid time). `state_change` and `event` entries use the sim time they happened |
 | `kind` | StringName | `feed`, `environment`, `smell`, `inspect`, `event`, `state_change`, `milestone`, `rename`, `memorial` |
 | `state_id` | StringName | State at that moment |
-| `text_key` | StringName | |
-| `args` | Dictionary | Primitives for `tr(key).format(args)` |
-| `data` | Dictionary | Facts, for example a feed's grams, ratio and hydration |
+| `text_key` | StringName | A tr key: `JOURNAL_LOG_FEED` (or `_AT_PEAK`, `_RESCUE`), `JOURNAL_LOG_MOVE_<LOCATION>`, `JOURNAL_LOG_SMELL`, the readout's `INSPECT_..._OBS`, `EVENT_<ID>_JOURNAL_TITLE`, `STATUS_<STATE>_WORD`, `MEMORIAL_TITLE` |
+| `args` | Dictionary | ints, Strings and bools only. No decimals (§1). A feed sends `{"ratio": "1:5:5", "flour_g": 70}`. UI renders with `Keys.format(text_key, args)`, which first translates any arg that is itself a key (`FLOUR_RYE`), so the save stores keys, never text in one language |
+| `data` | Dictionary | Facts. A feed stores `FeedAction.to_dict()` (`kept_g`, `flour_g`, `water_g`, `hooch_choice`, `ratio_flour`, `ratio_water`, `hydration_pct`) plus `timing`, `had_hooch` and `feed_u`. Read numbers with `DictReader.float_of()` (§1) |
 
 Cap: 400 entries. On overflow, drop the oldest `state_change` entries first, then `inspect` and `smell`, then the oldest of any other kind. Never drop `memorial` or `milestone`. Smell and inspect entries also follow the dedupe rule in `game-mechanics.md` §4 (once per descriptor per rise cycle).
 
@@ -174,7 +183,7 @@ Cap: 400 entries. On overflow, drop the oldest `state_change` entries first, the
 
 ## 7. `VisualParams` (`VisualMapper.from_state(state, env) -> VisualParams`)
 
-Every field maps to a starter-shader uniform **with the same name**. Mapping rules from state are **pending sim spec and art direction**. This table fixes the names, types and ranges. Units are relative to the starter (ratios and 0..1), so `VisualMapper` never needs jar geometry. Only `level_m` is in meters, and the view converts everything else using `jar_geometry.gd`. One difference from the Phase 1 spike: the spike's `rise` is `ratio - 1` (0 = as fed), and the Phase 2 shader takes the ratio.
+`Session` calls `VisualMapper.from_derived(state, env, derived)` with the derivation it already has, so it derives once per step. Every field maps to a starter-shader uniform **with the same name**, listed in `VisualParams.UNIFORMS`. `VisualMapper` holds a v0 mapping toward the `art-direction.md` §6 look-dev targets; `art-director` and `sourdough-scientist` tune it. This table fixes the names, types and ranges. Units are relative to the starter (ratios and 0..1), so `VisualMapper` never needs jar geometry. Only `level_m` is in meters, and the view converts everything else using `jar_geometry.gd`. One difference from the Phase 1 spike: the spike's `rise` is `ratio - 1` (0 = as fed), and the Phase 2 shader takes the ratio.
 
 | Field / uniform | Type | Range | Meaning |
 |---|---|---|---|
@@ -202,13 +211,21 @@ Non-uniform fields: `cover: StringName` (which lid node is visible).
 ## 8. Readouts
 
 ### `SmellReadout` (`SmellModel.read(state, env)`)
-`primary: StringName` (descriptor id), `secondary: Array[StringName]` (0 to 2), `intensity: StringName` (`faint`, `clear`, `strong`), `intensity_value: float` 0..1 (not shown), `is_warning: bool` (true for `musty` and any descriptor the spec marks as a warning), `meaning_key: StringName`.
-Descriptor ids: the seed list in `vision.md` (`wet_flour`, `mildly_fruity`, `fresh_yeasty`, `yogurt`, `pleasantly_tangy`, `strongly_acidic`, `alcohol`, `acetone`, `cheesy`, `musty`). Final list and mapping are **pending sim spec**. No randomness: the same state gives the same smell.
+`primary: StringName` (descriptor id, or `&""` when nothing reaches 0.15), `secondary: Array[StringName]` (0 to 2, strongest first), `intensity: StringName` (`faint` >= 0.15, `clear` >= 0.35, `strong` >= 0.7), `intensity_value: float` 0..1 (not shown), `is_warning: bool` (true when `musty` is listed; it is then always first), `meaning_key: StringName` (`SMELL_<PRIMARY>_MEANING`), `intensities: Dictionary[StringName, float]` (every descriptor after cold damping, for tests and the journal).
+Descriptor ids: `SimConstants.DESCRIPTORS`, the spec §13 order, which also breaks ties (`wet_flour`, `mildly_fruity`, `fresh_yeasty`, `yogurt`, `pleasantly_tangy`, `strongly_acidic`, `alcohol`, `acetone`, `cheesy`, `musty`). No randomness: the same state gives the same smell.
 
 ### `InspectionReadout` (`Inspection.read(state, env, kind)`)
-`inspect_kind: StringName`, `level: int` 0..4, `text_key` (`inspect.<kind>.level_<n>`), `is_warning: bool`, `camera_target: StringName`.
+| Field | Type | Notes |
+|---|---|---|
+| `inspect_kind` | StringName | One of the 5 kinds |
+| `level` | int 0..4 | Index of the first observation in the kind's order. Only feeds the seen-count key `inspect.<kind>.level_<n>` (meaning-line fade) |
+| `observations` | `Array[StringName]` | Spec §14 readout ids in display order, for example `[&"doubled", &"rising", &"streak_line"]` |
+| `text_key` | StringName | The observation line, `INSPECT_<KIND>_<STATE>[_<VARIANT>]_OBS`, for example `INSPECT_HEIGHT_AT_PEAK_DOUBLE_OBS`. A recovering starter uses its rise phase |
+| `meaning_key` | StringName | The meaning line, for example `INSPECT_HEIGHT_AT_PEAK_MEAN`. Fades after 3 views unless `is_warning`. The sim builds both keys, so the UI never does |
+| `is_warning` | bool | `unhealthy` or `moldy`, or a `surface` read that shows `hooch_dark` |
+| `camera_target` | StringName | Below |
 
-| Kind | Camera target | Reveals (pending sim spec) |
+| Kind | Camera target | Reveals |
 |---|---|---|
 | `bubbles` | `bubbles` (side close-up) | `activity`, `rise_phase` |
 | `consistency` | `top` | `culture_hydration`, `hooch` |
@@ -216,8 +233,8 @@ Descriptor ids: the seed list in `vision.md` (`wet_flour`, `mildly_fruity`, `fre
 | `surface` | `surface` | `dryness`, `hooch`, `mold_risk` stage |
 | `development` | `home` | `maturity`, `vigor` |
 
-### `StarterSnapshot` (what the HUD reads)
-`name`, `state: StringName`, `rise_phase: StringName`, `since_feed_s: float`, `is_warning: bool` (`unhealthy` or `moldy`), `can_feed: bool` (false when `moldy`). The HUD shows the state as an icon plus a word (`state.<id>.name`), never color alone.
+### `StarterSnapshot` (what the HUD reads; `StarterSnapshot.make(state, derived, env)`)
+`name`, `state: StringName`, `rise_phase: StringName`, `dormant_cause: StringName` (`cold`, `starved` or `&""`; copy picks the `_COLD` or `_STARVED` line), `since_feed_s: float`, `is_warning: bool` (`unhealthy` or `moldy`), `can_feed: bool` (false when `moldy`), `maturity_stage: StringName` (`young`, `steady`, `mature`, `seasoned` from maturity 0, 0.33, 0.50, 0.83; `SimConstants.maturity_stage()`), `location: StringName`. The HUD shows the state as an icon plus a word (`Keys.status_word(state, dormant_cause)`, for example `STATUS_DORMANT_COLD_WORD`), never color alone.
 
 ### `CatchUpResult`
 `from_unix`, `to_unix`, `simulated_s: int`, `capped: bool`, `reanchored: bool`, `steps: int`, `transitions: Array[Dictionary]` (`at_unix`, `from`, `to`), `events: Array[SimEvent]`, `snapshots: Array[VisualParams]` (at most 30, evenly spaced, for the time-lapse), `notable: Dictionary` (for example `peak_unix`, `peak_rise`, `hooch_first_unix`).
@@ -269,21 +286,24 @@ Dev fixtures: `--fixture=<path>` (debug builds only) and `SaveStore.load_from_pa
 
 ### 9.6 Example payload v1 (synthetic values, pretty-printed here; the real file is one compact line)
 
-For readability, floats below are shown as decimals. The real file writes each one as its hex bit pattern (§1), so `"food": 0.18` is stored as `"food": "0ad7a3703d0ac73f"` and `"mass_g": 150.0` as `"mass_g": "0000000000c06240"`. `Session.dump_state(path)` writes this readable decimal form for humans. Exact comparisons use the real payload.
+For readability, floats below are shown as decimals. The real file writes each one as its hex bit pattern (§1), so `"food": 0.18` is stored as `"food": "0ad7a3703d0ac73f"` and `"mass_g": 150.0` as `"mass_g": "0000000000c06240"` (both checked with Python's `struct.pack('<d', x).hex()`). In the journal's free-form `data`, whole numbers are ints (`"kept_g": 50`) and `"feed_u": 0.7` is stored as `"666666666666e63f"`, which is also what it reads back as. `Session.dump_state(path)` writes this readable decimal form for humans. Exact comparisons use the real payload. Every section is required in a save; a dev fixture needs only `starter` and `environment` (§9.5).
 
 ```json
 {
   "environment": {"changed_unix": 1795600020, "container": "classic_jar", "cover": "loose_lid",
-                  "humidity_pct": 55.0, "location": "counter", "temperature_c": 22.0},
+                  "humidity_pct": 50.0, "location": "counter", "temperature_c": 22.0},
   "events": {"day_counts": {"info": 1, "nudge": 0, "attention": 0}, "day_key": "2026-11-26",
              "last_fired_unix": {"peak_now": 1795640400}, "next_uid": 8,
              "once_flags": {"first_feed": true}, "pending": []},
   "history": {"consecutive_early_feeds": 0, "daily": [], "last_strong_peak_rise": 2.2,
               "recent_feed_unix": [1795536000, 1795579200, 1795622400],
               "seen_counts": {"smell.fresh_yeasty": 2}, "smelled_descriptors": {"fresh_yeasty": true}},
-  "journal": [{"args": {}, "at_unix": 1795622411, "data": {"flour_g": {"white_bread": 50.0},
-               "kept_g": 50.0, "water_g": 50.0}, "kind": "feed", "state_id": "collapsing",
-               "text_key": "journal.feed.basic", "uid": 7}],
+  "journal": [{"args": {"flour_g": 50, "ratio": "1:1:1"}, "at_unix": 1795622411,
+               "data": {"feed_u": 0.7, "flour_g": {"white_bread": 50}, "had_hooch": false,
+                        "hooch_choice": "pour_off", "hydration_pct": 100, "kept_g": 50, "kind": "feed",
+                        "ratio_flour": 1, "ratio_water": 1, "timing": "late", "water_g": 50},
+               "kind": "feed", "starter_id": "a3f09c1e5b7d2468", "state_id": "collapsing",
+               "text_key": "JOURNAL_LOG_FEED", "uid": 7}],
   "memorials": [],
   "meta": {"app_version": "0.2.0", "clock_reanchors": 0, "created_unix": 1795500000,
            "recovered_from": "", "save_count": 41, "saved_unix": 1795651233},
