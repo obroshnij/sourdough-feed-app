@@ -93,7 +93,7 @@ temp_c <- temp_c + (T_env - temp_c)(1 - exp(-dt_h / 1.5))   starter warms or coo
 | phi_y | 0 | 0.03 | 0.23 | 0.53 | 0.82 | 0.93 | 0.99 | 0.99 | 0.73 | 0 |
 | phi_l | 0.001 | 0.09 | 0.22 | 0.40 | 0.60 | 0.71 | 0.81 | 0.90 | 1.00 | 0.89 |
 | ferm | 0.07 | 0.26 | 0.44 | 0.66 | 0.89 | 1.00 | 1.11 | 1.20 | 1.34 | 1.33 |
-| dec | 0.21 | 0.33 | 0.45 | 0.62 | 0.85 | 1.00 | 1.17 | 1.37 | 1.88 | 2.32 |
+| dec | 0.21 | 0.33 | 0.45 | 0.62 | 0.85 | 1.00 | 1.17 | 1.37 | 1.88 | 2.11 |
 
 **Why cardinal, not a plain Q10.** A single Q10 (about 2 to 3) fits 15 to 30 °C, but it fails at both ends. It has no optimum, so 35 °C would be the fastest setting, while yeast growth actually stops near 36 °C (Gänzle 1998). And it gives a fridge starter about a fifth of room-temperature activity, when real fridge starters keep for about a week per feed (SCI §3). The cardinal model (CTMI, Rosso et al. 1993) uses the published cardinal temperatures directly and gives zero growth outside them. Q10 is kept only for slow decay processes (starvation, loss of vigor), which do not stop at a growth minimum. The 1.5 h starter lag is a Newton-cooling estimate for about 200 g of paste in a glass jar (**tuned**).
 
@@ -137,7 +137,7 @@ mold_risk   = 0.3 × mold_risk                           (only if not moldy)
 food_at_feed = food;  vigor_at_feed = vigor;  feed_u, feed_jitter = rng draw (§17)
 ```
 `pour_off` and `stir_in` both end with hooch = 0. `pour_off` has no other sim effect (journal only). `stir_in` adds a little water: at hooch 0.46 it raised culture hydration from 100.0 to 100.8% and changed the next peak by under 0.03 h (V20). Neither choice changes acid or flavor.
-Minimum keep is 1 g; it is simply a big dilution (1 g + 50 g flour + 50 g water peaks in about 18 h at 22 °C). Maximum mass is the container's job (UI rule), not the sim's.
+Minimum keep is 1 g; it is simply a big dilution (1 g + 50 g flour + 50 g water peaks in about 18 h at 22 °C). The sim clamps `kept_g` to [1, mass_g] defensively; rejecting a 0 g keep is the input layer's job (V11). Maximum mass is the container's job (UI rule), not the sim's.
 
 ## 7. Rate equations (per hour)
 
@@ -237,7 +237,7 @@ A skin forms on an undisturbed surface: fast under `cloth` in dry air, slowly un
 ### 12.1 Rise phase (always computed, exposed as `rise_phase`), first match wins
 1. `hungry`: food < 0.10 and (rise ≤ 1 + 0.5 × (peak_rise - 1) or peak_rise < 1.15)
 2. `freshly_fed`: since_feed_s < 3600 and rise < 1.05
-3. `at_peak`: rise ≥ 0.94 × peak_rise and rise > 1.15 and rise_rate < 0.2 × peak_rate
+3. `at_peak`: rise ≥ 0.94 × peak_rise and rise > 1.15 and peak_rate > 0 and rise_rate < 0.2 × peak_rate
 4. `collapsing`: rise_rate < 0 and rise < 0.94 × peak_rise
 5. `developing`: rise < 1.15
 6. `near_peak`: rise_rate < 0.75 × peak_rate or food < 0.25 × food_at_feed
@@ -253,7 +253,7 @@ A skin forms on an undisturbed surface: fast under `cloth` in dry air, slowly un
 | 5 | `recovering` | vigor < 0.6 or vigor_at_feed < 0.75 | calm |
 | 6 | rise phase | `freshly_fed`, `developing`, `active`, `near_peak`, `at_peak`, `collapsing` | calm |
 
-`dormant_cause` (derived): `cold` if ferm(temp_c) < 0.30, otherwise `starved`. Cold wins when both hold. Copy uses it to pick `_COLD` or `_STARVED` lines.
+`dormant_cause` (derived): `cold` if ferm(temp_c) < 0.30, otherwise `starved`. Cold wins when both hold. Copy uses it to pick `_COLD` or `_STARVED` lines. It is null unless the state is `dormant`. When `moldy`, both `rise_phase` and `dormant_cause` are null.
 
 Typical day at 22 °C after a 1:1:1 feed: freshly_fed 0 to 0.3 h, developing to 1.0 h, active to 4.9 h, near_peak to 6.1 h, at_peak to 7.5 h, collapsing to 12.8 h, hungry after that. Counter neglect: dormant from 3.1 days, unhealthy from 4.5 days, moldy at 8.9 days.
 
@@ -261,7 +261,7 @@ Typical day at 22 °C after a 1:1:1 feed: freshly_fed 0 to 0.3 h, developing to 
 
 Final descriptor list: the vision seed list, unchanged. `wet_flour`, `mildly_fruity`, `fresh_yeasty`, `yogurt`, `pleasantly_tangy`, `strongly_acidic`, `alcohol`, `acetone`, `cheesy`, `musty`.
 ```
-p     = clamp(1 - food / food_at_feed, 0, 1)     share of this feed's food used
+p     = clamp(1 - food / food_at_feed, 0, 1)     share of this feed's food used (p = 1 when food_at_feed = 0, as in the seed state)
 gas_n = clamp(gas, 0, 1)
 tri(x; a, b, c) = rises 0 to 1 from a to b, falls to 0 at c
 wet_flour        = clamp(1 - p/0.3)
