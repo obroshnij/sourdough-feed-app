@@ -8,7 +8,8 @@ extends TestCase
 const STAMP := 1795651200
 ## Recorded 2026-11-26 with Godot 4.7.2 on macOS. Change it only with a written reason (an engine
 ## upgrade that changes JSON output also changes every existing save's checksum check).
-const GOLDEN_SHA256 := "b210e5cdb0354a7545832e08fcd64ac3008ed9444aaf029e473ff72b24de819e"
+## History: b210e5cd... (plain JSON floats) became 86d62639... when D-040 stored floats as hex.
+const GOLDEN_SHA256 := "86d6263995d00f671a164659130ae3cd8915772c15e10b5049e905cbda5be0bb"
 
 var _dir: String = ""
 var _clock: FakeClock
@@ -51,7 +52,7 @@ func test_save_02_file_matches_the_documented_layout() -> void:
 		var body: PackedByteArray = bytes.slice(bytes.find(10) + 1)
 		check_eq(body.find(10), -1, "payload is one line")
 		var report: SaveLoadReport = _store(_dir).load_latest()
-		check_eq(report.payload, payload, "round trip for \"%s\"" % tag)
+		check_eq(report.payload, QaSaveFormat.stored(payload), "round trip for \"%s\"" % tag)
 	check_eq(SaveCodec.CURRENT_VERSION, 1, "schema version")
 
 
@@ -83,7 +84,7 @@ func test_save_03_to_05_corrupt_save_json_falls_back_to_prev() -> void:
 		var report: SaveLoadReport = _store(dir).load_latest()
 		check(report.ok, name + ": loaded")
 		check_eq(report.source, "save.prev", name + ": source")
-		check_eq(report.payload, good, name + ": payload is save.prev's")
+		check_eq(report.payload, QaSaveFormat.stored(good), name + ": payload is save.prev's")
 		_check_quarantined(dir, report, "save.json", bad, name)
 
 
@@ -98,7 +99,7 @@ func test_save_03_corrupt_save_json_falls_back_to_tmp_and_promotes_it() -> void:
 	QaTemp.write(_dir.path_join("save.tmp"), QaSaveFormat.encode(good))
 	var report: SaveLoadReport = _store(_dir).load_latest()
 	check_eq(report.source, "save.tmp", "source")
-	check_eq(report.payload, good, "payload")
+	check_eq(report.payload, QaSaveFormat.stored(good), "payload")
 	check_eq(QaTemp.read(_dir.path_join("save.json")), QaSaveFormat.encode(good), "save.tmp promoted to save.json")
 	check(not FileAccess.file_exists(_dir.path_join("save.tmp")), "save.tmp is gone")
 	_check_quarantined(_dir, report, "save.json", bad, "corrupt save.json", false)
@@ -162,14 +163,14 @@ func test_save_08_kill_at_each_fault_point() -> void:
 		var relaunched: SaveStore = _store(dir)
 		var report: SaveLoadReport = relaunched.load_latest()
 		check(report.ok, "%s: something loads" % point)
-		check_eq(report.payload, expected[point], "%s: loads exactly the %s state" % [point, "new" if expected[point] == c else "old"])
+		check_eq(report.payload, QaSaveFormat.stored(expected[point]), "%s: loads exactly the %s state" % [point, "new" if expected[point] == c else "old"])
 		if point == &"after_rename":
 			check_eq(QaTemp.read(dir.path_join("save.json")), QaSaveFormat.encode(c), "after_rename: save.json now holds C")
 			check(not FileAccess.file_exists(dir.path_join("save.tmp")), "after_rename: save.tmp promoted")
 			check_eq(QaTemp.read(dir.path_join("save.prev")), QaSaveFormat.encode(b), "after_rename: save.prev holds B")
 		var d: Dictionary = QaSaveFormat.sample_payload("D")
 		check_eq(relaunched.save(d), OK, "%s: the next save works" % point)
-		check_eq(_store(dir).load_latest().payload, d, "%s: and loads" % point)
+		check_eq(_store(dir).load_latest().payload, QaSaveFormat.stored(d), "%s: and loads" % point)
 
 
 ## SAVE-09: a write error (here save.tmp can't be opened) leaves the old files unchanged and
@@ -186,7 +187,7 @@ func test_save_09_write_error_keeps_the_old_files() -> void:
 	DirAccess.remove_absolute(_dir.path_join("save.tmp"))
 	var c: Dictionary = QaSaveFormat.sample_payload("C")
 	check_eq(store.save(c), OK, "the retry works")
-	check_eq(_store(_dir).load_latest().payload, c, "and loads")
+	check_eq(_store(_dir).load_latest().payload, QaSaveFormat.stored(c), "and loads")
 
 
 ## SAVE-10: a save from a newer app version is never overwritten. It moves to quarantine, the
@@ -200,7 +201,7 @@ func test_save_10_newer_version_is_quarantined_and_kept() -> void:
 	QaTemp.write(_dir.path_join("save.prev"), QaSaveFormat.encode(b))
 	var store: SaveStore = _store(_dir)
 	var report: SaveLoadReport = store.load_latest()
-	check_eq(report.payload, b, "save.prev loads")
+	check_eq(report.payload, QaSaveFormat.stored(b), "save.prev loads")
 	_check_quarantined(_dir, report, "save.json", newer, "version 2")
 	check_eq(store.save(QaSaveFormat.sample_payload("C")), OK, "save C")
 	check_eq(QaTemp.read(_dir.path_join(report.quarantined[0])), newer, "the version 2 file is untouched")
@@ -221,12 +222,12 @@ func test_save_17_untrusted_save_json_never_becomes_save_prev() -> void:
 	# The plan's sequence: load from prev, save, then the new save.json goes bad too.
 	var store: SaveStore = _store(_dir)
 	QaTemp.write(_dir.path_join("save.json"), bad)
-	check_eq(store.load_latest().payload, b, "loads B from save.prev")
+	check_eq(store.load_latest().payload, QaSaveFormat.stored(b), "loads B from save.prev")
 	check_eq(store.save(QaSaveFormat.sample_payload("D")), OK, "save D")
 	QaTemp.write(_dir.path_join("save.json"), bad)
 	var report: SaveLoadReport = _store(_dir).load_latest()
 	check(report.ok, "a good file still loads")
-	check_eq(report.payload, b, "and it is B, the last good save.prev")
+	check_eq(report.payload, QaSaveFormat.stored(b), "and it is B, the last good save.prev")
 
 
 ## Normal rotation: each save moves the previous good save.json to save.prev.
@@ -252,7 +253,7 @@ func test_load_from_path_accepts_full_and_bare_files() -> void:
 	QaTemp.write(_dir.path_join("full.json"), QaSaveFormat.encode(p))
 	QaTemp.write(_dir.path_join("bare.json"), QaSaveFormat.payload_text(p).to_utf8_buffer())
 	var store: SaveStore = _store(_dir)
-	check_eq(store.load_from_path(_dir.path_join("full.json")), p, "full file")
+	check_eq(store.load_from_path(_dir.path_join("full.json")), QaSaveFormat.stored(p), "full file")
 	check_eq(store.load_from_path(_dir.path_join("bare.json")), p, "bare payload")
 	check_eq(store.load_from_path(_dir.path_join("missing.json")), {}, "missing file")
 	QaTemp.write(_dir.path_join("garbage.json"), QaSaveFormat.corrupt_corpus(p)["binary_garbage"])

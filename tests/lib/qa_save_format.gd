@@ -3,7 +3,7 @@ extends RefCounted
 ## QA's own reading of the save file layout (data-models §9.2), written from the doc and not
 ## from T1's SaveCodec, plus the corrupt-file corpus for SAVE-03, SAVE-04, SAVE-05 and SAVE-10.
 ##   line 1: {"bytes":N,"format":"sourdough.save","sha256":"<64 hex>","version":V}
-##   then the payload bytes: JSON.stringify(payload, "", true, true)
+##   then the payload bytes: JSON.stringify(payload with every float as 16-char hex, "", true, true)
 
 const FORMAT := "sourdough.save"
 
@@ -21,6 +21,31 @@ static func hex_float(hex: String) -> float:
 	return hex.hex_decode().decode_double(0)
 
 
+## D-040: every float, at any depth, becomes its hex string. This is what a generic load returns,
+## because a generic decoder can't tell a float's hex from a 16-hex starter id.
+static func pack_floats(value: Variant) -> Variant:
+	match typeof(value):
+		TYPE_FLOAT:
+			return float_hex(float(value))
+		TYPE_DICTIONARY:
+			var out: Dictionary = {}
+			for key: Variant in (value as Dictionary):
+				out[key] = pack_floats((value as Dictionary)[key])
+			return out
+		TYPE_ARRAY:
+			var list: Array = []
+			for item: Variant in (value as Array):
+				list.append(pack_floats(item))
+			return list
+	return value
+
+
+## The payload with every float as hex, as a Dictionary (what load_latest() returns).
+static func stored(payload: Dictionary) -> Dictionary:
+	return pack_floats(payload)
+
+
+## Plain JSON text of `payload` as given (floats not packed). Bare dev fixtures use this.
 static func payload_text(payload: Dictionary) -> String:
 	return JSON.stringify(payload, "", true, true)
 
@@ -37,8 +62,9 @@ static func encode_text(text: String, version: int = 1, header_patch: Dictionary
 	return out
 
 
+## A full save file as the writer must produce it: floats packed as hex (D-040), then JSON.
 static func encode(payload: Dictionary, version: int = 1) -> PackedByteArray:
-	return encode_text(payload_text(payload), version)
+	return encode_text(payload_text(stored(payload)), version)
 
 
 ## A small synthetic payload. `tag` makes two payloads distinguishable.
