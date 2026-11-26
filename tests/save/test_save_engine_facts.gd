@@ -26,33 +26,35 @@ func test_full_precision_json_round_trips_floats_exactly() -> void:
 		check(back == value, "%s came back as %s" % [show(value), show(back)])
 
 
-## SAVE-01, PROP-01, PROP-02 assume a save round trip is bit-exact. Measured in 4.7.2 (QA,
-## 2026-11-26): JSON's number parser keeps at most 17 digits after the decimal point, so about
-## a quarter of doubles below 0.1 come back 1 ulp off (0.00038268223404884337 reads back as
-## 0.00038268223404884). String.to_float() does the same. var_to_bytes is exact.
-## Until the director picks lossless float storage or a tolerance, this SKIPs with the
-## measured count (visible, and fails under --strict). It passes by itself once the engine
-## parses exactly.
-func test_json_round_trip_is_exact_for_random_doubles() -> void:
+## OD-18, decided (a): 4.7.2's JSON number parser keeps at most 17 digits after the decimal
+## point, so plain JSON floats come back 1 ulp off about a third of the time. Saves store every
+## float as the hex of its IEEE-754 bytes (data-models §1). These pin that encoding: the doc's
+## examples, and an exact round trip (bit for bit, so -0.0 stays -0.0) through JSON as a string.
+func test_float_hex_matches_the_documented_examples() -> void:
+	var examples: Dictionary = {0.25: "000000000000d03f", 150.0: "0000000000c06240", 0.18: "0ad7a3703d0ac73f"}
+	for x: float in examples:
+		check_eq(QaSaveFormat.float_hex(x), examples[x], "hex of %s" % show(x))
+		check(QaSaveFormat.hex_float(examples[x]) == x, "decode %s" % examples[x])
+
+
+func test_float_hex_round_trips_every_double_exactly() -> void:
+	var values: Array[float] = [0.0, -0.0, 5e-324, 2.2250738585072014e-308, 1.7976931348623157e308,
+			1.0 / 3.0, 0.1, 22.0, -40.0]
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.seed = 7
+	for i: int in 100000:
+		values.append(rng.randf() * pow(10.0, rng.randi_range(-6, 3)))
 	var inexact: int = 0
 	var example: String = ""
-	var n: int = 20000
-	for i: int in n:
-		var x: float = rng.randf() * pow(10.0, rng.randi_range(-6, 3))
+	for x: float in values:
 		var parser: JSON = JSON.new()
-		parser.parse(JSON.stringify({"v": x}, "", true, true))
-		var back: float = float((parser.data as Dictionary)["v"])
-		if back != x:
+		parser.parse(JSON.stringify({"v": QaSaveFormat.float_hex(x)}, "", true, true))
+		var back: float = QaSaveFormat.hex_float(String((parser.data as Dictionary)["v"]))
+		if QaSaveFormat.float_hex(back) != QaSaveFormat.float_hex(x):
 			inexact += 1
 			if example.is_empty():
-				example = "%s read back as %s" % [show(x), show(back)]
-	if inexact > 0:
-		skip("known engine limit, decision pending: %d of %d doubles don't round-trip through JSON (%s)"
-				% [inexact, n, example])
-		return
-	check_eq(inexact, 0, "doubles that don't round-trip")
+				example = "%s came back as %s" % [show(x), show(back)]
+	check_eq(inexact, 0, "doubles not bit-identical after hex through JSON (first: %s)" % example)
 
 
 ## data-models §1: RNG seeds and states are saved as decimal strings, and restored with
