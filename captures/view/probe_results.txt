@@ -1,0 +1,451 @@
+PROBE compat_tierA_active_pose.png (720x1280) state=active
+ROW info paste (290,850) #DCD2C0 H 38 S 12% V 86%, (450,830) #C5BAA8 H 37 S 15% V 77%
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.01% of pixels
+PROBE compat_tierA_active_side.png (640x800) state=active
+ROW side paste mean #DBD0BE H 38 S 13% V 86%
+ROW R7 pocket mean #B6AA95 H 38 S 18% V 71% [FAIL] want V 66-76, S 18-30, hue 30-40, darkest5 >= 58 (got 56)
+ROW R8 pocket share 9.0% [PASS] want 8-16%
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.09% of pixels
+PROBE compat_tierA_active_top.png (640x800) state=active
+ROW R9 cap center #E5D9C6 H 37 S 13% V 90% [PASS] want V 84-92, S 7-14
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.15% of pixels
+PROBE compat_tierA_at_peak_pose.png (720x1280) state=at_peak
+ROW paste lit (290,850) #D8CDBA H 38 S 14% V 85% [PASS] want V 81-93, S 8-16, hue 30-40, max <= 0.92
+ROW paste shadow (450,830) #8C7C62 H 37 S 30% V 55% [PASS] want V 50-62, S <= 45
+ROW counter (600,1150) #F0E4CF H 38 S 14% V 94% [PASS] want S <= 15, not clipped
+ROW tile wall (360,150) #B0AE85 H 57 S 24% V 69% [PASS] want hue 45-70
+ROW lid top (330,350) #BEA783 H 37 S 31% V 74% [PASS] want S <= 35
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.01% of pixels
+PROBE compat_tierA_at_peak_side.png (640x800) state=at_peak
+ROW side paste mean #D9CEBB H 38 S 14% V 85%
+ROW R7 pocket mean #B4A790 H 38 S 20% V 70% [PASS] want V 66-76, S 18-30, hue 30-40, darkest5 >= 58 (got 58)
+ROW R8 pocket share 18.9% [PASS] want 12-22%
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.11% of pixels
+PROBE compat_tierA_at_peak_top.png (640x800) state=at_peak
+ROW R9 cap center #E4D8C4 H 37 S 14% V 89% [PASS] want V 84-92, S 7-14
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.18% of pixels
+PROBE compat_tierA_collapsing_pose.png (720x1280) state=collapsing
+ROW info paste (290,850) #DCD1BF H 38 S 13% V 86%, (450,830) #9F9077 H 37 S 25% V 62%
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.01% of pixels
+PROBE compat_tierA_collapsing_side.png (640x800) state=collapsing
+ROW side paste mean #DBD1BF H 38 S 13% V 86%
+ROW pockets #B4A992 H 40 S 19% V 71% share 15.1% darkest5 V 56
+ROW R11 residue light pixels=18165 V p20-p80 84-89 S p80 13 [PASS] want S <= 15
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.33% of pixels
+PROBE compat_tierA_collapsing_top.png (640x800) state=collapsing
+ROW R9 cap center #E5DAC7 H 37 S 13% V 90% [PASS] want V 84-92, S 7-14
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.96% of pixels
+PROBE compat_tierA_developing_pose.png (720x1280) state=developing
+ROW info paste (290,850) #D3C8B7 H 38 S 13% V 83%, (450,830) #C7BDAD H 37 S 13% V 78%
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.01% of pixels
+PROBE compat_tierA_developing_side.png (640x800) state=developing
+ROW side paste mean #DBD1BF H 38 S 13% V 86%
+ROW pockets #B6AA96 H 38 S 18% V 71% share 6.5% darkest5 V 35
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.14% of pixels
+PROBE compat_tierA_developing_top.png (640x800) state=developing
+ROW R9 cap center #E5DAC7 H 37 S 13% V 90% [PASS] want V 84-92, S 7-14
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.20% of pixels
+PROBE compat_tierA_dormant_pose.png (720x1280) state=dormant
+ROW info paste (290,850) #8D7A65 H 32 S 29% V 55%, (450,830) #8D8D76 H 61 S 17% V 55%
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.01% of pixels
+PROBE compat_tierA_dormant_side.png (640x800) state=dormant
+ROW side paste mean #DAD0BE H 38 S 13% V 86%
+ROW pockets #9F9381 H 36 S 19% V 62% share 19.5% darkest5 V 47
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.13% of pixels
+PROBE compat_tierA_dormant_top.png (640x800) state=dormant
+ROW R10 hooch from above #978068 H 31 S 31% V 59% [PASS] want V 55-70, S 25-40, hue 30-40
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.01% of pixels
+PROBE compat_tierA_freshly_fed_pose.png (720x1280) state=freshly_fed
+ROW info paste (290,850) #D2C8B7 H 38 S 13% V 83%, (450,830) #9A9C85 H 66 S 15% V 61%
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.01% of pixels
+PROBE compat_tierA_freshly_fed_side.png (640x800) state=freshly_fed
+ROW side paste mean #DAD0BF H 38 S 13% V 86%
+ROW pockets #9F9382 H 36 S 18% V 62% share 12.3% darkest5 V 47
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.15% of pixels
+PROBE compat_tierA_freshly_fed_top.png (640x800) state=freshly_fed
+ROW R9 cap center #E6DAC7 H 37 S 13% V 90% [PASS] want V 84-92, S 7-14
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.24% of pixels
+PROBE compat_tierA_hungry_pose.png (720x1280) state=hungry
+ROW info paste (290,850) #907D67 H 32 S 28% V 57%, (450,830) #8B7964 H 32 S 28% V 54%
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.01% of pixels
+PROBE compat_tierA_hungry_side.png (640x800) state=hungry
+ROW side paste mean #D9CFBD H 38 S 13% V 85%
+ROW pockets #A59884 H 37 S 20% V 65% share 23.9% darkest5 V 49
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.02% of pixels
+PROBE compat_tierA_hungry_top.png (640x800) state=hungry
+ROW R10 hooch from above #978068 H 31 S 31% V 59% [PASS] want V 55-70, S 25-40, hue 30-40
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.15% of pixels
+PROBE compat_tierA_moldy_pose.png (720x1280) state=moldy
+ROW info paste (290,850) #B9AA92 H 38 S 21% V 72%, (450,830) #94967E H 66 S 16% V 59%
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.02% of pixels
+PROBE compat_tierA_moldy_side.png (640x800) state=moldy
+ROW side paste mean #DAD0C0 H 38 S 12% V 85%
+ROW pockets #9F9382 H 36 S 18% V 62% share 12.3% darkest5 V 47
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.15% of pixels
+PROBE compat_tierA_moldy_top.png (640x800) state=moldy
+ROW info cap center #C6B69B H 37 S 22% V 78% (crust or dark hooch, no R9 row)
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 1.19% of pixels
+PROBE compat_tierA_near_peak_pose.png (720x1280) state=near_peak
+ROW info paste (290,850) #DBD0BE H 38 S 13% V 86%, (450,830) #99896D H 37 S 29% V 60%
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.01% of pixels
+PROBE compat_tierA_near_peak_side.png (640x800) state=near_peak
+ROW side paste mean #DAD0BD H 38 S 13% V 85%
+ROW pockets #B5A892 H 38 S 19% V 71% share 12.5% darkest5 V 58
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.13% of pixels
+PROBE compat_tierA_near_peak_top.png (640x800) state=near_peak
+ROW R9 cap center #E5D9C6 H 37 S 14% V 90% [PASS] want V 84-92, S 7-14
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.17% of pixels
+PROBE compat_tierA_recovering_pose.png (720x1280) state=recovering
+ROW info paste (290,850) #D3C8B7 H 38 S 13% V 83%, (450,830) #CAC0AF H 37 S 13% V 79%
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.01% of pixels
+PROBE compat_tierA_recovering_side.png (640x800) state=recovering
+ROW side paste mean #DBD1BF H 38 S 13% V 86%
+ROW pockets #AFA38F H 38 S 18% V 68% share 8.3% darkest5 V 42
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.10% of pixels
+PROBE compat_tierA_recovering_top.png (640x800) state=recovering
+ROW R9 cap center #E5DAC7 H 37 S 13% V 90% [PASS] want V 84-92, S 7-14
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.19% of pixels
+PROBE compat_tierA_unhealthy_pose.png (720x1280) state=unhealthy
+ROW info paste (290,850) #877663 H 32 S 27% V 53%, (450,830) #8C8C75 H 62 S 17% V 55%
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.01% of pixels
+PROBE compat_tierA_unhealthy_side.png (640x800) state=unhealthy
+ROW side paste mean #D9D0BF H 38 S 12% V 85%
+ROW pockets #A09483 H 36 S 18% V 63% share 16.0% darkest5 V 47
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.13% of pixels
+PROBE compat_tierA_unhealthy_top.png (640x800) state=unhealthy
+ROW info cap center #8F7A66 H 29 S 29% V 56% (crust or dark hooch, no R9 row)
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.01% of pixels
+PROBE mobile_tierA_active_pose.png (720x1280) state=active
+ROW info paste (290,850) #E1D5C5 H 34 S 13% V 88%, (450,830) #DBCDBC H 34 S 14% V 86%
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierA_active_side.png (640x800) state=active
+ROW side paste mean #D9CCBB H 34 S 14% V 85%
+ROW R7 pocket mean #B9AB99 H 35 S 17% V 73% [FAIL] want V 66-76, S 18-30, hue 30-40, darkest5 >= 58 (got 63)
+ROW R8 pocket share 8.4% [PASS] want 8-16%
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.01% of pixels
+PROBE mobile_tierA_active_top.png (640x800) state=active
+ROW R9 cap center #EADCCC H 33 S 13% V 92% [PASS] want V 84-92, S 7-14
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.01% of pixels
+PROBE mobile_tierA_at_peak_pose.png (720x1280) state=at_peak
+ROW paste lit (290,850) #D6C9B8 H 34 S 14% V 84% [PASS] want V 81-93, S 8-16, hue 30-40, max <= 0.92
+ROW paste shadow (450,830) #9A8971 H 34 S 27% V 61% [PASS] want V 50-62, S <= 45
+ROW counter (600,1150) #DACDBC H 34 S 14% V 86% [PASS] want S <= 15, not clipped
+ROW tile wall (360,150) #9A9677 H 52 S 23% V 61% [PASS] want hue 45-70
+ROW lid top (330,350) #B39B7A H 35 S 32% V 70% [PASS] want S <= 35
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierA_at_peak_side.png (640x800) state=at_peak
+ROW side paste mean #D7CAB8 H 34 S 14% V 84%
+ROW R7 pocket mean #B5A691 H 35 S 20% V 71% [PASS] want V 66-76, S 18-30, hue 30-40, darkest5 >= 58 (got 61)
+ROW R8 pocket share 16.5% [PASS] want 12-22%
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.02% of pixels
+PROBE mobile_tierA_at_peak_top.png (640x800) state=at_peak
+ROW R9 cap center #E8DBCA H 34 S 13% V 91% [PASS] want V 84-92, S 7-14
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.01% of pixels
+PROBE mobile_tierA_collapsing_pose.png (720x1280) state=collapsing
+ROW info paste (290,850) #D9CCBB H 34 S 14% V 85%, (450,830) #AC9A83 H 34 S 23% V 67%
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierA_collapsing_side.png (640x800) state=collapsing
+ROW side paste mean #DBCFBE H 34 S 13% V 86%
+ROW pockets #BBAD99 H 36 S 18% V 73% share 18.3% darkest5 V 60
+ROW R11 residue light pixels=18883 V p20-p80 85-91 S p80 13 [PASS] want S <= 15
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierA_collapsing_top.png (640x800) state=collapsing
+ROW R9 cap center #E9DCCC H 33 S 13% V 92% [PASS] want V 84-92, S 7-14
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.01% of pixels
+PROBE mobile_tierA_developing_pose.png (720x1280) state=developing
+ROW info paste (290,850) #E9DDCE H 33 S 12% V 91%, (450,830) #E2D6C6 H 34 S 13% V 89%
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierA_developing_side.png (640x800) state=developing
+ROW side paste mean #D9CCBB H 34 S 14% V 85%
+ROW pockets #B0A799 H 35 S 13% V 69% share 23.8% darkest5 V 62
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.01% of pixels
+PROBE mobile_tierA_developing_top.png (640x800) state=developing
+ROW R9 cap center #EADDCC H 33 S 13% V 92% [PASS] want V 84-92, S 7-14
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierA_dormant_pose.png (720x1280) state=dormant
+ROW info paste (290,850) #B19F8B H 32 S 21% V 69%, (450,830) #A9A58F H 51 S 15% V 66%
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierA_dormant_side.png (640x800) state=dormant
+ROW side paste mean #D7CAB9 H 34 S 14% V 84%
+ROW pockets #ACA294 H 34 S 14% V 68% share 35.4% darkest5 V 58
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierA_dormant_top.png (640x800) state=dormant
+ROW R10 hooch from above #AA9277 H 32 S 30% V 67% [PASS] want V 55-70, S 25-40, hue 30-40
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierA_freshly_fed_pose.png (720x1280) state=freshly_fed
+ROW info paste (290,850) #E9DDCE H 34 S 12% V 91%, (450,830) #B4B29D H 53 S 13% V 71%
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierA_freshly_fed_side.png (640x800) state=freshly_fed
+ROW side paste mean #D7CAB9 H 34 S 14% V 84%
+ROW pockets #ACA294 H 34 S 14% V 67% share 30.8% darkest5 V 58
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierA_freshly_fed_top.png (640x800) state=freshly_fed
+ROW R9 cap center #EADDCD H 33 S 13% V 92% [PASS] want V 84-92, S 7-14
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierA_hungry_pose.png (720x1280) state=hungry
+ROW info paste (290,850) #B3A18D H 32 S 21% V 70%, (450,830) #AD9A84 H 32 S 23% V 68%
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierA_hungry_side.png (640x800) state=hungry
+ROW side paste mean #D6C9B8 H 34 S 14% V 84%
+ROW pockets #B0A595 H 35 S 15% V 69% share 33.5% darkest5 V 62
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierA_hungry_top.png (640x800) state=hungry
+ROW R10 hooch from above #A99276 H 33 S 30% V 66% [PASS] want V 55-70, S 25-40, hue 30-40
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierA_moldy_pose.png (720x1280) state=moldy
+ROW info paste (290,850) #DED2C2 H 34 S 13% V 87%, (450,830) #B1B09C H 56 S 12% V 70%
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierA_moldy_side.png (640x800) state=moldy
+ROW side paste mean #D7CABB H 33 S 13% V 84%
+ROW pockets #ACA294 H 34 S 14% V 67% share 31.0% darkest5 V 58
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierA_moldy_top.png (640x800) state=moldy
+ROW info cap center #DDCFBE H 34 S 14% V 87% (crust or dark hooch, no R9 row)
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierA_near_peak_pose.png (720x1280) state=near_peak
+ROW info paste (290,850) #D8CBBB H 34 S 14% V 85%, (450,830) #A39077 H 34 S 27% V 64%
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierA_near_peak_side.png (640x800) state=near_peak
+ROW side paste mean #D8CBBA H 34 S 14% V 85%
+ROW pockets #B5A691 H 35 S 20% V 71% share 10.0% darkest5 V 61
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.01% of pixels
+PROBE mobile_tierA_near_peak_top.png (640x800) state=near_peak
+ROW R9 cap center #E9DCCB H 33 S 13% V 91% [PASS] want V 84-92, S 7-14
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.01% of pixels
+PROBE mobile_tierA_recovering_pose.png (720x1280) state=recovering
+ROW info paste (290,850) #E9DDCE H 34 S 12% V 91%, (450,830) #E5D9C9 H 33 S 12% V 90%
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierA_recovering_side.png (640x800) state=recovering
+ROW side paste mean #D9CCBB H 34 S 14% V 85%
+ROW pockets #B3A99B H 35 S 14% V 70% share 19.8% darkest5 V 63
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierA_recovering_top.png (640x800) state=recovering
+ROW R9 cap center #EADDCC H 33 S 13% V 92% [PASS] want V 84-92, S 7-14
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierA_unhealthy_pose.png (720x1280) state=unhealthy
+ROW info paste (290,850) #A19180 H 31 S 20% V 63%, (450,830) #A5A28D H 52 S 14% V 65%
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierA_unhealthy_side.png (640x800) state=unhealthy
+ROW side paste mean #D6CABB H 33 S 13% V 84%
+ROW pockets #ABA194 H 34 S 14% V 67% share 32.6% darkest5 V 58
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierA_unhealthy_top.png (640x800) state=unhealthy
+ROW info cap center #927D65 H 32 S 31% V 57% (crust or dark hooch, no R9 row)
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierB_active_pose.png (720x1280) state=active
+ROW info paste (290,850) #DFD3C3 H 36 S 13% V 87%, (450,830) #D6C9B7 H 36 S 15% V 84%
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierB_active_side.png (640x800) state=active
+ROW side paste mean #D7CBB9 H 36 S 14% V 84%
+ROW R7 pocket mean #BAAC98 H 36 S 19% V 73% [PASS] want V 66-76, S 18-30, hue 30-40, darkest5 >= 58 (got 64)
+ROW R8 pocket share 8.3% [PASS] want 8-16%
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierB_active_top.png (640x800) state=active
+ROW R9 cap center #EADCCC H 33 S 13% V 92% [PASS] want V 84-92, S 7-14
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierB_at_peak_pose.png (720x1280) state=at_peak
+ROW paste lit (290,850) #D5C9B7 H 36 S 14% V 83% [PASS] want V 81-93, S 8-16, hue 30-40, max <= 0.92
+ROW paste shadow (450,830) #99876E H 36 S 28% V 60% [PASS] want V 50-62, S <= 45
+ROW counter (600,1150) #DACDBC H 34 S 14% V 86% [PASS] want S <= 15, not clipped
+ROW tile wall (360,150) #9A9677 H 52 S 23% V 61% [PASS] want hue 45-70
+ROW lid top (330,350) #B39B7A H 35 S 32% V 70% [PASS] want S <= 35
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierB_at_peak_side.png (640x800) state=at_peak
+ROW side paste mean #D5C9B7 H 36 S 14% V 84%
+ROW R7 pocket mean #B5A690 H 37 S 20% V 71% [PASS] want V 66-76, S 18-30, hue 30-40, darkest5 >= 58 (got 60)
+ROW R8 pocket share 17.5% [PASS] want 12-22%
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierB_at_peak_top.png (640x800) state=at_peak
+ROW R9 cap center #E8DBCA H 34 S 13% V 91% [PASS] want V 84-92, S 7-14
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.01% of pixels
+PROBE mobile_tierB_collapsing_pose.png (720x1280) state=collapsing
+ROW info paste (290,850) #D6CAB9 H 36 S 14% V 84%, (450,830) #A7967D H 36 S 25% V 65%
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierB_collapsing_side.png (640x800) state=collapsing
+ROW side paste mean #D9CDBB H 36 S 14% V 85%
+ROW pockets #B8AB95 H 38 S 19% V 72% share 15.8% darkest5 V 60
+ROW R11 residue light pixels=18507 V p20-p80 85-91 S p80 14 [PASS] want S <= 15
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierB_collapsing_top.png (640x800) state=collapsing
+ROW R9 cap center #E9DCCC H 33 S 13% V 92% [PASS] want V 84-92, S 7-14
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.01% of pixels
+PROBE mobile_tierB_developing_pose.png (720x1280) state=developing
+ROW info paste (290,850) #E8DDCD H 36 S 12% V 91%, (450,830) #E5D9C8 H 36 S 12% V 90%
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierB_developing_side.png (640x800) state=developing
+ROW side paste mean #D8CCBA H 36 S 14% V 85%
+ROW pockets #B2A797 H 36 S 15% V 70% share 22.9% darkest5 V 59
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierB_developing_top.png (640x800) state=developing
+ROW R9 cap center #EADDCC H 33 S 13% V 92% [PASS] want V 84-92, S 7-14
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierB_dormant_pose.png (720x1280) state=dormant
+ROW info paste (290,850) #AE9C87 H 33 S 23% V 68%, (450,830) #A29F86 H 52 S 17% V 64%
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierB_dormant_side.png (640x800) state=dormant
+ROW side paste mean #D5C9B8 H 36 S 14% V 84%
+ROW pockets #ADA191 H 35 S 16% V 68% share 33.5% darkest5 V 57
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierB_dormant_top.png (640x800) state=dormant
+ROW R10 hooch from above #AA9277 H 32 S 30% V 67% [PASS] want V 55-70, S 25-40, hue 30-40
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierB_freshly_fed_pose.png (720x1280) state=freshly_fed
+ROW info paste (290,850) #E9DECE H 36 S 12% V 91%, (450,830) #B8B7A1 H 58 S 13% V 72%
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierB_freshly_fed_side.png (640x800) state=freshly_fed
+ROW side paste mean #D6CAB8 H 36 S 14% V 84%
+ROW pockets #ACA191 H 35 S 16% V 68% share 29.3% darkest5 V 57
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierB_freshly_fed_top.png (640x800) state=freshly_fed
+ROW R9 cap center #EADDCD H 33 S 13% V 92% [PASS] want V 84-92, S 7-14
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierB_hungry_pose.png (720x1280) state=hungry
+ROW info paste (290,850) #B09E89 H 33 S 22% V 69%, (450,830) #AB9881 H 34 S 24% V 67%
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierB_hungry_side.png (640x800) state=hungry
+ROW side paste mean #D4C8B6 H 36 S 14% V 83%
+ROW pockets #B1A593 H 36 S 17% V 69% share 31.5% darkest5 V 60
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierB_hungry_top.png (640x800) state=hungry
+ROW R10 hooch from above #A99276 H 33 S 30% V 66% [PASS] want V 55-70, S 25-40, hue 30-40
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierB_moldy_pose.png (720x1280) state=moldy
+ROW info paste (290,850) #DAD0BF H 37 S 12% V 86%, (450,830) #B4B39D H 57 S 13% V 71%
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierB_moldy_side.png (640x800) state=moldy
+ROW side paste mean #D5CAB9 H 36 S 13% V 83%
+ROW pockets #ACA191 H 35 S 15% V 67% share 28.7% darkest5 V 57
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierB_moldy_top.png (640x800) state=moldy
+ROW info cap center #DDCFBE H 34 S 14% V 87% (crust or dark hooch, no R9 row)
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierB_near_peak_pose.png (720x1280) state=near_peak
+ROW info paste (290,850) #D7CBBA H 36 S 14% V 84%, (450,830) #A18F74 H 35 S 28% V 63%
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierB_near_peak_side.png (640x800) state=near_peak
+ROW side paste mean #D7CBB8 H 36 S 14% V 84%
+ROW pockets #B6A791 H 37 S 20% V 71% share 10.9% darkest5 V 61
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierB_near_peak_top.png (640x800) state=near_peak
+ROW R9 cap center #E9DCCB H 33 S 13% V 91% [PASS] want V 84-92, S 7-14
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.01% of pixels
+PROBE mobile_tierB_recovering_pose.png (720x1280) state=recovering
+ROW info paste (290,850) #E8DDCD H 36 S 12% V 91%, (450,830) #E5DAC9 H 36 S 12% V 90%
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierB_recovering_side.png (640x800) state=recovering
+ROW side paste mean #D7CCBA H 36 S 14% V 84%
+ROW pockets #B5AA99 H 36 S 16% V 71% share 19.2% darkest5 V 64
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierB_recovering_top.png (640x800) state=recovering
+ROW R9 cap center #EADDCC H 33 S 13% V 92% [PASS] want V 84-92, S 7-14
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierB_unhealthy_pose.png (720x1280) state=unhealthy
+ROW info paste (290,850) #9C8E7B H 33 S 21% V 61%, (450,830) #9B9982 H 54 S 17% V 61%
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierB_unhealthy_side.png (640x800) state=unhealthy
+ROW side paste mean #D5CAB9 H 36 S 13% V 83%
+ROW pockets #ACA191 H 35 S 15% V 67% share 30.7% darkest5 V 57
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_tierB_unhealthy_top.png (640x800) state=unhealthy
+ROW info cap center #927D65 H 32 S 31% V 57% (crust or dark hooch, no R9 row)
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+SUMMARY 154 pass, 2 fail

@@ -37,12 +37,15 @@ Full log with reasons: [`decisions.md`](decisions.md).
 
 ## Scope
 
+Consolidated after Phase 1. Details are in [`mvp-scope.md`](mvp-scope.md) and decisions D-017 to D-025.
+
 | Priority | Features |
 |---|---|
-| **P0** (must be excellent) | Beautiful central 3D starter, starter simulation, feeding, temperature, smell, inspection, offline progression, core UI |
-| **P1** (in the MVP if P0 quality holds) | Starter personality, events, journal, flour types, jars |
-| **P2** (later) | Multiple starters, bread recipes, achievements, advanced customization, more environments |
-| **Not in the MVP** | Backend, accounts, cloud sync, multiplayer, ads, purchases, push notifications |
+| **P0** (must be excellent) | Beautiful central 3D starter, starter simulation, feeding, temperature (by place), smell, inspection (`height`, `bubbles`, `surface`), offline progression, core UI, **the 6 slice events, and a minimal journal with the memorial** (moved up from P1, D-017) |
+| **P1** (in the MVP if P0 quality holds) | Starter personality (traits), all 4 flours, hydration presets, `consistency` and `development` inspection, `window_sill` and `proofing_box`, a richer journal, more events |
+| **Before any store release** | One opt-in "warning signs" notification (D-025). Godot 4.8 for screen readers (D-012). |
+| **P2** (later) | Multiple starters, bread recipes, achievements, advanced customization, **other containers and covers** (moved down from P1, D-019), more environments |
+| **Not in the MVP** | Backend, accounts, cloud sync, multiplayer, ads, purchases |
 
 **Vertical slice (Phase 3 target):**
 1. A beautiful 3D jar.
@@ -97,11 +100,16 @@ States are **labels derived from continuous sim variables**, not separate models
 
 ### Environment
 
-- `temperature` in °C internally.
-- `humidity` in %.
-- `location` (seed list, the designer may trim): `counter`, `warm_spot`, `window_sill`, `fridge`, `proofing_box`.
-- `container`: `classic_jar` (MVP default), `wide_mouth_jar`, `ceramic_crock`, `fermentation_vessel`.
-- `cover`: `loose_lid`, `cloth`, `tight_lid`.
+- `temperature` in °C internally. The player sets it by choosing a `location` (D-018).
+- `humidity` in %. A fixed property of each location, not a player control (D-018).
+- `location`: `counter`, `warm_spot`, `fridge` (MVP); `window_sill`, `proofing_box` (P1).
+- `container`: `classic_jar` (the only one in the MVP); `wide_mouth_jar`, `ceramic_crock`, `fermentation_vessel` (P2).
+- `cover`: `loose_lid` (fixed in the MVP); `cloth`, `tight_lid` (P2).
+
+### Maturity stages and traits (D-022)
+
+- Maturity: `young`, `steady`, `mature`, `seasoned`. It never goes down.
+- Traits (P1, wording only): `patient`, `energetic`, `sensitive`, `resilient`.
 
 ### Inspection kinds
 
@@ -178,11 +186,11 @@ Only the owner writes a file. Everyone may read everything.
 |---|---|---|
 | director (main session) | `CLAUDE.md`, `docs/vision.md`, `docs/mvp-scope.md`, `docs/roadmap.md`, `docs/decisions.md`, `production/**`, `.claude/**` | Everything, and settles disagreements |
 | `game-designer` | `docs/game-design.md`, `docs/game-mechanics.md`, `docs/progression.md` | Simulation spec, events catalog |
-| `sourdough-scientist` | `docs/sourdough-science.md`, `docs/starter-simulation-spec.md` | Mechanics, events catalog, game copy (accuracy and safety) |
-| `narrative-designer` | `docs/narrative.md`, `docs/events-catalog.md`, `docs/game-copy.md` | UX design (copy fit, tone) |
-| `art-director` | `docs/art-direction.md`, `art/**`, `assets/3d/**` | UX design (visual fit) |
+| `sourdough-scientist` | `docs/sourdough-science.md`, `docs/starter-simulation-spec.md`, `tools/sim-reference/**` (the reference model the golden tests compare against) | Mechanics, events catalog, game copy (accuracy and safety) |
+| `narrative-designer` | `docs/narrative.md`, `docs/events-catalog.md`, `docs/game-copy.md`; from Phase 2, `tools/i18n/**` and the generated `src/i18n/en.csv` (D-028) | UX design (copy fit, tone) |
+| `art-director` | `docs/art-direction.md`, `art/**`, `assets/3d/**`, `assets/textures/**`, `assets/icons/**` | UX design (visual fit) |
 | `tech-architect` | `docs/architecture.md`, `docs/data-models.md`, `docs/technical-decisions.md` | Simulation spec (implementability), test plan |
-| `godot-developer` | `spikes/**` in Phase 1. Code ownership for later phases comes from the roadmap. | Architecture |
+| `godot-developer` | `spikes/**` in Phase 1. From Phase 2, the code tracks in `architecture.md` §14 (D-032). | Architecture |
 | `ux-designer` | `docs/ux-design.md` | Art direction (contrast, legibility), mechanics (flows) |
 | `qa-engineer` | `docs/test-plan.md` | Simulation spec, mechanics, architecture (testability) |
 

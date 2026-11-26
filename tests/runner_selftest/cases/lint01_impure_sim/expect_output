@@ -1,0 +1,4 @@
+FAIL res://tests/lint/test_lint_01_sim_purity.gd::test_lint_01_sim_has_no_forbidden_tokens src/sim must stay pure
+res://src/sim/peeks_at_the_clock.gd:6 uses Time.
+res://src/sim/peeks_at_the_clock.gd:10 uses global randi(
+res://src/sim/peeks_at_the_clock.gd:14 uses load(

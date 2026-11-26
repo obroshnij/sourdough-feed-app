@@ -1,0 +1,2 @@
+FAIL res://tests/test_failed_assert.gd::test_assert_false logged:
+Assertion failed

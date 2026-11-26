@@ -1,0 +1,3 @@
+PASS res://tests/test_control.gd::test_control_passes (2 checks)
+PASS res://tests/unit/test_nested.gd::test_awaits_a_frame (1 checks)
+RESULT: 2 passed, 0 failed, 0 skipped

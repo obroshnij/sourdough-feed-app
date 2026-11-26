@@ -26,7 +26,14 @@ export_credentials.cfg
 *.blend2
 *.blend@
 
+# Agent git worktrees (each code track works in its own; merged by the director)
+.claude/worktrees/
+
 # Tooling
 __pycache__/
 *.pyc
 .DS_Store
+
+# View close-up captures are regenerated on demand (scrubber --capture); only pose captures are committed (D-045)
+captures/view/*_side.png
+captures/view/*_top.png
