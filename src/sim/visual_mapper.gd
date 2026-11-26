@@ -36,7 +36,11 @@ static func from_derived(s: StarterState, env: EnvironmentState, d: DerivedState
 	v.bubble_density = 0.0 if s.moldy else clampf(0.05 + 0.85 * d.activity, 0.0, 1.0)
 	v.bubble_size = clampf(0.1 + 0.7 * up + 0.3 * fallen, 0.0, 1.0)
 	v.peak_line = s.peak_rise if s.peak_rise > 1.0 else 0.0
-	v.streak_amount = 0.8 * clampf((s.peak_rise - s.rise) / 0.3, 0.0, 1.0)
+	# art-direction §6: about 0.8 while collapsing, 0.5 once hungry (the residue dries over about 6 h from
+	# hunger onset, near 5 weighted starved hours at the counter), 0.6 at unhealthy and moldy (crusted).
+	# Continuous, so a step never pops (PROP-10).
+	var streak: float = 0.8 - 0.3 * clampf((s.starved_h - 5.0) / 6.0, 0.0, 1.0) + 0.1 * dull
+	v.streak_amount = streak * clampf((s.peak_rise - s.rise) / 0.3, 0.0, 1.0)
 	v.lumps = clampf(0.15 + 0.7 * fresh, 0.0, 1.0)
 	v.hooch_depth = clampf(s.hooch, 0.0, 1.0)
 	v.surface_dryness = clampf(s.dryness, 0.0, 1.0)
