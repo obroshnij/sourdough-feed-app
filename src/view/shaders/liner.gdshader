@@ -36,10 +36,11 @@ void fragment() {
 	float age = residue_age();
 	float thr = 1.0 - streak_amount;
 	float vis = smoothstep(thr - 0.02, thr + 0.02, ml.r)
-			* smoothstep(0.55 * age, 0.55 * age + 0.04, ml.a);
+			* smoothstep(0.35 * age, 0.35 * age + 0.04, ml.a);
 	float above = smoothstep(lvl + 0.0003, lvl + 0.0018, p.y);
 	float thick = clamp((ml.r - thr) / 0.5, 0.0, 1.0);
-	vec3 col = mix(tint, CRUST_COLOR * (tint / vec3(0.9131, 0.8308, 0.6724)), age * 0.6);
+	// Dried film is paler, never darker (art-direction.md §16.5e): toward #E2D9C8.
+	vec3 col = mix(tint, vec3(0.7605, 0.6939, 0.5776), age);
 	float rough = mix(0.22, 0.8, age);
 
 	// Mold colonies on the glass, up to about 2 cm above the surface (moldy only).
@@ -60,11 +61,12 @@ void fragment() {
 		rough = mix(rough, 0.9, colony);
 	}
 
-	// Alpha scissor at 0.5 with dither only across the soft edges (art-direction.md §4).
-	// Film thickness reads through color: thin film is a little grayer, thick film creamy.
-	float ign = fract(52.9829189 * fract(dot(FRAGCOORD.xy, vec2(0.06711056, 0.00583715))));
-	float cover = max(vis * above * step(0.001, streak_amount) * step(0.001, peak_line), colony);
-	ALPHA = clamp(cover + (ign - 0.5) * 0.3, 0.0, 1.0);
+	// Alpha scissor at 0.5, no dither: dithered edges at the band line read as specks.
+	// Old residue (hungry, unhealthy) mostly flakes away, so it never reads as dirt.
+	float cover = vis * above * step(0.001, streak_amount) * step(0.001, peak_line);
+	cover *= 1.0 - 0.8 * smoothstep(0.3, 0.9, age);
+	cover = max(cover, colony);
+	ALPHA = cover;
 	ALPHA_SCISSOR_THRESHOLD = 0.5;
 	col *= mix(0.93, 1.0, max(thick, colony));
 	// Residue reads cream to near-white (art-direction.md §16.6 R11).

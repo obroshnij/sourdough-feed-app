@@ -31,10 +31,11 @@ func _drag(from: Vector2, delta: Vector2, steps: int) -> void:
 		g.move(0, from + delta * float(i + 1) / float(steps), 10 * (i + 1))
 
 
-func test_home_pose_is_the_art_preview_pose() -> void:
-	check_eq(rig.yaw, 0.0, "yaw")
+func test_home_pose_and_the_art_preview_pose() -> void:
+	check_eq(rig.yaw, -12.0, "home yaw turns 12 deg toward the key side")
 	check_eq(rig.pitch, 15.0, "pitch")
 	check_close(rig.distance(), 0.58, 0.0, 1e-6, "distance")
+	rig.set_pose(0.0, 15.0, 0.58, OrbitCamera.HOME_TARGET)
 	var pos: Vector3 = rig.camera.global_position
 	check_close(pos.y, 0.2551, 0.0, 0.0005, "camera y (art-direction §7)")
 	check_close(pos.z, 0.5602, 0.0, 0.0005, "camera z (art-direction §7)")
@@ -42,7 +43,7 @@ func test_home_pose_is_the_art_preview_pose() -> void:
 
 func test_orbit_rates_per_pt() -> void:
 	_drag(Vector2(100, 400), Vector2(40, 0), 4)
-	check_close(rig.yaw, -40.0 * 0.30, 0.01, 0.0, "yaw 0.30 deg per pt")
+	check_close(rig.yaw - OrbitCamera.HOME_YAW, -40.0 * 0.30, 0.01, 0.0, "yaw 0.30 deg per pt")
 	rig.gestures.release(0, Vector2(140, 400), 50)
 	rig.stop_inertia()
 	var p0: float = rig.pitch
@@ -80,10 +81,10 @@ func test_no_orbit_during_pinch_and_back_to_orbit_after() -> void:
 	g.press(0, Vector2(100, 400), 0)
 	g.press(1, Vector2(200, 400), 0)
 	g.move(0, Vector2(80, 400), 10)
-	check_eq(rig.yaw, 0.0, "a pinch never orbits")
+	check_eq(rig.yaw, OrbitCamera.HOME_YAW, "a pinch never orbits")
 	g.release(1, Vector2(200, 400), 20)
 	g.move(0, Vector2(90, 400), 30)
-	check_close(rig.yaw, -10.0 * 0.30, 0.01, 0.0, "one finger left: orbit resumes without a jump")
+	check_close(rig.yaw - OrbitCamera.HOME_YAW, -10.0 * 0.30, 0.01, 0.0, "one finger left: orbit resumes without a jump")
 
 
 func test_double_tap_eases_home() -> void:
@@ -95,7 +96,7 @@ func test_double_tap_eases_home() -> void:
 	g.release(0, Vector2(205, 402), 1260)
 	check(rig.is_animating(), "reset animates")
 	_step(0.36)
-	check_close(rig.yaw, 0.0, 0.0, 0.1, "yaw home")
+	check_close(rig.yaw, OrbitCamera.HOME_YAW, 0.0, 0.1, "yaw home")
 	check_close(rig.pitch, 15.0, 0.0, 0.1, "pitch home")
 	check_close(rig.distance(), 0.58, 0.0, 0.001, "distance home")
 

@@ -6,7 +6,8 @@ extends Node3D
 ## - One finger orbits (yaw 0.30 deg/pt, pitch 0.20 deg/pt) with inertia (tau 250 ms).
 ## - Our own pinch zooms 1.0x (home distance) to 2.2x, with an 8% rubber band while held.
 ## - Double tap eases home over 350 ms. 20 s idle eases home over 1.5 s.
-## - Free orbit: yaw +-70 deg (8 deg band), pitch -5 to +35 deg (5 deg band). Focus presets
+## - Home: yaw -12 deg (toward the key side), pitch 15 deg, the art preview distance and target.
+## - Free orbit: yaw +-70 deg from the front (8 deg band), pitch -5 to +35 deg (5 deg band). Focus presets
 ##   (inspection) may go past these.
 ## - Frame shift: an off-axis frustum centers the jar in the region the UI leaves free.
 ## Pose angles are in degrees.
@@ -16,7 +17,11 @@ signal zoom_limit_reached()
 
 const HOME_TARGET: Vector3 = Vector3(0.0, 0.105, 0.0)
 const HOME_DISTANCE: float = 0.58
-const HOME_YAW: float = 0.0
+## In game the home pose turns 12 degrees toward the key side (director, after the art review).
+## Captures for sign-off use yaw 0, the reference pose.
+const HOME_YAW: float = -12.0
+## Free-orbit yaw limits are measured from the front (ux-design §6), not from home.
+const FRONT_YAW: float = 0.0
 const HOME_PITCH: float = 15.0
 const FOV_DEG: float = 33.4
 const NEAR: float = 0.01
@@ -38,6 +43,11 @@ const IDLE_S: float = 20.0
 const IDLE_RETURN_S: float = 1.5
 const SETTLE_RATE: float = 14.0
 const SURFACE_PITCH: float = 76.0
+## Jar bounds for framing: floor to the loose lid top, centered. At the home pitch the projected
+## height (0.2035 m tall, 0.084 m wide) is about 0.22 m.
+const JAR_CENTER: Vector3 = Vector3(0.0, 0.1018, 0.0)
+const JAR_EXTENT_M: float = 0.22
+const FRAME_MARGIN: float = 0.06
 
 ## Pose (degrees and meters).
 var yaw: float = HOME_YAW
@@ -49,6 +59,10 @@ var frame_shift: float = 0.0
 ## Vertical field of view. Captures widen it to cut a close-up from the middle of the window.
 var fov_deg: float = FOV_DEG
 
+## Home distance and target. The defaults are the art preview pose; set_jar_region() replaces them
+## so the whole jar fits the free region with even margins.
+var home_dist: float = HOME_DISTANCE
+var home_target: Vector3 = HOME_TARGET
 var yaw_velocity: float = 0.0
 var pitch_velocity: float = 0.0
 var input_enabled: bool = true
@@ -95,8 +109,8 @@ class Pose:
 		target = p_target
 
 
-static func home_pose() -> Pose:
-	return Pose.new(HOME_YAW, HOME_PITCH, 1.0, HOME_TARGET)
+func home_pose() -> Pose:
+	return Pose.new(HOME_YAW, HOME_PITCH, 1.0, home_target)
 
 
 func current_pose() -> Pose:
@@ -124,11 +138,11 @@ func _ready() -> void:
 
 
 func home_distance() -> float:
-	return HOME_DISTANCE
+	return home_dist
 
 
 func distance() -> float:
-	return HOME_DISTANCE / zoom
+	return home_dist / zoom
 
 
 ## Snaps to a pose. Used by captures, tests and the scrubber.
@@ -136,7 +150,7 @@ func set_pose(p_yaw: float, p_pitch: float, p_distance: float, p_target: Vector3
 	_anim_t = -1.0
 	yaw = p_yaw
 	pitch = p_pitch
-	zoom = HOME_DISTANCE / maxf(p_distance, 0.001)
+	zoom = home_dist / maxf(p_distance, 0.001)
 	target = p_target
 	yaw_velocity = 0.0
 	pitch_velocity = 0.0
@@ -181,15 +195,15 @@ func focus_pose(what: StringName) -> Pose:
 		&"bubbles":
 			var y: float = floor_y + 0.55 * starter_level_m
 			var off := Vector3(-0.0737, 0.012, 0.1386)
-			return Pose.new(rad_to_deg(atan2(off.x, off.z)), rad_to_deg(asin(off.y / off.length())), HOME_DISTANCE / off.length(), Vector3(0.0, y, 0.0))
+			return Pose.new(rad_to_deg(atan2(off.x, off.z)), rad_to_deg(asin(off.y / off.length())), home_dist / off.length(), Vector3(0.0, y, 0.0))
 		&"surface":
 			var off_s := Vector3(0.0, 0.194, 0.0524)
-			return Pose.new(0.0, SURFACE_PITCH, HOME_DISTANCE / off_s.length(), Vector3(0.0, starter_top_y, -0.004))
+			return Pose.new(0.0, SURFACE_PITCH, home_dist / off_s.length(), Vector3(0.0, starter_top_y, -0.004))
 		&"height":
 			var band_y: float = floor_y + starter_level_m
-			return Pose.new(0.0, 4.0, HOME_DISTANCE / 0.30, Vector3(0.0, (band_y + starter_top_y) * 0.5, 0.0))
+			return Pose.new(0.0, 4.0, home_dist / 0.30, Vector3(0.0, (band_y + starter_top_y) * 0.5, 0.0))
 		&"top":
-			return Pose.new(0.0, 50.0, HOME_DISTANCE / 0.36, Vector3(0.0, 0.15, 0.0))
+			return Pose.new(0.0, 50.0, home_dist / 0.36, Vector3(0.0, 0.15, 0.0))
 	return home_pose()
 
 
@@ -199,6 +213,14 @@ func set_jar_region(region: Rect2, screen_h_pt: float) -> void:
 		return
 	var center: float = (region.position.y + region.size.y * 0.5) / screen_h_pt
 	_region_shift = 0.5 - center
+	# Fit the jar's projected height into the region, with FRAME_MARGIN of it top and bottom.
+	var frac: float = clampf(region.size.y / screen_h_pt, 0.2, 1.0)
+	var fit: float = JAR_EXTENT_M / (2.0 * tan(deg_to_rad(fov_deg) * 0.5) * frac * (1.0 - 2.0 * FRAME_MARGIN))
+	home_dist = clampf(fit, 0.35, 1.5)
+	home_target = JAR_CENTER
+	if focus_target == &"" and not gestures.active():
+		target = home_target
+		apply_pose()
 	_start_shift()
 
 
@@ -288,7 +310,7 @@ func _on_orbited(delta_pt: Vector2) -> void:
 		return
 	var dyaw: float = -delta_pt.x * YAW_PER_PT
 	var dpitch: float = delta_pt.y * PITCH_PER_PT
-	yaw = _banded(yaw, dyaw, HOME_YAW - YAW_LIMIT, HOME_YAW + YAW_LIMIT, YAW_BAND)
+	yaw = _banded(yaw, dyaw, FRONT_YAW - YAW_LIMIT, FRONT_YAW + YAW_LIMIT, YAW_BAND)
 	pitch = _banded(pitch, dpitch, PITCH_MIN, PITCH_MAX, PITCH_BAND)
 	_frame_dyaw += dyaw
 	_frame_dpitch += dpitch
@@ -374,8 +396,8 @@ func _coast(delta: float) -> void:
 		pitch_velocity = 0.0
 	if focus_target == &"" and _anim_t < 0.0:
 		var k: float = 1.0 - exp(-SETTLE_RATE * delta)
-		var y_lo: float = HOME_YAW - YAW_LIMIT
-		var y_hi: float = HOME_YAW + YAW_LIMIT
+		var y_lo: float = FRONT_YAW - YAW_LIMIT
+		var y_hi: float = FRONT_YAW + YAW_LIMIT
 		if yaw > y_hi or yaw < y_lo:
 			yaw_velocity = 0.0
 			yaw = _settle(clampf(yaw, y_lo - YAW_BAND, y_hi + YAW_BAND), y_lo, y_hi, k)

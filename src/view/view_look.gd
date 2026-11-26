@@ -35,11 +35,18 @@ var pocket_tilt: float = 0.25
 var pocket_k: float = 0.75
 var cap_spec: float = 0.6
 var cap_value: float = 0.86
+## Glass key and rim highlight strength (glass_common spec_strength). Compatibility's Filmic
+## clipped the softbox stripe to white over the paste (art review of 293b09c).
+var glass_spec: float = 5.0
+## Glass reflection of the kitchen cubemap (glass_common reflection_strength). Its HDR window
+## softbox is what clipped to a white stripe on Compatibility: the highlight alone did not.
+var glass_reflection: float = 1.0
 var hooch_value: float = 1.0
 var hooch_desat: float = 0.0
-var backdrop_energy: float = 0.75
-## Counter and lid brightness.
+var backdrop_energy: float = 1.0
+## Counter and lid brightness, and lid saturation.
 var dressing_value: float = 1.0
+var lid_saturation: float = 1.0
 
 
 static func for_renderer(renderer: String) -> ViewLook:
@@ -57,6 +64,9 @@ static func for_renderer(renderer: String) -> ViewLook:
 		look.hooch_desat = 0.5
 		look.clearcoat_on = 0.0
 		look.starter_saturation = 0.9
+		look.glass_spec = 1.5
+		look.glass_reflection = 0.35
+		look.lid_saturation = 0.8
 	return look
 
 

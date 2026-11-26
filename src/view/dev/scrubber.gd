@@ -7,7 +7,8 @@ extends Node
 ## Captures (windowed, the headless renderer draws nothing), then quits:
 ##   Godot --path . --resolution 720x1280 res://src/view/dev/scrubber.tscn -- --capture=captures/view
 ##     --states=a,b|all  --views=pose,side,top  --tiers=a,b  --source=art|sim  --prefix=<text>
-## Diagnostics: --stock-starter (StandardMaterial3D starter), --no-glass, --look-<field>=<value>
+## Diagnostics: --stock-starter (StandardMaterial3D starter), --no-glass, --set-<field>=<value>
+## (VisualParams overrides), --look-<field>=<value>
 ## (ViewLook overrides), --scale3d=<f> (default 1.0 in captures).
 
 const POSE_SIZE: Vector2i = Vector2i(720, 1280)
@@ -88,6 +89,10 @@ func params_for(id: StringName) -> VisualParams:
 func set_state(id: StringName) -> void:
 	state_id = id
 	params = params_for(id)
+	# Dev overrides: --set-<field>=<value>, for example --set-lumps=0.
+	for key: String in args:
+		if key.begins_with("set-"):
+			params.set(StringName(key.trim_prefix("set-").replace("-", "_")), float(args[key]))
 	world.set_visuals(params)
 	_sync_sliders()
 
