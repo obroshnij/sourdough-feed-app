@@ -18,7 +18,7 @@ All sizes are in **pt**: 1 UI unit = 1 iOS point = 1 Android dp (see §19).
 
 ## 1. Principles
 
-1. **The jar is the screen.** The 3D jar gets at least 55% of the height on the smallest phone at the largest text size, and about 65% at the default size. UI floats on plates around it. Nothing sits on top of the starter.
+1. **The jar is the screen.** The 3D jar gets at least 55% of the screen height at 100% text on every supported phone, and at 150% text on every iPhone. The one exception is a 16:9 Android phone (360 × 640) at 150% text, where the floor is 45%. Screens under 700 pt tall use compact-height mode (§4). UI floats on plates around it. Nothing sits on top of the starter.
 2. **Read the jar, not a meter.** The main screen shows one status word with an icon and one plain hint. It never shows digits, bars, charts or percentages. Numbers live in the feed sheet, environment sheet and journal details.
 3. **One thumb, two taps.** Frequent actions sit in the bottom thumb zone. Checking the starter takes 0 taps, and feeding like last time takes 2 (§7).
 4. **One thing at a time.** At most one sheet, one card and one toast are visible. An open sheet owns the screen: the 3D view ignores touches, and events wait.
@@ -70,12 +70,18 @@ Minimum bottom inset for the action bar:
 
 **Stage budget at 100% text** (jar region = space between the HUD plate and the action bar):
 
-| Device | HUD ends at | Bar top at | Jar region |
-|---|---|---|---|
-| iPhone SE | 28 + 134 = 162 | 667 − 8 − 72 = 587 | 425 pt (64%) |
-| iPhone 17 Pro Max | 70 + 134 = 204 | 956 − 42 − 72 = 842 | 638 pt (67%) |
+The HUD plate is about 144 pt tall with the 44 pt pill (T3 measured it), or 128 in compact-height mode. The bar plate is 72, or 64 in compact mode.
 
-At 150% text, the HUD plate grows to 189, and the SE jar region drops to 370 pt (55%).
+| Device | Mode | HUD ends at | Bar top at | Jar region |
+|---|---|---|---|---|
+| iPhone SE 375 × 667 | compact | 28 + 128 = 156 | 667 − 8 − 64 = 595 | 439 pt (66%) |
+| Android 360 × 640 (status bar 24 dp, assumed) | compact | 32 + 128 = 160 | 640 − 56 − 64 = 520 | 360 pt (56%) |
+| iPhone 17e 390 × 844 | standard | 55 + 144 = 199 | 844 − 42 − 72 = 730 | 531 pt (63%) |
+| iPhone 17 Pro Max 440 × 956 | standard | 70 + 144 = 214 | 956 − 42 − 72 = 842 | 628 pt (66%) |
+
+At 150% text the HUD grows by about 47 pt: the pill gains 4, and the hint goes to 2 lines (+43). That gives an estimated 313 pt (49%) on 360 × 640 and 392 pt (59%) on the SE. T3's layout test asserts the principle 1 floors on every profile.
+
+T3's first build measured 324 pt (51%) on 360 × 640 for two reasons. The bar plate grew to 84 pt, because the button content was taller than its 72 pt slot. And compact mode didn't exist yet.
 
 The camera frames the jar to the jar region, not to the full screen. It shifts the frustum so the jar is centered between the HUD and the bar.
 
@@ -137,10 +143,22 @@ Shown on a 375 × 667 iPhone SE at 100% text. On larger phones the same structur
 ```
 
 - **Top (read-mostly).** Name, status and hint, plus settings. The plate hugs the full width so the hint gets 296 pt of line. There's no profile button: the game has no accounts.
-- **Center.** The jar, and nothing else. The idle camera shows the jar at a slight 3/4 angle with the fed-mark band visible. **[assumed]** The rubber band at the fed mark (§11) depends on art-director.
+- **Center.** The jar, and nothing else. The idle camera shows the jar at a slight 3/4 angle with the fed-mark band visible. The rubber band at the fed mark (§11) is decided (D-023).
 - **Bottom.** Five actions in canonical order: `feed`, `smell`, `inspect`, `environment`, `journal`. The `environment` label is "Place" (narrative-designer), because "Environment" measures 82 pt and a slot holds 64. Its sheet is titled "Where it lives".
+- **Bar slot layout.** The bar plate is exactly 72 tall, and the buttons fill it: 10 top, icon 28, gap 4, label line (≤ 19 pt at the 16 pt label cap), and the remainder at the bottom (≥ 10). Content never grows the plate.
+- **Compact-height mode** (screen height under 700 pt: the iPhone SE and 16:9 Android).
+  - The bar plate is 64: 8 top, icon 24, gap 4, label, and at least 8 at the bottom.
+  - The HUD plate's vertical padding drops from 12 to 8, its row gaps from 4 to 2, and the settings button from 48 to 44. The plate goes from about 144 to 128.
+  - Targets stay at least 44, and bar slots stay at least 64 × 64.
 - **Feed emphasis.** When the state is `hungry` or `collapsing`, the Feed button gets a soft halo ring plus a 10 pt dot badge (a shape, not just color), and the hint says why. No other button ever gets a badge.
-- **`moldy`.** Feed, Smell and Inspect stay visible. Feed is disabled with a reason ("Can't feed a moldy starter"), and the attention sheet leads to the discard ceremony (§12).
+- **`moldy`** (game-mechanics §1, AC-08.5).
+  - Only Inspect, Journal and Discard work.
+  - Feed, Smell and Place are locked: the icon dims to the disabled color and gets a 12 pt lock badge (a shape, not just color). A tap opens no sheet and shows the reason, using existing copy only (narrative.md §9.2):
+    - Feed shows a toast, `MOLD_FEED_BLOCKED`.
+    - Smell shows the "Best not" card (`SMELL_MOLDY_*`). The smell moment doesn't play, because the scientist asked that players aren't shown sniffing mold.
+    - Place shows a toast, `REASON_MOLDY_LOCKED`.
+  - A discard card sits above the bar and can't be dismissed while the state is `moldy`. It shows the `moldy` hint ("Mold. Please discard it.") and a "Discard it" button (`MOLD_BTN_DISCARD`), so it needs no new copy (§12).
+  - The `surface` inspection and the status explainer both say to discard.
 - **No digits rule.** The main screen and its toasts and cards show no digits, except in a name the player typed. Times are fuzzy words ("in a few hours", "around lunchtime"). QA can test this by scanning visible strings.
 
 ---
@@ -196,7 +214,7 @@ On the Pro Max, the far-left bar slot (Feed) falls in S for a right thumb. That'
 | Tap slop (move before a tap becomes a drag) | 10 pt (20 px at 2x, 30 px at 3x) |
 | Double-tap window | 300 ms between taps, at most 24 pt apart |
 | Long-press | 500 ms, within the 10 pt slop |
-| Orbit yaw | ±70° from the front, with an 8° rubber band. Unlimited if art-director's set reads well at 360° (open). The spike benchmark orbits 360°, so the frame budget already covers unlimited yaw |
+| Orbit yaw | ±70° from the front, with an 8° rubber band. Revisited when the set works all the way round (D-023, D-036). The spike benchmark orbits 360°, so the frame budget already covers unlimited yaw |
 | Orbit pitch (free orbit) | −5° to +35°, with a 5° rubber band. At −10° the zoomed-out camera sat at counter height (spike). Inspection presets may go past this: `surface` uses 76° |
 | Zoom | 1.0× (home distance) to 2.2× (home distance ÷ 2.2), with an 8% rubber band |
 | Orbit inertia | exponential decay, τ = 250 ms. Off with reduce motion |
@@ -212,6 +230,8 @@ These come from the director's source review. godot-developer confirms them in t
    - The fix: the camera rig claims the finger index on press in `_unhandled_input`, then follows that index in `_input` until it's released. With that, the orbit continues over the bar, and a release over the bar ends it (spike, run, PASS).
    - A drag that starts on a bar button never orbits, and it cancels the button press when it leaves the button by more than 10 pt.
 2. **Full-screen layout Controls use `mouse_filter = IGNORE`** (roots, margin containers, the HUD layer). The top HUD plate is also `IGNORE`, so a drag that starts on it orbits. Only the settings button and the status pill inside it are `STOP`. The action bar plate, sheets, cards, toasts and scrims use `STOP`, so a near-miss between bar buttons never turns into a poke or an orbit. The 3D rig reads only touches no Control consumed, in `_unhandled_input` (architecture.md §9).
+   - As built in T3 (test-asserted): on the top plate, only the pill and settings stop touches. The whole bar plate stops touches. Sheets put a full-screen `STOP` scrim behind the panel, and cards and toasts stop touches only inside their own rect.
+   - Controls read emulated mouse events only, never `InputEventScreenTouch`. So they never double-handle a finger the camera is tracking.
 3. **An open sheet blocks the 3D view.** Its scrim covers the whole screen above the sheet with `STOP`. A tap on the scrim closes the sheet, and a drag on it does nothing.
 4. **iOS sends no pinch event, so we build pinch ourselves** from `InputEventScreenTouch` and `InputEventScreenDrag` indices, on both platforms (spike, run: no orbit during a pinch).
    - Keep `input_devices/pointing/android/enable_pan_and_scale_gestures` off, so Android sends raw touches only.
@@ -240,6 +260,7 @@ Counted from the main screen being visible. App-icon taps aren't counted. QA ass
 | Inspect one kind | Inspect → chip | 2 | 2 |
 | Move to the fridge | Place → Fridge (applies instantly) → Done or tap above | 3 | 3 |
 | Read the journal | Journal | 1 | 1 |
+| Discard a moldy starter (after "Not yet") | Discard card "Discard it" → confirm "Discard" | 2 | 2. The confirmation is deliberate, because discarding can't be undone |
 | Change text size | ⚙ → Large | 2 | 2 |
 
 Tap 3 is spare on the common path on purpose. It absorbs the time-lapse skip on returns.
@@ -300,7 +321,7 @@ The rules follow game-designer:
 | 5 | Stir. The player may circle-drag on the jar to stir faster (optional) | 1.2 s | spoon swirls, paste smooths | light tick every 180 ms |
 | 6 | Settle. The band snaps on at the new level | 0.5 s | surface flattens, band snaps | firm |
 
-That totals about 4.2 s without hooch, and 4.8 s with it. game-mechanics §2.6 says about 6 s. UX wants the shorter time because the sequence plays every day; the first feed can run at about 6 s. Afterward:
+That totals about 4.2 s without hooch, and 4.8 s with it. The first feed runs at about 6 s, and later feeds at 4.2 s (D-023). Afterward:
 - The status changes to `freshly_fed`.
 - A result card shows the plain-words forecast from the sim ("Best around lunchtime"). Its body is a fuzzy time, with no digits.
 - The forecast also becomes the status hint.
@@ -393,7 +414,7 @@ Three layers, always in agreement because all three read the same sim state:
 
 1. **Status pill.** It shows one winning state, with this precedence from the scientist: `moldy` > `unhealthy` > `dormant` > `hungry` > `recovering` > the rise phases. It always has an icon (distinct shape), a word, and a tone color on the icon and border only. The word is always in ink, so text contrast never depends on the tone.
 2. **Hint line.** One plain sentence: what is happening, and the gentle next step. It changes with the state and with the sim forecast. It never shows digits.
-3. **The jar itself.** Each state's cues come from the scientist's draft. The rubber band at the fed mark makes rise readable at a glance with no number. It's an **[assumed]** art element, and a real baker's habit.
+3. **The jar itself.** Each state's cues come from the scientist's draft. The rubber band at the fed mark makes rise readable at a glance with no number. It's decided in D-023, and it's a real baker's habit.
 
 | State | Icon (shape) | Tone | Jar cues (scientist v0) | Hint example (narrative owns) |
 |---|---|---|---|---|
@@ -407,7 +428,7 @@ Three layers, always in agreement because all three read the same sim state:
 | `dormant` | crescent moon | rest | flat and still, hooch common | Resting. Cold slows it down. |
 | `recovering` | half sun with rays | rest | like its rise phase, but lower and slower | Getting its strength back. |
 | `unhealthy` | wilted sprout | care (deep honey, 3 pt border, filled icon) | dull dry skin, thick dark hooch, flat, almost no bubbles | Warning signs. Look, then feed |
-| `moldy` | octagon with ! | stop (filled pill, cream word) | fuzzy spots, maybe a pink or orange tint | Mold. This starter must go. |
+| `moldy` | octagon with ! | stop (filled pill, cream word) | fuzzy spots. No pink or orange tint in the MVP (D-026) | Mold. Please discard it. |
 
 **Red belongs to mold only.** Inside the jar, pink, orange and red mean discard, so the UI uses no red-family tone for anything recoverable (art-director). `unhealthy` is a deeper honey than `hungry`. It's told apart from hungry by its icon, its word and a heavier border, not by hue.
 
@@ -450,12 +471,16 @@ Three layers, always in agreement because all three read the same sim state:
 | `hooch_forming` | info (its choice lives in the feed sheet) |
 | `back_to_strength` | info |
 | `warning_signs` | attention. Primary (bottom): "Look first", which opens the `surface` check (§10). Secondary: "Feed it now" (narrative-designer, after the scientist's safety review) |
-| `mold_found` | attention (later) |
+| `mold_found` | attention. Built in the slice behind the debug time scale (D-017) |
 
-**`mold_found`:**
-- The sheet has no Close X.
-- Primary: "Say goodbye". This leads to the discard ceremony: the jar empties, a memorial entry is added to the journal, and a new starter begins.
-- Secondary: "Look closer". This runs the surface inspection, then returns to the sheet.
+**`mold_found`** (events-catalog §4.9, game-mechanics §1, D-023):
+- When the sheet opens, the camera moves to a close-up of the colony.
+- Primary: "Discard it". The sheet's content is replaced by a confirmation: "Discard {name}?", with the buttons "Discard" and "Not yet" (`MOLD_CONFIRM_*`). "Discard" starts the ceremony: the jar is emptied and washed, a memorial page is added to the journal, and a fresh start is offered (narrative.md §9.2).
+- Secondary: "Not yet". It closes the sheet so the player can look and read.
+  - Inspect and Journal still work.
+  - The discard card (§4) stays above the bar until the player discards.
+  - There's no Close X.
+- Discarding from the main screen takes 2 taps: "Discard it" on the card, then "Discard" in the confirmation.
 
 ### Return flow
 
@@ -633,8 +658,9 @@ Every component is a themed Control. Default Godot styles never ship. Sizes are 
 | SecondaryButton | height ≥ 52 | 1.5 pt outline, ink label | same |
 | TextButton ("Later", "Got it") | height ≥ 44, width ≥ 64 | ink_muted label, no fill | normal, pressed (surface_alt fill), focused |
 | IconButton (⚙, ✕, ‹) | 48 circle | surface plate at 88%, icon 24 ink | normal, pressed, focused |
-| ActionBarButton | ≥ 64 × 64 (67 × 72 on 375) | icon 28 + label 14 semibold | normal, pressed, open (filled icon + 4 pt accent pill under the label), emphasized (halo + dot badge), disabled (reason on tap) |
-| StatusPill | height ≥ 40 | surface_alt fill, tone border 2 pt, tone icon 24, ink word 17 semibold | normal, pressed, new (10 pt dot), peak glow, care (3 pt border, filled icon, #F4E4BE fill), stop (stop fill, cream word and icon) |
+| ActionBarButton | ≥ 64 × 64. Fills the 72 plate (67 × 72 on 375), or 64 in compact mode | icon 28 (24 compact) + label 14 semibold | normal, pressed, open (filled icon + 4 pt accent pill under the label), emphasized (halo + dot badge), locked (disabled color + 12 pt lock badge; a tap shows the reason in a toast) |
+| Plate (HUD, action bar) | HUD about 144 (128 compact), bar 72 (64 compact) | surface (or surface_night) at alpha ≥ 0.88 (0.94 at night), radius 24 / 28. Shadow: ink at 10%, y 4, blur 16 (T3's proposal, accepted) | day, night |
+| StatusPill | height ≥ 44 (it's a touch target; T3's layout test failed at 40) | surface_alt fill, tone border 2 pt, tone icon 24, ink word 17 semibold | normal, pressed, new (10 pt dot), peak glow, care (3 pt border, filled icon, #F4E4BE fill), stop (stop fill, cream word and icon) |
 | Chip | height ≥ 48 | surface_alt fill, outline 1.5 pt, ink 16 semibold | rest, pressed, selected (accent fill, on_accent label, ✓ icon), disabled |
 | OptionRow (ratio) | ≥ 64, full width | radio ring 22 + title 17 semibold + sub 16 ink_muted | rest, selected (filled ring + ✓ + "last time" tag), pressed |
 | OptionCard (location) | ≥ 104 × 112 | illustration + label + sub | rest, selected (3 pt accent border + ✓ badge), pressed |
@@ -673,9 +699,11 @@ Measured with CoreText on the sample copy:
 
 All weights are under the 0.47 em the copy limits assume. "Inspect" at 16 pt semibold is 54 pt, inside the 64 pt bar slot.
 
-Nunito Sans wasn't measured, because it isn't on this machine.
-
-**Display face.** **Fraunces** (soft, low "wonk") is art-director's pick for the starter's name and journal titles only, on the condition that it's measured first. It isn't on this machine either, and fetching it is a download that waits for approval. If its width is above 0.47 em, the name auto-fits down to 85% before ellipsizing at 150% text. The name row is 240 pt on a 360 pt screen.
+**Display face.** **Fraunces** is used for the starter's name and journal titles only (D-029). T3 measured it in Godot at opsz 20, SOFT 50, WONK 0, wght 600:
+- 0.464 em over all 612 catalog strings, against Figtree SemiBold's 0.439 by the same method (CoreText gave 0.435). It fits the 0.47 rule.
+- 0.519 em on names alone, against Figtree's 0.486.
+- All 24 suggested names fit the 240 pt name row at 30 pt (widest 219).
+- A 16-character name relies on the auto-fit, which shrinks it to 85% before ellipsizing at 150% text. The auto-fit is built.
 
 For reference, other faces measured: SF 0.43, SF bold 0.46, Avenir Next 0.43, Helvetica Neue 0.43, Mariupol 0.41. A wider face means recomputing §18.
 
@@ -732,13 +760,14 @@ These are hard maximums in characters, spaces included. They were computed on a 
 
 ## 20. Open items in this doc
 
-| Item | Waiting on |
+| Item | Status |
 |---|---|
-| Production icon SVGs: 21 icons, each with an outline and a filled variant, 42 files | art-director, Phase 2. Style rules are in art-direction.md §11. The status shapes in §11 here are the brief, and each must stay distinct in grayscale |
-| Fraunces width measurement before it's adopted for the name | needs a font download (approval) |
-| Rubber band at the fed mark as a jar element | art-director, sourdough-scientist |
-| Yaw limit (±70° or unlimited), depending on whether the set reads at 360° | art-director |
-| Still unverified after the spike: the Android navigation-bar inset, iOS haptic amplitude, and `screen_get_scale()` values on real phones | Phase 2 simulator and device checks (D-016) |
+| Icons | Done: 47 SVGs in `assets/icons/` (D-034) |
+| Rubber band, ±70° yaw, feed animation (6 s first, then 4.2 s) | Decided, D-023 |
+| No mold tint | Decided, D-026 |
+| 4-tap warning route | Decided, D-027 |
+| Fraunces | Measured by T3 (§17), D-029 |
+| Still unverified: the Android navigation-bar inset, iOS haptic amplitude, and `screen_get_scale()` values on real phones | Phase 2 simulator and device checks (D-016) |
 
 ## Sources
 
