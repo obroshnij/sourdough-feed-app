@@ -165,13 +165,13 @@ void fragment() {
 	paste = mix(paste, CRUST_COLOR * flour_ratio, dry * 0.85);
 	// Fine crackle on a dry skin.
 	float crack = (1.0 - smoothstep(0.02, 0.06, cell_edge(p.xz / 0.0025))) * dry;
-	paste *= 1.0 - 0.18 * crack;
+	paste *= 1.0 - 0.07 * crack;
 	// Bran flecks (whole_wheat, rye).
-	float fl = step(1.0 - 0.05 * fleck, vnoise(tone_p * 2600.0)) * step(0.001, fleck);
-	paste = mix(paste, FLECK_COLOR, fl * 0.7);
+	float fl = step(1.0 - 0.03 * fleck, vnoise(tone_p * 2600.0)) * step(0.001, fleck);
+	paste = mix(paste, FLECK_COLOR, fl * 0.35);
 	// Unhealthy: a little grayer and duller, never a new hue.
 	float l = dot(paste, vec3(0.2126, 0.7152, 0.0722));
-	paste = mix(paste, vec3(l) * 0.94, 0.3 * dullness);
+	paste = mix(paste, vec3(l) * 0.97, 0.15 * dullness);
 
 	paste *= mix(1.0, cap_value, top_w);
 	vec3 pocket = POCKET_COLOR * flour_ratio;
@@ -179,7 +179,7 @@ void fragment() {
 	vec3 albedo = mix(paste, pocket, air * (0.55 + 0.35 * dep) * pocket_k);
 	albedo *= mix(1.0, cav, air * pocket_k);
 
-	vec3 hooch_col = mix(HOOCH_COLOR, HOOCH_OLD_COLOR, dullness) * mix(vec3(1.0), flour_ratio, 0.5);
+	vec3 hooch_col = mix(HOOCH_COLOR, HOOCH_OLD_COLOR, 0.6 * dullness) * mix(vec3(1.0), flour_ratio, 0.5);
 	hooch_col = mix(hooch_col, vec3(dot(hooch_col, vec3(0.2126, 0.7152, 0.0722))), hooch_desat) * hooch_value;
 	albedo = mix(albedo, hooch_col, in_hooch * hooch_mix);
 

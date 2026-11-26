@@ -43,6 +43,11 @@ const IDLE_S: float = 20.0
 const IDLE_RETURN_S: float = 1.5
 const SETTLE_RATE: float = 14.0
 const SURFACE_PITCH: float = 76.0
+## Jar bounds for framing: floor to the loose lid top, centered. At the home pitch the projected
+## height (0.2035 m tall, 0.084 m wide) is about 0.22 m.
+const JAR_CENTER: Vector3 = Vector3(0.0, 0.1018, 0.0)
+const JAR_EXTENT_M: float = 0.22
+const FRAME_MARGIN: float = 0.06
 
 ## Pose (degrees and meters).
 var yaw: float = HOME_YAW
@@ -54,6 +59,10 @@ var frame_shift: float = 0.0
 ## Vertical field of view. Captures widen it to cut a close-up from the middle of the window.
 var fov_deg: float = FOV_DEG
 
+## Home distance and target. The defaults are the art preview pose; set_jar_region() replaces them
+## so the whole jar fits the free region with even margins.
+var home_dist: float = HOME_DISTANCE
+var home_target: Vector3 = HOME_TARGET
 var yaw_velocity: float = 0.0
 var pitch_velocity: float = 0.0
 var input_enabled: bool = true
@@ -100,8 +109,8 @@ class Pose:
 		target = p_target
 
 
-static func home_pose() -> Pose:
-	return Pose.new(HOME_YAW, HOME_PITCH, 1.0, HOME_TARGET)
+func home_pose() -> Pose:
+	return Pose.new(HOME_YAW, HOME_PITCH, 1.0, home_target)
 
 
 func current_pose() -> Pose:
@@ -129,11 +138,11 @@ func _ready() -> void:
 
 
 func home_distance() -> float:
-	return HOME_DISTANCE
+	return home_dist
 
 
 func distance() -> float:
-	return HOME_DISTANCE / zoom
+	return home_dist / zoom
 
 
 ## Snaps to a pose. Used by captures, tests and the scrubber.
@@ -141,7 +150,7 @@ func set_pose(p_yaw: float, p_pitch: float, p_distance: float, p_target: Vector3
 	_anim_t = -1.0
 	yaw = p_yaw
 	pitch = p_pitch
-	zoom = HOME_DISTANCE / maxf(p_distance, 0.001)
+	zoom = home_dist / maxf(p_distance, 0.001)
 	target = p_target
 	yaw_velocity = 0.0
 	pitch_velocity = 0.0
@@ -186,15 +195,15 @@ func focus_pose(what: StringName) -> Pose:
 		&"bubbles":
 			var y: float = floor_y + 0.55 * starter_level_m
 			var off := Vector3(-0.0737, 0.012, 0.1386)
-			return Pose.new(rad_to_deg(atan2(off.x, off.z)), rad_to_deg(asin(off.y / off.length())), HOME_DISTANCE / off.length(), Vector3(0.0, y, 0.0))
+			return Pose.new(rad_to_deg(atan2(off.x, off.z)), rad_to_deg(asin(off.y / off.length())), home_dist / off.length(), Vector3(0.0, y, 0.0))
 		&"surface":
 			var off_s := Vector3(0.0, 0.194, 0.0524)
-			return Pose.new(0.0, SURFACE_PITCH, HOME_DISTANCE / off_s.length(), Vector3(0.0, starter_top_y, -0.004))
+			return Pose.new(0.0, SURFACE_PITCH, home_dist / off_s.length(), Vector3(0.0, starter_top_y, -0.004))
 		&"height":
 			var band_y: float = floor_y + starter_level_m
-			return Pose.new(0.0, 4.0, HOME_DISTANCE / 0.30, Vector3(0.0, (band_y + starter_top_y) * 0.5, 0.0))
+			return Pose.new(0.0, 4.0, home_dist / 0.30, Vector3(0.0, (band_y + starter_top_y) * 0.5, 0.0))
 		&"top":
-			return Pose.new(0.0, 50.0, HOME_DISTANCE / 0.36, Vector3(0.0, 0.15, 0.0))
+			return Pose.new(0.0, 50.0, home_dist / 0.36, Vector3(0.0, 0.15, 0.0))
 	return home_pose()
 
 
@@ -204,6 +213,14 @@ func set_jar_region(region: Rect2, screen_h_pt: float) -> void:
 		return
 	var center: float = (region.position.y + region.size.y * 0.5) / screen_h_pt
 	_region_shift = 0.5 - center
+	# Fit the jar's projected height into the region, with FRAME_MARGIN of it top and bottom.
+	var frac: float = clampf(region.size.y / screen_h_pt, 0.2, 1.0)
+	var fit: float = JAR_EXTENT_M / (2.0 * tan(deg_to_rad(fov_deg) * 0.5) * frac * (1.0 - 2.0 * FRAME_MARGIN))
+	home_dist = clampf(fit, 0.35, 1.5)
+	home_target = JAR_CENTER
+	if focus_target == &"" and not gestures.active():
+		target = home_target
+		apply_pose()
 	_start_shift()
 
 

@@ -6,6 +6,7 @@ render_mode diffuse_burley, specular_schlick_ggx;
 uniform vec3 oak_light : source_color = vec3(0.678, 0.588, 0.439);   // #AD9670
 uniform vec3 oak_dark : source_color = vec3(0.431, 0.357, 0.247);    // #6E5B3F
 uniform float grade_value = 1.0;
+uniform float grade_saturation = 1.0;
 uniform sampler2D grain : filter_linear_mipmap, repeat_enable;
 
 varying vec3 v_pos;
@@ -22,7 +23,8 @@ void fragment() {
 	float d = texture(grain, v_pos.zy / 0.064).r * w.x
 			+ texture(grain, v_pos.xz / 0.064).r * w.y
 			+ texture(grain, v_pos.xy / 0.064).r * w.z;
-	ALBEDO = mix(oak_dark, oak_light, d) * grade_value;
+	vec3 oak = mix(oak_dark, oak_light, d);
+	ALBEDO = mix(vec3(dot(oak, vec3(0.2126, 0.7152, 0.0722))), oak, grade_saturation) * grade_value;
 	ROUGHNESS = mix(0.6, 0.4, d);
 	SPECULAR = 0.4;
 }

@@ -44,8 +44,9 @@ var glass_reflection: float = 1.0
 var hooch_value: float = 1.0
 var hooch_desat: float = 0.0
 var backdrop_energy: float = 1.0
-## Counter and lid brightness.
+## Counter and lid brightness, and lid saturation.
 var dressing_value: float = 1.0
+var lid_saturation: float = 1.0
 
 
 static func for_renderer(renderer: String) -> ViewLook:
@@ -65,6 +66,7 @@ static func for_renderer(renderer: String) -> ViewLook:
 		look.starter_saturation = 0.9
 		look.glass_spec = 1.5
 		look.glass_reflection = 0.35
+		look.lid_saturation = 0.8
 	return look
 
 
