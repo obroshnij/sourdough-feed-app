@@ -44,6 +44,7 @@ func _ready() -> void:
 		bus.connect(&"camera_focus_requested", rig.focus)
 		bus.connect(&"camera_focus_released", rig.release_focus)
 		bus.connect(&"jar_region_changed", _on_jar_region_changed)
+		bus.connect(&"settings_changed", _read_settings)
 	if follow_session:
 		var session: GameSession = get_node_or_null(^"/root/Session") as GameSession
 		if session != null:
@@ -96,12 +97,21 @@ func set_visuals(p: VisualParams) -> void:
 	rig.starter_top_y = jar.floor_y + JarGeometry.surface_top_m(p.level_m, p.rise, p.dome)
 
 
-func _on_session_ready(_summary: CatchUpResult) -> void:
-	var session: GameSession = get_node(^"/root/Session") as GameSession
+## Reduce effects swaps the glass tier, reduce motion stops camera inertia. Read at session_ready
+## (no signal fires at launch) and on every Bus.settings_changed.
+func _read_settings() -> void:
+	var session: GameSession = get_node_or_null(^"/root/Session") as GameSession
+	if session == null:
+		return
 	var settings: SettingsStore = session.get_settings()
 	if settings != null:
 		set_reduce_effects(settings.reduce_effects)
 		set_reduce_motion(settings.reduce_motion)
+
+
+func _on_session_ready(_summary: CatchUpResult) -> void:
+	_read_settings()
+	var session: GameSession = get_node(^"/root/Session") as GameSession
 	var v: VisualParams = session.get_visuals()
 	if v != null:
 		set_visuals(v)
