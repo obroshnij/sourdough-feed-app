@@ -91,7 +91,11 @@ Measured from `art/previews/` at the preview pose (§7). Values are 31 px patch 
 - **Starter hue stays 30 to 40 degrees in every state.** Below 25 degrees at saturation over 50% is orange territory, which is reserved for mold (§2.3).
 - **Nothing in the frame clips.**
 
-godot-developer's spike finding (Compatibility starter at 0.030 saturation versus 0.213 on Mobile) is open with T2. A match is signed off against this table.
+godot-developer's spike readings, at the spike's own pose and lighting, are open with T2:
+- Mobile lit starter: 21% HSV saturation, over the 8 to 16% target (reads a little too yellow).
+- Compatibility: 3%, washed out.
+
+Likely Mobile fix: desaturate the view's `starter_color` a few points. Keep the palette hex as the authoring reference. A match is signed off against this table at the preview pose.
 
 **Key-to-fill about 4:1.** The right side of the jar stays a little darker, and the rim brings the edge back. Flat front light makes glass look cheap.
 
