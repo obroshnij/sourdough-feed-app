@@ -293,6 +293,7 @@ JOURNAL_LOG_FEED_RESCUE,Fed through the warning signs.
 JOURNAL_LOG_HOOCH_POURED,Poured off the hooch.
 JOURNAL_LOG_HOOCH_STIRRED,Stirred the hooch back in.
 JOURNAL_LOG_MOVE_COUNTER,Moved to the counter.
+JOURNAL_LOG_MOVE_FRIDGE,Moved to the fridge.
 JOURNAL_LOG_MOVE_PROOFING_BOX,Into the proofing box.
 JOURNAL_LOG_MOVE_WARM_SPOT,Moved to the warm spot.
 JOURNAL_LOG_MOVE_WINDOW_SILL,Moved to the window sill.
@@ -458,6 +459,19 @@ REACT_MOVE_COOL,A cooler spot. Things will slow down a little.
 REACT_MOVE_COUNTER,Back on the counter. Its usual pace.
 REACT_MOVE_PROOFING,Into the proofing box. Warm and steady.
 REACT_MOVE_WARM,"Somewhere warmer. A faster rise, and hungry sooner."
+REASON_ENVIRONMENT,That place isn’t available.
+REASON_EVENT,That note is already gone.
+REASON_FLOUR,Pick a flour to feed with.
+REASON_HOOCH_CHOICE,Pour off the hooch or stir it in first.
+REASON_INSPECT_KIND,That one can’t be inspected yet.
+REASON_KEEP_RANGE,"Keep at least 1 g, and no more than is in the jar."
+REASON_MASS,Those amounts don’t add up. Try one of the ratios.
+REASON_MOLDY_LOCKED,Not while there’s mold. Please discard it.
+REASON_NAME,A name needs 1 to 16 characters.
+REASON_NOT_MOLDY,"No mold here, so there’s no need to throw it out."
+REASON_NOT_READY,One moment. Still getting ready.
+REASON_SAVE_FAILED,Couldn’t save just now. Trying again soon.
+REASON_WATER,Too much or too little water for a starter.
 RESTART_BODY_FIRST,"In the fridge, a small jar with M.’s writing on the lid: “Spare. Just in case.”"
 RESTART_BODY_LATER,"A friend has a spoonful of starter to spare. It’s young, but it’s ready."
 RESTART_BTN_LATER,Not today

@@ -24,7 +24,7 @@ BANNED = [
 QA_SAFETY_PREFIX = re.compile(
     r"^(STATUS_MOLDY|STATUS_UNHEALTHY|SMELL_MUSTY|SMELL_MOLDY|INSPECT_\w*_MOLDY|"
     r"INSPECT_\w*_UNHEALTHY|INSPECT_SURFACE_HOOCH_DARK|EVENT_WARNING_SIGNS|EVENT_MOLD_FOUND|"
-    r"MOLD_|MEMORIAL_|NOTIF_WARNING)")
+    r"MOLD_|MEMORIAL_|NOTIF_WARNING|REASON_MOLDY|REASON_NOT_MOLDY)")
 QA_SAFETY_BAD = ["safe to", "still good", "scrape", "skim off", "just remove", "fine to use",
                  "fine to eat", "ok to eat", "okay to eat"]
 QA_HUNGER_PREFIX = re.compile(
@@ -35,7 +35,7 @@ QA_HUNGER_BAD = ["danger", "unsafe", "toxic", "sick", "poison", "throw it out", 
 QA_ANY_BAD = ["probiotic", "gut health", "health benefit", "cure"]
 # moldy messages that must say "discard" (titles, words, observations, buttons are always shown beside one)
 MUST_DISCARD = re.compile(r"^(STATUS_MOLDY_(HINT|TAP)|SMELL_MOLDY_BODY|INSPECT_\w*MOLDY\w*_MEAN|"
-                          r"MOLD_SHEET_BODY\w*|MOLD_FEED_BLOCKED)$")
+                          r"MOLD_SHEET_BODY\w*|MOLD_FEED_BLOCKED|REASON_MOLDY_LOCKED)$")
 
 ROW = re.compile(r"^\|\s*`([^`]+)`\s*\|\s*(.*?)\s*\|\s*(\d+)\s*\|\s*$")
 errors, rows, seen = [], [], {}

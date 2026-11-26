@@ -142,6 +142,28 @@ The pill shows an icon plus the word, never color alone. The hint is always show
 | `JAR_A11Y_DESC` | Drag to turn the jar. Pinch to look closer. | 120 |
 | `TOAST_A11Y_MORE` | Opens the journal entry | 40 |
 
+### 3.1 Why an action didn't run
+
+`ActionResult.reason_key` when the session rejects an action (data-models §4). Shown as a toast, or as the reason line under a disabled control (ux-design §17), so every line uses the toast limit. Most of these only fire on a stale or buggy UI, so they stay short and neutral. A rejected feed on a moldy starter uses `MOLD_FEED_BLOCKED` ([`narrative.md`](narrative.md) §9).
+
+| Key | Text | Max |
+|---|---|---|
+| `REASON_MOLDY_LOCKED` | Not while there's mold. Please discard it. | 60 |
+| `REASON_NOT_MOLDY` | No mold here, so there's no need to throw it out. | 60 |
+| `REASON_KEEP_RANGE` | Keep at least 1 g, and no more than is in the jar. | 60 |
+| `REASON_FLOUR` | Pick a flour to feed with. | 60 |
+| `REASON_WATER` | Too much or too little water for a starter. | 60 |
+| `REASON_MASS` | Those amounts don't add up. Try one of the ratios. | 60 |
+| `REASON_HOOCH_CHOICE` | Pour off the hooch or stir it in first. | 60 |
+| `REASON_ENVIRONMENT` | That place isn't available. | 60 |
+| `REASON_INSPECT_KIND` | That one can't be inspected yet. | 60 |
+| `REASON_NAME` | A name needs 1 to 16 characters. | 60 |
+| `REASON_EVENT` | That note is already gone. | 60 |
+| `REASON_SAVE_FAILED` | Couldn't save just now. Trying again soon. | 60 |
+| `REASON_NOT_READY` | One moment. Still getting ready. | 60 |
+
+`REASON_NAME` states the 16-character name slot (ux-design §18, the `{name}` worst case in §1.3). `REASON_SAVE_FAILED` is shown once per failing streak. The next action, state change or 10-minute autosave tries again.
+
 ## 4. Forecast
 
 Shown on the feed result card and on a status tap during a rise phase. Not shown for `hungry`, `dormant`, `unhealthy` or `moldy` (mechanics §6).
@@ -621,12 +643,19 @@ The P0 journal is a read-only log (progression §7). Log lines use the toast len
 | `JOURNAL_LOG_MOVE_WARM_SPOT` | Moved to the warm spot. | 60 |
 | `JOURNAL_LOG_MOVE_WINDOW_SILL` | Moved to the window sill. | 60 |
 | `JOURNAL_LOG_MOVE_PROOFING_BOX` | Into the proofing box. | 60 |
+| `JOURNAL_LOG_MOVE_FRIDGE` | Moved to the fridge. | 60 |
 | `JOURNAL_EMPTY_TITLE` | Nothing yet | 26 |
 | `JOURNAL_EMPTY_BODY` | Notes appear here as it rises, falls and gets fed. | 90 |
 | `JOURNAL_RENAME_BTN` | Rename | 18 |
 | `JOURNAL_RENAME_TITLE` | A new name | 26 |
 
-Peak log lines reuse `EVENT_PEAKED_WHILE_AWAY_AWAY_*`. The fridge move is logged by `off_to_nap`'s journal entry.
+Peak log lines reuse `EVENT_PEAKED_WHILE_AWAY_AWAY_*`.
+
+Move lines are `JOURNAL_LOG_MOVE_<LOCATION>`, one per location id. When a fridge move also fires `off_to_nap`, the event's journal entry tells the story, so skip the move line for that action. Otherwise (the event's 24 h cooldown) the move line logs it.
+
+The inspect log line is the observation the player just read, `INSPECT_<KIND>_<STATE>_OBS` from §6 (at most 90, within the 200 journal body). It needs no key of its own. Logged once per observation per rise cycle (data-models §6).
+
+Journal args use the §1.3 placeholder names. `JOURNAL_LOG_FEED` needs `ratio`, `flour` (the flour's display name, `FLOUR_<ID>`) and `grams` (grams kept). `JOURNAL_LOG_FEED_AT_PEAK` needs `ratio` and `flour`. `JOURNAL_LOG_SMELL` needs `smell` (the descriptor's `SMELL_<ID>_TITLE`).
 
 ## 12. Glossary
 
@@ -786,6 +815,6 @@ Local only, opt-in, outside quiet hours (D-007, game-design OD-1). No guilt, no 
 | Smell variants | Each of the 10 descriptors has `_1` to `_3`, `_TITLE`, `_NOTE` and `_MEANING`. |
 | Status coverage | Every state id in vision.md has `_WORD`, `_HINT` and `_TAP` (`dormant` twice). |
 
-It also runs `qa-engineer`'s LINT-06 word lists, mapped to the real key prefixes (safety: `STATUS_MOLDY`, `STATUS_UNHEALTHY`, `SMELL_MUSTY`, `SMELL_MOLDY`, `INSPECT_*_MOLDY*`, `INSPECT_*_UNHEALTHY*`, `INSPECT_SURFACE_HOOCH_DARK`, `EVENT_WARNING_SIGNS`, `EVENT_MOLD_FOUND`, `MOLD_`, `MEMORIAL_`, `NOTIF_WARNING`; hunger: `STATUS_HUNGRY`, `STATUS_DORMANT_STARVED`, `SMELL_ACETONE`, `SMELL_ALCOHOL`, `SMELL_STRONGLY_ACIDIC`, `EVENT_HOOCH_FORMING`, `EVENT_HUNGRY_AGAIN`, `EVENT_FIRST_ACETONE`, `INSPECT_SURFACE_HOOCH`, `INSPECT_*_HUNGRY*`, `FEED_HOOCH`, `GLOSS_HOOCH`). Every moldy *message* (`STATUS_MOLDY_HINT` and `_TAP`, `SMELL_MOLDY_BODY`, `INSPECT_*MOLDY*_MEAN`, `MOLD_SHEET_BODY*`, `MOLD_FEED_BLOCKED`) must contain "discard". Titles, status words, observations and buttons are exempt because they always appear beside one of those.
+It also runs `qa-engineer`'s LINT-06 word lists, mapped to the real key prefixes (safety: `STATUS_MOLDY`, `STATUS_UNHEALTHY`, `SMELL_MUSTY`, `SMELL_MOLDY`, `INSPECT_*_MOLDY*`, `INSPECT_*_UNHEALTHY*`, `INSPECT_SURFACE_HOOCH_DARK`, `EVENT_WARNING_SIGNS`, `EVENT_MOLD_FOUND`, `MOLD_`, `MEMORIAL_`, `NOTIF_WARNING`, `REASON_MOLDY`, `REASON_NOT_MOLDY`; hunger: `STATUS_HUNGRY`, `STATUS_DORMANT_STARVED`, `SMELL_ACETONE`, `SMELL_ALCOHOL`, `SMELL_STRONGLY_ACIDIC`, `EVENT_HOOCH_FORMING`, `EVENT_HUNGRY_AGAIN`, `EVENT_FIRST_ACETONE`, `INSPECT_SURFACE_HOOCH`, `INSPECT_*_HUNGRY*`, `FEED_HOOCH`, `GLOSS_HOOCH`). Every moldy *message* (`STATUS_MOLDY_HINT` and `_TAP`, `SMELL_MOLDY_BODY`, `INSPECT_*MOLDY*_MEAN`, `MOLD_SHEET_BODY*`, `MOLD_FEED_BLOCKED`, `REASON_MOLDY_LOCKED`) must contain "discard". Titles, status words, observations and buttons are exempt because they always appear beside one of those.
 
-**Last run, 2026-11-26:** `python3 -I tools/i18n/check_copy.py .` over 614 strings (narrative 123, events 69, game copy 422). First run found 3 over-length strings, all fixed. Second run: 0 problems. After the scientist's wave B review (21 fixes, 3 strings removed, 6 added, net 612 strings), the run still finds 0 problems. It also confirmed the smell rule shows all 3 variants within 300 feeds and never repeats a line on consecutive cycles. Phase 2, 2026-11-26: after adding `AWAY_CAPPED`, the checker reports 613 strings (narrative 123, events 68, game copy 422) and 0 problems, and `build_catalog.py` writes all 613 to `en.csv`.
+**Last run, 2026-11-26:** `python3 -I tools/i18n/check_copy.py .` over 614 strings (narrative 123, events 69, game copy 422). First run found 3 over-length strings, all fixed. Second run: 0 problems. After the scientist's wave B review (21 fixes, 3 strings removed, 6 added, net 612 strings), the run still finds 0 problems. It also confirmed the smell rule shows all 3 variants within 300 feeds and never repeats a line on consecutive cycles. Phase 2, 2026-11-26: after adding `AWAY_CAPPED`, the checker reports 613 strings (narrative 123, events 68, game copy 422) and 0 problems, and `build_catalog.py` writes all 613 to `en.csv`. The T1 copy pass added the 13 `REASON_*` lines (§3.1) and `JOURNAL_LOG_MOVE_FRIDGE`: 627 strings, 0 problems.
