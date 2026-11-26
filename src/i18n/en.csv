@@ -250,6 +250,7 @@ INSPECT_HEIGHT_NEAR_PEAK_OBS,"High up the jar, and the climb is slowing."
 INSPECT_HEIGHT_UNHEALTHY_MEAN,"A warning sign. Check the surface, then feed it."
 INSPECT_HEIGHT_UNHEALTHY_OBS,Flat. It has barely risen in a while.
 INSPECT_RECOVERING_MEAN,Weaker than usual for now. Regular feeds rebuild it.
+INSPECT_SHEET_TITLE,Inspect
 INSPECT_SURFACE_ACTIVE_MEAN,"Good, steady activity."
 INSPECT_SURFACE_ACTIVE_OBS,"Bumpy and bubbly, starting to dome."
 INSPECT_SURFACE_AT_PEAK_MEAN,The dome means peak. A great moment to feed.
@@ -293,9 +294,11 @@ JOURNAL_LOG_FEED_RESCUE,Fed through the warning signs.
 JOURNAL_LOG_HOOCH_POURED,Poured off the hooch.
 JOURNAL_LOG_HOOCH_STIRRED,Stirred the hooch back in.
 JOURNAL_LOG_MOVE_COUNTER,Moved to the counter.
+JOURNAL_LOG_MOVE_FRIDGE,Moved to the fridge.
 JOURNAL_LOG_MOVE_PROOFING_BOX,Into the proofing box.
 JOURNAL_LOG_MOVE_WARM_SPOT,Moved to the warm spot.
 JOURNAL_LOG_MOVE_WINDOW_SILL,Moved to the window sill.
+JOURNAL_LOG_RENAME,Renamed to {name}.
 JOURNAL_LOG_SMELL,Smell: {smell}.
 JOURNAL_RENAME_BTN,Rename
 JOURNAL_RENAME_TITLE,A new name
@@ -458,12 +461,31 @@ REACT_MOVE_COOL,A cooler spot. Things will slow down a little.
 REACT_MOVE_COUNTER,Back on the counter. Its usual pace.
 REACT_MOVE_PROOFING,Into the proofing box. Warm and steady.
 REACT_MOVE_WARM,"Somewhere warmer. A faster rise, and hungry sooner."
+REASON_ENVIRONMENT,That place isn’t available.
+REASON_EVENT,That note is already gone.
+REASON_FLOUR,Pick a flour to feed with.
+REASON_HOOCH_CHOICE,Pour off the hooch or stir it in first.
+REASON_INSPECT_KIND,That one can’t be inspected yet.
+REASON_KEEP_RANGE,"Keep at least 1 g, and no more than is in the jar."
+REASON_MASS,Those amounts don’t add up. Try one of the ratios.
+REASON_MOLDY_LOCKED,Not while there’s mold. Please discard it.
+REASON_NAME,A name needs 1 to 16 characters.
+REASON_NOT_MOLDY,"No mold here, so there’s no need to throw it out."
+REASON_NOT_READY,One moment. Still getting ready.
+REASON_SAVE_FAILED,Couldn’t save just now. Trying again soon.
+REASON_WATER,Too much or too little water for a starter.
 RESTART_BODY_FIRST,"In the fridge, a small jar with M.’s writing on the lid: “Spare. Just in case.”"
 RESTART_BODY_LATER,"A friend has a spoonful of starter to spare. It’s young, but it’s ready."
 RESTART_BTN_LATER,Not today
 RESTART_BTN_YES,Start again
 RESTART_TITLE,Start again?
 SETTINGS_A11Y,Settings
+SETTINGS_REDUCE_MOTION,Reduce motion
+SETTINGS_TEXT_LARGE,Large
+SETTINGS_TEXT_LARGEST,Largest
+SETTINGS_TEXT_SIZE,Text size
+SETTINGS_TEXT_STANDARD,Standard
+SETTINGS_TITLE,Settings
 SMELL_ACETONE_1,"Sharp and solvent, like nail polish remover."
 SMELL_ACETONE_2,"Sharp and chemical. Nail polish remover, clearly."
 SMELL_ACETONE_3,"Like nail polish remover. Odd, from flour and water."
@@ -566,6 +588,7 @@ STATUS_NEAR_PEAK_WORD,Nearly there
 STATUS_RECOVERING_HINT,Getting its strength back
 STATUS_RECOVERING_TAP,Weaker than usual after a hard stretch. Regular feeds rebuild it.
 STATUS_RECOVERING_WORD,Recovering
+STATUS_SHOW_ME_BTN,Show me
 STATUS_UNHEALTHY_HINT,"Warning signs. Look, then feed"
 STATUS_UNHEALTHY_TAP,"Musty, run down. No mold yet. Fuzz or color on top means discard. If none, feed it."
 STATUS_UNHEALTHY_WORD,At risk
@@ -586,6 +609,10 @@ TRAIT_SENSITIVE_JOURNAL_BODY,"It notices things. A new flour, a new spot, a cold
 TRAIT_SENSITIVE_JOURNAL_TITLE,The sensitive type
 TRAIT_SENSITIVE_NAME,Sensitive
 TRAIT_SENSITIVE_REVEAL_TOAST,It’s clear now: {name} is the sensitive type.
+UI_CLOSE_A11Y,Close
+UI_DECREASE_A11Y,Decrease
+UI_DONE_BTN,Done
+UI_INCREASE_A11Y,Increase
 UNLOCK_HYDRATION_BODY,"You can now change how much water goes in. Stiff, standard or loose. Standard is equal weights of flour and water."
 UNLOCK_HYDRATION_TOAST,New: stiffer or looser feeds.
 UNLOCK_INSPECT_BODY,It’s steady enough now to show more. Consistency shows how strong it is. Development shows how far it has come.

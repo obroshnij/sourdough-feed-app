@@ -30,6 +30,11 @@ signal feed_moment(step: StringName)
 @warning_ignore("unused_signal")
 signal jar_region_changed(region: Rect2)
 
+## core to view. Player settings changed (reduce_effects swaps the glass tier, reduce_motion stops camera
+## inertia). Emitted by Session.save_settings(); read the values from Session.get_settings().
+@warning_ignore("unused_signal")
+signal settings_changed()
+
 ## view to ui. where is &"starter" or &"glass". A poke never changes the sim.
 @warning_ignore("unused_signal")
 signal starter_tapped(where: StringName)

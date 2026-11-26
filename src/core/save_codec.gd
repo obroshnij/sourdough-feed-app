@@ -7,11 +7,38 @@ extends RefCounted
 const FORMAT: String = "sourdough.save"
 const CURRENT_VERSION: int = 1
 const NEWLINE: int = 10
+const OPEN_BRACE: int = 123
+## D-040 (data-models §1, §9.2, ADR-005): Godot 4.7.2's JSON number parser changes about 30% of doubles by
+## one step, so every float in the payload is written as the 16-character hex of its 64-bit pattern
+## (DictReader.float_to_hex). Typed readers (DictReader.num) accept that or a plain JSON number, so
+## hand-written fixtures still work. Free-form dictionaries keep the hex string after a load
+## (read it with DictReader.float_of); the saved text stays identical either way.
 
 
-## Sorted keys, full precision, one line.
+## Sorted keys, full precision, one line, every float as hex.
 static func payload_text(payload: Dictionary) -> String:
-	return JSON.stringify(payload, "", true, true)
+	return JSON.stringify(pack_floats(payload), "", true, true)
+
+
+static func pack_floats(v: Variant) -> Variant:
+	match typeof(v):
+		TYPE_FLOAT:
+			var x: float = v
+			return DictReader.float_to_hex(x)
+		TYPE_DICTIONARY:
+			var src: Dictionary = v
+			var out: Dictionary = {}
+			for k: Variant in src:
+				out[k] = pack_floats(src[k])
+			return out
+		TYPE_ARRAY:
+			var arr: Array = v
+			var list: Array = []
+			for item: Variant in arr:
+				list.append(pack_floats(item))
+			return list
+	return v
+
 
 
 static func encode(payload: Dictionary) -> PackedByteArray:
@@ -31,7 +58,9 @@ static func decode(bytes: PackedByteArray, allow_bare: bool = false) -> SaveDeco
 	var out := SaveDecoded.new()
 	var nl: int = bytes.find(NEWLINE)
 	var header: Dictionary = {}
-	if nl > 0:
+	# Only text that starts with "{" is decoded, so binary garbage never reaches the UTF-8 decoder (which
+	# prints "Unicode parsing error" to stderr, though it logs no error).
+	if nl > 0 and bytes[0] == OPEN_BRACE:
 		header = _parse_object(bytes.slice(0, nl).get_string_from_utf8())
 	if header.is_empty() or not header.has("format"):
 		if allow_bare:
@@ -54,7 +83,7 @@ static func decode(bytes: PackedByteArray, allow_bare: bool = false) -> SaveDeco
 		out.reason = &"too_new" if version > CURRENT_VERSION else &"bad_header"
 		return out
 	var body: PackedByteArray = bytes.slice(nl + 1)
-	if body.size() != length or body.is_empty():
+	if body.size() != length or body.is_empty() or body[0] != OPEN_BRACE:
 		out.reason = &"length"
 		return out
 	var ctx := HashingContext.new()
@@ -79,6 +108,12 @@ static func decode(bytes: PackedByteArray, allow_bare: bool = false) -> SaveDeco
 static func _decode_bare(bytes: PackedByteArray) -> SaveDecoded:
 	var out := SaveDecoded.new()
 	out.bare = true
+	var start: int = 0
+	while start < bytes.size() and bytes[start] in [9, 10, 13, 32]:
+		start += 1
+	if start >= bytes.size() or bytes[start] != OPEN_BRACE:
+		out.reason = &"json"
+		return out
 	var payload: Dictionary = _parse_object(bytes.get_string_from_utf8())
 	if payload.is_empty():
 		out.reason = &"json"

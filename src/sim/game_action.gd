@@ -18,7 +18,8 @@ const REASON_NAME: StringName = &"REASON_NAME"
 const REASON_EVENT: StringName = &"REASON_EVENT"
 const REASON_NOT_MOLDY: StringName = &"REASON_NOT_MOLDY"
 
-const NAME_MAX_CHARS: int = 24
+## ux-design §18's name slot; every {name} string is length-checked at 16 (game-copy). data-models v0 said 24.
+const NAME_MAX_CHARS: int = 16
 
 var kind: StringName = &""
 var at_unix: int = 0
