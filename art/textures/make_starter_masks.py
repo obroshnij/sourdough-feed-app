@@ -88,7 +88,8 @@ def write_png_la(path, lum, alpha):
 def periodic_noise(rng, h, w, scale_px, aniso=(1.0, 1.0)):
     """Smooth Gaussian random field that wraps in both axes. Returns 0..1, mean 0.5.
 
-    scale_px: feature size in pixels. aniso = (sx, sy) stretches features.
+    scale_px: feature size in pixels. aniso = (sx, sy) stretches features by sx along
+    x and sy along y (frequencies are scaled by it, so a bigger value = longer).
     """
     white = rng.standard_normal((h, w))
     fy = np.fft.fftfreq(h)[:, None] * aniso[1]
@@ -364,8 +365,8 @@ def liner_mask(rng):
     depth = rows - edge[None, :]                        # px below the peak line
     below = np.clip(depth + 0.5, 0.0, 1.0)              # 1 px anti-aliased top edge
 
-    streaky = periodic_noise(rng, H, W, 2.2, aniso=(1.0, 0.07))    # vertical smear grain
-    blotch = periodic_noise(rng, H, W, 9.0, aniso=(1.0, 0.45))     # patchy thickness
+    streaky = periodic_noise(rng, H, W, 2.2, aniso=(1.0, 14.0))    # vertical smear grain
+    blotch = periodic_noise(rng, H, W, 9.0, aniso=(1.0, 2.2))      # patchy, a little taller
 
     # Ring: the high-water mark, 3 to 8 mm deep, thickest at the very top.
     ring_w = (5.5 + (periodic_noise(rng, 8, W, 26.0)[2] - 0.5) * 9.0) / mm
