@@ -368,9 +368,9 @@ Rebuild (about 2 minutes on an M4, never touches the GLB, the .blend or the §7 
 | `art/previews/reference/board_starter.png` | Contact sheet. One row per state: side close-up, then surface close-up |
 | `ref_<state>_side.png` | Bubbles through the glass: the inspect `bubbles` framing. 640 x 800 |
 | `ref_<state>_top.png` | Into the mouth, lid lifted: the inspect `surface` framing. 640 x 800 |
-| `ref_at_peak_pose.png`, `ref_collapsing_pose.png` | The §7 preview pose, 720 x 1280, to compare with spike captures |
+| `ref_<state>_pose.png` (`at_peak`, `collapsing`, `hungry`, `unhealthy`) | The §7 preview pose, 720 x 1280, to compare with Godot captures |
 
-States: `freshly_fed`, `active`, `at_peak`, `collapsing`, `hungry`, with the §6 VisualParams.
+States: `freshly_fed`, `active`, `at_peak`, `collapsing`, `hungry` and `unhealthy`, with the §6 VisualParams. Pose shots exist for `at_peak`, `collapsing`, `hungry` and `unhealthy`.
 
 | State | Side, through the glass | Surface from above |
 |---|---|---|
@@ -378,7 +378,8 @@ States: `freshly_fed`, `active`, `at_peak`, `collapsing`, `hungry`, with the §6
 | `active` | Many small and medium bubbles in clusters, some taller than wide, clouds of tiny voids | An even sprinkle of small pits |
 | `at_peak` | Big irregular bubbles with teardrops and merged lobes, bigger higher up, plus many small ones | Many pits, a few open craters |
 | `collapsing` | Big bubbles, fewer small ones. Above the surface: a creamy ring at the peak line, a lacy film with bubble-shaped gaps, short drips | Sunken and pocked with craters, the ring visible on the glass |
-| `hungry` | Few, big, loose holes. A gray-brown hooch band on top. Old residue dried into flecks | Hooch pooled over the top: a flat, glossy gray-brown disc |
+| `hungry` | Few, big, loose holes. A gray-brown hooch band on top. Old residue thinned to soft pale patches | Hooch pooled over the top: a flat, glossy gray-brown disc |
+| `unhealthy` | Smooth, dull paste with almost no bubbles. Old residue as pale streaky patches. No specks of any color | Thick dark hooch over the top: a flat, dull gray-brown disc |
 
 **Close-up cameras in Godot terms** (meters, jar base at the origin, `level = rise x 0.030`), so T2 captures the same frames:
 
@@ -498,10 +499,10 @@ float cav = mix(cav_s, cav_t, top_w);
 | `near_peak` | Bigger toward the top | | none | 0.36 |
 | `at_peak` | Big, stretched | | none | 0.35 |
 | `collapsing` | Big, fewer | Sunken, more open craters | Fresh cream ring, film and drips (age about 0.15) | 0.33 |
-| `hungry` | Few, big | Hooch `#8A7860` band | Dried flecks (age about 0.55) | 0.33 |
+| `hungry` | Few, big | Hooch `#8A7860` band | Thinning pale film (age about 0.55) | 0.33 |
 | `dormant` | Very few | Hooch `#8A7860` | As stored | 0.40 |
 | `recovering` | Like `developing` | | As stored | 0.41 |
-| `unhealthy` | Almost none | Crust `#CDBB98` at 0.85 dryness, crackle, dark hooch `#5A5045` | Aged (1.0), crust color | 0.76 (dry) |
+| `unhealthy` | Almost none | Crust `#CDBB98` at 0.85 dryness, crackle, dark hooch `#5A5045` | Aged (1.0), pale dried `#E2D9C8`, soft patches | 0.76 (dry) |
 | `moldy` | None | As `unhealthy`, plus §6 colonies | Aged, plus glass colonies | 0.76 |
 
 `ROUGHNESS` on the cap = `mix(0.55, 0.24, sheen)`, then `mix(r, 0.18, air)`, `mix(r, 0.8, dryness)` and `mix(r, 0.04, in_hooch)`.
@@ -528,15 +529,17 @@ vec4  ml    = texture(liner_mask, uv_liner);
 float age   = clamp(max(surface_dryness, 1.4 * (peak_line - rise) / max(peak_line, 0.01) - 0.1), 0.0, 1.0);
 float thr   = 1.0 - streak_amount;
 float vis   = smoothstep(thr - 0.02, thr + 0.02, ml.r)
-            * smoothstep(0.55 * age, 0.55 * age + 0.04, ml.a);
+            * smoothstep(0.35 * age, 0.35 * age + 0.04, ml.a);
 float above = smoothstep(u_level + 0.0003, u_level + 0.0018, v_pos.y);   // never over the paste
 float thick = clamp((ml.r - thr) / 0.5, 0.0, 1.0);
 ALPHA     = vis * above * (0.30 + 0.62 * thick) * (1.0 - 0.25 * age) * step(0.001, streak_amount);
-ALBEDO    = mix(starter_color, crust_color, age);    // #CDBB98
+ALBEDO    = mix(starter_color, dried_color, age);    // #E2D9C8: dried film is paler, never darker
 ROUGHNESS = mix(0.22, 0.8, age);
 ```
 
-`age` is derived, with no new field (§5 "residue aging"). It gives about 0.15 for `collapsing`, 0.55 for `hungry` and 0.85 for `unhealthy`. Keep the §4 alpha scissor with dither. The liner sits 0.35 mm outside the paste, so `above` is what keeps residue off the paste.
+`age` is derived, with no new field (§5 "residue aging"). It gives about 0.15 for `collapsing`, 0.55 for `hungry` and 0.85 for `unhealthy`. Keep the §4 alpha scissor, dithering only across the 1 px edge. The liner sits 0.35 mm outside the paste, so `above` is what keeps residue off the paste.
+
+**Old residue must never read as dirt or mold.** It thins into soft pale patches (the D channel was regenerated for this). It never cracks into grit, and nothing dark or green shows through its gaps. Use the §6 `streak_amount` targets (`hungry` 0.5, `unhealthy` 0.6): a mapper value of 0.8 at `unhealthy` covers too much glass.
 
 **f. Tier A vs Tier B:** the same masks, albedo, cavity light, `BACKLIGHT` and gloss. Tier B adds only the optional pocket normal tilt and the crater lip. Cost: 5 texture fetches on the starter (side 3, cap 2), 1 on the liner.
 
@@ -553,6 +556,8 @@ Measure as in §3: 31 px patch means, sRGB 8-bit, HSV. Captures at the §7 pose 
 | Cap | Top close-up, cap center | R9 (new) | V 84 to 92%, S 7 to 14% [`#E9E1D5`, V 91%, S 9%] |
 | Hooch from above | Top close-up, `hungry` | R10 (new) | V 55 to 70%, S 25 to 40%, hue 30 to 40 [`#A28B69`, V 64%, S 35%] |
 | Residue | Side close-up, `collapsing`, glass above the surface | R11 (new) | Cream to near-white, S 15% or less [20th to 80th percentile `#D4CAB9` to `#EAE5DE`]. A lacy film with a ring at the top, not a hard ragged band |
+| `unhealthy` hooch | Top close-up, cap center | R12 (new) | Dark and dull: V 46 to 60%, S 30 to 45%, hue 30 to 40 [`#877152`, V 53%, S 39%] |
+| Old residue | Side close-ups of `hungry` and `unhealthy`, glass above the surface | R13 (new) | Pale patches, no grit. 0.2% or less dark specks (hue 70 to 200, S over 12%, V under 60%) [0.00%] |
 | Everywhere | Every capture | §2.3 | Nothing under hue 25 at S over 50% (orange is reserved for mold) |
 
 I sign off when every row passes in all three captures and the board's tells (§16.2) read side by side. The director then shows the user, as D-037 requires.
@@ -561,9 +566,9 @@ I sign off when every row passes in all three captures and the board's tells (§
 
 | Renderer | Verdict | Fixes before re-check |
 |---|---|---|
-| Mobile Tier B | Not yet | Fix 1 |
-| Mobile Tier A | Not yet | Fix 1. Its R7 pocket S of 17.95% counts as a pass (rounding) |
-| Compatibility Tier A | Not yet | Fixes 1 and 2, then re-measure R7 and R8 on `active` |
+| Mobile Tier B | Not yet | Fixes 1 and 3 |
+| Mobile Tier A | Not yet | Fixes 1 and 3. Its R7 pocket S of 17.95% counts as a pass (rounding) |
+| Compatibility Tier A | Not yet | Fixes 1, 2 and 3, then re-measure R7 and R8 on `active` |
 
 - **Fix 1, pointed cap** (`src/view/shaders/starter_common.gdshaderinc`, `cap_offset()`). The cap term in `starter.gdshader` is correct (`1 - UV2.x²`). The point comes from the lump term:
   - `fbm3` spans about 0 to 1, which is wider than the Blender noise the board uses, and a lump near the center shows as a corner at grazing angles. A Blender render without depth of field confirms the board's arc stays round at the same height.
@@ -571,6 +576,12 @@ I sign off when every row passes in all three captures and the board's tells (§
   - Target: in the `at_peak` §16.2 side close-up, the cap's top edge is a smooth arc with no corner. To confirm the cause first, capture once with `lumps` = 0.
 - **Fix 2, clipped glass stripe on Compatibility** (`glass_common.gdshaderinc`, `spec_strength`, now 5.0 on both renderers). Make it a `ViewLook` field. Set it to about 1.5 for Compatibility, where Filmic clips what AgX rolls off, and keep 5.0 on Mobile.
   - Target: under 0.5% of pixels at max channel 0.99 or above in the `at_peak` side close-up (now 11.5%), and under 0.1% in the pose (now 1.3%; the board has 0.07%).
+- **Fix 3, old residue on `hungry` and `unhealthy`** (from the integrated capture `captures/integrated/mobile_unhealthy_day.png`).
+  - The residue reads as dark, gritty and mottled, with olive specks along the band line. It's not mold: `mold` is 0 outside `moldy`, and the specks measure hue about 80, not the mold core's 150 to 190.
+  - Cause: my old drying channel cracked residue into 2 to 3 mm cells. At game distance that reads as grit, and the gaps showed dark hooch and the sage wall.
+  - Art has fixed the mask: reimport `starter_liner_streaks.png`.
+  - In `liner.gdshader`: use keep `0.35 * age`, a pale dried color (§16.5e), and the §6 `streak_amount` (0.5 `hungry`, 0.6 `unhealthy`).
+  - Targets: rows R12 and R13, and `ref_unhealthy_*.png`.
 - **Minor, not blocking:** from the top view, the glass walls read gray. Lower `reflection_strength` on the inner pass, or lighten what the sky shows below the horizon.
 - **Rulings on T2's deviations:**
   - **Shadow maps off on both renderers, with the counter shader drawing the drop shadow: accepted.** The drop shadow must follow the key direction. The lid shadow offset is a known gap to fix.
