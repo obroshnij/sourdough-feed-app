@@ -26,6 +26,9 @@ export_credentials.cfg
 *.blend2
 *.blend@
 
+# Agent git worktrees (each code track works in its own; merged by the director)
+.claude/worktrees/
+
 # Tooling
 __pycache__/
 *.pyc
