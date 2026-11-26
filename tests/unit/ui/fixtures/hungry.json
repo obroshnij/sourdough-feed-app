@@ -1,0 +1,41 @@
+{
+	"environment": {
+		"changed_unix": 0,
+		"container": "classic_jar",
+		"cover": "loose_lid",
+		"humidity_pct": 50.0,
+		"location": "counter",
+		"temperature_c": 22.0
+	},
+	"starter": {
+		"acid": 0.6046935392243702,
+		"born_unix": 0,
+		"culture_hydration": 100.0,
+		"dryness": 0.08218838022556839,
+		"feed_jitter": 1.0,
+		"feed_u": 0.5,
+		"flour_mix": {
+			"white_bread": 1.0
+		},
+		"food": 8.850058689636031e-21,
+		"food_at_feed": 0.6666666666666666,
+		"hooch": 0.006178670647410417,
+		"id": "",
+		"lab": 0.8131112936040301,
+		"mass_g": 150.0,
+		"maturity": 0.60815005696,
+		"mold_risk": 0.0,
+		"moldy": false,
+		"name": "Bramble",
+		"peak_rate": 0.23524841111571404,
+		"peak_rise": 2.1766299292088456,
+		"rise": 1.5878082991500522,
+		"sim_time_unix": 45900,
+		"since_feed_s": 45900.0,
+		"starved_h": 6.2777324544933375,
+		"temp_c": 22.0,
+		"vigor": 1.0,
+		"vigor_at_feed": 1.0,
+		"yeast": 0.7722186563613259
+	}
+}
