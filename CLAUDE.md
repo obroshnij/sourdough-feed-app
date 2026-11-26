@@ -25,7 +25,7 @@ A cozy 3D virtual pet for iOS and Android. The player keeps a living sourdough s
 | JDK | `/Applications/Android Studio.app/Contents/jbr/Contents/Home` | OpenJDK 21.0.10 |
 | Android SDK | `~/Library/Android/sdk` | Missing platform 36, build-tools 36.1.0 and the NDK |
 
-Godot export templates are **not** installed (1,281 MB, ask before downloading). There is no physical test phone yet: performance numbers from the Mac or simulators are estimates and must be labeled that way.
+Godot 4.7.2 export templates are installed in `~/Library/Application Support/Godot/export_templates/4.7.2.stable/`, checksum-verified against the official SHA512-SUMS (2026-11-26). There is no physical test phone yet: performance numbers from the Mac or simulators are estimates and must be labeled that way.
 
 ## Verified commands
 
