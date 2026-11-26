@@ -65,7 +65,7 @@ func test_clk_03_clock_back_one_hour_changes_nothing() -> void:
 	var clock: FakeClock = FakeClock.new(T)
 	var first: GameSession = _launch(_dir, clock)
 	_close(first)
-	var before: Dictionary = _saved_starter(_dir)
+	var before: Dictionary = first.get_starter().to_dict()
 	var journal_before: int = first.get_journal().size()
 	clock.set_now(T - HOUR)
 	var s: GameSession = _launch(_dir, clock)
@@ -158,8 +158,9 @@ func test_clk_12_clock_reads_1970() -> void:
 	if not _ready_for_sessions():
 		return
 	var clock: FakeClock = FakeClock.new(T)
-	_close(_launch(_dir, clock))
-	var before: Dictionary = _saved_starter(_dir)
+	var first: GameSession = _launch(_dir, clock)
+	_close(first)
+	var before: Dictionary = first.get_starter().to_dict()
 	clock.set_now(0)
 	var s: GameSession = _launch(_dir, clock)
 	check(s.get_last_catch_up().reanchored, "re-anchored")
@@ -255,12 +256,3 @@ func _close(s: GameSession) -> void:
 
 func _meta(s: GameSession) -> Dictionary:
 	return s.build_payload().get("meta", {})
-
-
-## The starter as a fresh launch reads it from `dir`'s save. "State unchanged" compares against
-## this, not the in-memory starter, because in 4.7.2 a JSON save round trip can move a double by
-## 1 ulp (see test_save_engine_facts.gd). That is SAVE-01's concern, not the clock rule's.
-func _saved_starter(dir: String) -> Dictionary:
-	var payload: Dictionary = SaveStore.new(dir).load_latest().payload
-	var starter: StarterState = StarterState.from_dict(payload.get("starter", {}))
-	return {} if starter == null else starter.to_dict()

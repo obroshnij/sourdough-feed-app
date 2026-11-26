@@ -8,6 +8,19 @@ extends RefCounted
 const FORMAT := "sourdough.save"
 
 
+## data-models §1 (OD-18): a float in the payload is the 16-char hex of its 8 IEEE-754 bytes from
+## encode_double (little-endian). 0.25 is "000000000000d03f".
+static func float_hex(x: float) -> String:
+	var bytes: PackedByteArray = PackedByteArray()
+	bytes.resize(8)
+	bytes.encode_double(0, x)
+	return bytes.hex_encode()
+
+
+static func hex_float(hex: String) -> float:
+	return hex.hex_decode().decode_double(0)
+
+
 static func payload_text(payload: Dictionary) -> String:
 	return JSON.stringify(payload, "", true, true)
 
