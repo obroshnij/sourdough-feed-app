@@ -84,7 +84,7 @@ func test_long_press_shows_the_large_label() -> void:
 	check(smell.is_popup_visible(), "after 500 ms the label popup shows")
 	var popup_label: Label = smell.get_node(^"LabelPopup").get_child(0) as Label
 	check_eq(popup_label.get_theme_font_size(&"font_size"), 28, "the popup label is 28 pt (200%)")
-	check_eq(popup_label.text, smell.text, "the popup shows the button label")
+	check_eq(popup_label.text, smell.label_text(), "the popup shows the button label")
 	smell.button_up.emit()
 	smell.pressed.emit()
 	check(not smell.is_popup_visible(), "release hides it")

@@ -45,11 +45,16 @@ func test_insets_gutters_and_jar_region() -> void:
 			check(bar.position.x >= 16.0 - EPS and size.x - bar.end.x >= 16.0 - EPS, tag + " bar gutters >= 16")
 			if device.begins_with("android"):
 				check(size.y - bar.end.y >= 56.0 - EPS, tag + " Android bar gap >= 56 dp")
+			check_close(bar.size.y, 72.0, 0.0, EPS, tag + " the bar plate is 72 pt")
 			var region: Rect2 = _ui.jar_region()
 			check_close(region.position.y, plate.end.y, 0.0, EPS, tag + " jar region starts under the plate")
 			check_close(region.end.y, bar.position.y, 0.0, EPS, tag + " jar region ends at the bar")
+			print("    jar region %s: %.0f pt (%.0f%%)" % [tag, region.size.y, 100.0 * region.size.y / size.y])
 			if not device.begins_with("android"):
 				check(region.size.y >= 0.55 * size.y, "%s jar region %.0f pt is >= 55%% of %.0f" % [tag, region.size.y, size.y])
+			elif is_equal_approx(scale, 1.0):
+				# D-043: 360 x 640 may drop to 51% at 100% text.
+				check(region.size.y >= 0.51 * size.y, "%s jar region %.0f pt is >= 51%% of %.0f" % [tag, region.size.y, size.y])
 			await after_each()
 
 
@@ -124,8 +129,14 @@ func _check_hud(tag: String) -> void:
 				"%s %s target %s >= 44 x 44" % [tag, c.name, r.size])
 			check(c.accessibility_name.length() > 0 and c.accessibility_name.length() <= 40,
 				"%s %s accessibility_name 1..40 chars: '%s'" % [tag, c.name, c.accessibility_name])
-		if c is ActionBarButton:
+		var slot: ActionBarButton = c as ActionBarButton
+		if slot != null:
 			check(r.size.x >= BAR_SLOT - EPS and r.size.y >= BAR_SLOT - EPS, "%s %s bar slot %s >= 64 x 64" % [tag, c.name, r.size])
+			var lr: Rect2 = slot.label_rect()
+			check(slot.label_text() != "", "%s %s has a label" % [tag, c.name])
+			check(lr.position.x >= 2.0 - EPS and lr.end.x <= slot.size.x - 2.0 + EPS,
+				"%s %s label '%s' fits the slot width (%.1f of %.1f)" % [tag, c.name, slot.label_text(), lr.size.x, slot.size.x])
+			check(slot.size.y - lr.end.y >= 10.0 - EPS, "%s %s label keeps >= 10 pt below (%.1f)" % [tag, c.name, slot.size.y - lr.end.y])
 		check(root_rect.encloses(r.grow(-EPS)), "%s %s %s stays on screen" % [tag, c.name, r])
 		var label: Label = c as Label
 		if label != null and label.text != "":
