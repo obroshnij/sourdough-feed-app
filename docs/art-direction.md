@@ -25,7 +25,7 @@ Source of truth for the jar: `art/blender/scripts/build_jar.py`. Change a parame
 | Starter, whole_wheat | `#DCC29C` | Tan, plus bran flecks `#8A6A48` |
 | Starter, rye | `#BE9F7E` | Cocoa-latte. Warm, never gray |
 | Starter, spelt | `#E3CCA6` | Golden cream |
-| Bubble pocket | `#CDB590` | Inside a bubble seen through glass. Only a little darker than the starter |
+| Bubble pocket | `#D3BF9E` | Inside a bubble seen through glass. Only a little darker than the starter |
 | Hooch | `#8A7860` | Gray-brown, glossy |
 | Hooch, long-sitting | `#5A5045` | `unhealthy` and dark hooch |
 | Dry skin or crust | `#CDBB98` | Dull, matte |
@@ -36,8 +36,8 @@ Source of truth for the jar: `art/blender/scripts/build_jar.py`. Change a parame
 | Twine | `#B79C74` | |
 | Rubber band | `#5F7458` | Deep sage |
 | Counter oak | `#D2C09E` / `#B19B76` | Pale butcher block |
-| Tiles | `#A9B49F` / `#9DAA92`, grout `#DCD4C4` | Sage glaze, out of focus |
-| World ambient | `#F3E8D8` top, `#5B4B3D` bottom | |
+| Tiles | `#A3B69F` / `#97AB91`, grout `#DCD4C4` | Sage glaze, out of focus. Authored greener because warm light pulls it toward khaki |
+| World ambient | `#F3E8D8` top, `#5A554E` bottom | Near-neutral floor. A brown floor turned the starter's shadow side caramel |
 | Mold, halo / ring / core / spores | `#F4F4EE` / `#8FB0A2` / `#2F7465` / `#1F2A27` | `moldy` only |
 
 ### 2.2 UI (agreed with ux-designer, ratios in `ux-design.md` §16.1)
@@ -66,27 +66,32 @@ Type: Figtree for all UI (measured 0.427 to 0.440 em). Fraunces only for the sta
 
 | Light | Blender v0 (`setup_lights_camera`) | Godot (Mobile) | Compatibility |
 |---|---|---|---|
-| Key | Area 0.30 x 0.80 m, front-left high, 3.8 W, `#FFE6CC`, spread 75 degrees | DirectionalLight3D, warm 4300 K look, shadows on (1 split, max distance 1.5 m, soft PCF) | Same, shadow filter low |
-| Fill | Area 0.9 m, front-right, 10% of key, `#EEF0F5` | Ambient from the sky or cubemap, energy 0.35 | Same |
-| Rim | Strip 0.10 x 0.55 m behind-right, 85% of key, `#FFE0BC` | SpotLight3D behind-right, no shadow. It draws the glass edge highlight | OmniLight3D, no shadow |
+| Key | Area 0.30 x 0.80 m, front-left high, 3.8 W, `#FFEAD6`, spread 75 degrees | DirectionalLight3D, warm 4300 K look, shadows on (1 split, max distance 1.5 m, soft PCF) | Same, shadow filter low |
+| Fill | Area 0.9 m, front-right, 16% of key, `#F2F2F2` | Ambient from the sky or cubemap, energy 0.35 | Same |
+| Rim | Strip 0.10 x 0.55 m behind-right, 85% of key, `#FFEEDD` | SpotLight3D behind-right, no shadow. It draws the glass edge highlight | OmniLight3D, no shadow |
 | Top | Area 0.4 m overhead, 15% of key | Folded into ambient | Same |
-| Environment | Gradient world, strength 0.30 | One baked 128 px cubemap of the kitchen (reflections on glass and starter). AgX tonemap (matches Blender), exposure tuned to the previews | Cubemap only, Filmic if AgX is unavailable |
+| Environment | Gradient world, strength 0.30 | One baked 128 px cubemap of the kitchen (reflections on glass and starter). Tonemap and exposure: T2's choice, signed off against the reference look below | Cubemap only. Tonemap and exposure: T2, against the same reference look |
 | Contact shadow | Real | Baked soft AO decal under the jar (64 px texture) | Same |
 
-**Tonemap and exposure per tier.** `QualityTier` applies one `Environment` preset per renderer (`architecture.md` §8.1). These are **starting values, not yet run in Godot**. The spike tunes them against `art/previews/`.
+**Reference look (the target for every renderer).** Per the director's ruling, Compatibility tonemap and exposure parity belongs to the Phase 2 view track (T2), with art-director sign-off. This section gives T2 the target, not the engine settings.
 
-| Setting | Mobile (Tier B) | Compatibility (Tier A) |
-|---|---|---|
-| Tonemap | AgX (matches the Blender previews) | Filmic, white 4.0. godot-developer found that AgX does not match on Compatibility |
-| Exposure | 1.0 | 0.85 (the starter was rendering near white) |
-| Adjustments | Off | Saturation 0.9, contrast 1.0, if 4.7.2 Compatibility supports adjustments. If not, the Tier A materials take the color down: counter and wood albedo saturation -10% |
-| Key light energy | 1.0 x | 0.9 x |
-| Ambient energy | 0.35 | 0.40 (no back-scatter term in Tier A, so the shadow side needs a little lift) |
+Measured from `art/previews/` at the preview pose (§7). Values are 31 px patch means, sRGB 8-bit, HSV.
 
-**Match targets** (Godot screenshot at the preview pose vs `jar_v0_at_peak.png`, sampled as 9 x 9 px averages):
-- Starter, lit front at mid-height: luminance within ±6%. It must never clip to white; the max channel stays under 0.95.
-- Counter, front right: saturation within ±10%.
-- Tile wall, top center: hue within ±8 degrees.
+| Sample (preview pixel) | Target | Hue | Saturation | Value | Tolerance for Godot |
+|---|---|---|---|---|---|
+| Starter, lit front-left, mid-height (290, 850 at_peak) | `#DDD3C4` | 36 | 11% | 87% | Value ±6 points, saturation 8 to 16%, max channel 0.92 or less (never clipped) |
+| Starter, shadow side front-right (450, 830 at_peak) | `#8A7253` | 34 | 40% | 54% | Value 50 to 62%, saturation 45% or less |
+| Starter, lit, all 8 states | `#D8CEBE` to `#DCD1C2` | 35 to 37 | 11 to 12% | 85 to 86% | Same as the first row |
+| Counter, front right (600, 1150) | `#E3D7C9` | 32 | 11% | 89% | Saturation 15% or less, never clipped |
+| Tile wall, top center (360, 150) | `#A7A183` | 50 | 22% | 65% | Hue 45 to 70 (reads sage, not khaki or gray) |
+| Lid top (330, 350) | `#C9AE91` | 31 | 28% | 79% | Saturation 35% or less |
+
+**Rules behind the numbers:**
+- **Lit cream is nearly neutral.** The form reads through a lit-to-shadow value ratio of about 1.6 : 1, not through saturation.
+- **Starter hue stays 30 to 40 degrees in every state.** Below 25 degrees at saturation over 50% is orange territory, which is reserved for mold (§2.3).
+- **Nothing in the frame clips.**
+
+godot-developer's spike finding (Compatibility starter at 0.030 saturation versus 0.213 on Mobile) is open with T2. A match is signed off against this table.
 
 **Key-to-fill about 4:1.** The right side of the jar stays a little darker, and the rim brings the edge back. Flat front light makes glass look cheap.
 
@@ -95,7 +100,7 @@ Type: Figtree for all UI (measured 0.427 to 0.440 em). Fraunces only for the sta
 | Preset | When | Key | Ambient | Backdrop |
 |---|---|---|---|---|
 | morning | 06 to 11 | Neutral `#FFF1E2`, higher angle | Slightly cool | Tiles brighter |
-| afternoon (default, the previews) | 11 to 17 | `#FFE6CC`, low left | Warm | As built |
+| afternoon (default, the previews) | 11 to 17 | `#FFEAD6`, low left | Warm | As built |
 | evening and night | 17 to 06 | Under-cabinet lamp `#FFD7A8` close above-left, window dark | Low, warm | Darkest about `#1A1310` |
 
 The HUD plate cross-fades from surface to surface_night on the same blend factor as the evening preset. The jar is always well lit; night never hides the starter.
@@ -113,7 +118,7 @@ Every GLB material is a placeholder. Godot assigns shader materials by node and 
 | Material (GLB name) | Look | Blender look-dev build | Godot Tier B (Mobile) | Godot Tier A fallback |
 |---|---|---|---|---|
 | `M_Glass` (surface 0), `M_Glass_Inner` (surface 1) | Clear, thick base, long highlights, faint green at grazing edges, a whisper of smudge | Principled, transmission 1, IOR 1.5, roughness 0.008 to 0.045 from noise. Shadow rays see a transparent BSDF (light shadows). No volume absorption: with two surfaces, Cycles floods the cavity | Two passes on one node: `cull_front` then `cull_back`, `blend_mix`, `depth_draw_never`. Alpha and reflection from fresnel (Schlick, F0 0.04). Cubemap reflection. Screen-texture refraction (`hint_screen_texture`, mip blur 1 to 2) offset by the view-space normal times 0.02. Edge tint `#CFE3D6` weighted by fresnel stands in for thick-edge absorption. `fog` uniform for fridge condensation | Same two passes without the screen texture: fresnel alpha, cubemap reflection, edge tint |
-| `M_Starter` | Creamy, glossy, soft, alive | Principled with subsurface 0.35, coat by state. Voronoi bubbles (domain-warped, size per cell), crackle for dryness, flecks, hooch band by height, mold colonies | One opaque spatial shader (D-010). Vertex: the formula in §5. Fragment: one packed 256 px RGBA noise texture (R bubble cells, G cell random, B crackle edges, A fine noise), sampled through the UV0 atlas, no 3D noise at runtime. Wrap diffuse (0.3) plus a warm back-scatter term instead of SSS. Sheen into roughness and specular. Hooch band from the vertex height against `u_level` | Same shader with the bubble normal from a precomputed normal channel, no back-scatter |
+| `M_Starter` | Creamy, glossy, soft, alive | Principled with subsurface 0.22 (scale 1.8 mm, 0.08 inside bubble pockets), coat by state. Voronoi bubbles (domain-warped, size per cell), crackle for dryness, flecks, hooch band by height, mold colonies | One opaque spatial shader (D-010). Vertex: the formula in §5. Fragment: one packed 256 px RGBA noise texture (R bubble cells, G cell random, B crackle edges, A fine noise), sampled through the UV0 atlas, no 3D noise at runtime. Wrap diffuse (0.3) plus a warm back-scatter term instead of SSS. Sheen into roughness and specular. Hooch band from the vertex height against `u_level` | Same shader with the bubble normal from a precomputed normal channel, no back-scatter |
 | `M_Starter_Liner` | Cream residue ring at `peak_line`, streaks down to the surface; aged streaks dry and break up; mold colonies on the glass for `moldy` | Mix of transparent and Principled by a streak mask from UV v | Alpha scissor (threshold 0.5) with blue-noise dither for soft edges, `cull_disabled`. Stays in the opaque pass, so no sorting with the glass | Same |
 | `M_Lid_Wood` | Oiled oak, horizontal growth rings, cathedral grain on top | Wave bands along Z, noise-warped | 512 px tileable oak albedo + roughness baked from the Blender material, triplanar on object space | Same |
 | `M_Lid_Enamel` | Cream enamel, clearcoat, knurled skirt | Principled + coat, knurl from a radial-angle sine bump | StandardMaterial3D, clearcoat 0.6. Knurl from `sin(atan(z,x) * 120)` in a tiny shader, skirt only | StandardMaterial3D, no knurl |

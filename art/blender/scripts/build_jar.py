@@ -116,7 +116,7 @@ C = {
     "glass_tint":   "#FAFDFB",   # faint soda-lime green; compounds over 4 crossings
     "starter":      {"white_bread": "#F0E3C9", "whole_wheat": "#DCC29C",
                      "rye": "#BE9F7E", "spelt": "#E3CCA6"},
-    "pocket":       "#CDB590",   # inside a bubble, seen through the glass
+    "pocket":       "#D3BF9E",   # inside a bubble, seen through the glass
     "hooch":        "#8A7860",   # gray-brown, translucent-looking liquid
     "hooch_dark":   "#5A5045",   # long-sitting, thick hooch (unhealthy)
     "crust":        "#CDBB98",   # dull dry skin
@@ -134,11 +134,11 @@ C = {
     "band":         "#5F7458",
     "counter_lt":   "#D2C09E",   # pale oak butcher block
     "counter_dk":   "#B19B76",
-    "tile_a":       "#A9B49F",
-    "tile_b":       "#9DAA92",
+    "tile_a":       "#A3B69F",   # authored greener: warm key light pulls it toward khaki
+    "tile_b":       "#97AB91",
     "grout":        "#DCD4C4",
     "world_top":    "#F3E8D8",
-    "world_bottom": "#5B4B3D",
+    "world_bottom": "#5A554E",   # near-neutral: a brown floor bounce turned the shadow side caramel
 }
 
 # --- Preview states (look-dev values; the sim spec drives the real ones) ----------
@@ -1251,10 +1251,12 @@ def mat_starter():
     coat = t.math("MULTIPLY", t.value("coat", 0.3), t.math("SUBTRACT", 1.0, t.math("MAXIMUM", dry, colony)))
     coat = t.math("MAXIMUM", coat, hooch)
     p = t.principled(Base_Color=c, Roughness=rough,
-                     Subsurface_Scale=0.006, Coat_Roughness=0.06, Specular_IOR_Level=0.6,
+                     Subsurface_Scale=0.0018, Coat_Roughness=0.06, Specular_IOR_Level=0.6,
                      Sheen_Roughness=0.35)
-    p.inputs["Subsurface Radius"].default_value = (1.0, 0.75, 0.5)
-    t.put(p.inputs["Subsurface Weight"], lerp(t, t.math("MAXIMUM", hooch, dry), 0.35, 0.02))
+    # Near-neutral radius: a red-heavy radius turned shadowed bubble pockets caramel.
+    p.inputs["Subsurface Radius"].default_value = (1.0, 0.9, 0.78)
+    sss = lerp(t, t.math("MAXIMUM", hooch, dry), 0.22, 0.02)
+    t.put(p.inputs["Subsurface Weight"], lerp(t, bub, sss, 0.08))
     t.put(p.inputs["Sheen Weight"], colony)
     t.put(p.inputs["Coat Weight"], coat)
     t.put(p.inputs["Normal"], bump.outputs[0])
@@ -1560,11 +1562,11 @@ def add_area(coll, name, loc, target, size, size_y, energy, hexc, spread_deg=180
 def setup_lights_camera(coll):
     tgt = (0.0, 0.0, 0.07)
     # Key: tall window softbox, front left, warm.
-    add_area(coll, "Key", (-0.50, -0.34, 0.36), tgt, 0.30, 0.80, KEY_W, "#FFE6CC", 75)
+    add_area(coll, "Key", (-0.50, -0.34, 0.36), tgt, 0.30, 0.80, KEY_W, "#FFEAD6", 75)
     # Fill: broad, front right, slightly cooler and weak.
-    add_area(coll, "Fill", (0.55, -0.45, 0.22), tgt, 0.9, 0.9, KEY_W * 0.10, "#EEF0F5")
+    add_area(coll, "Fill", (0.55, -0.45, 0.22), tgt, 0.9, 0.9, KEY_W * 0.16, "#F2F2F2")
     # Rim: narrow strip behind right, warm, outlines the glass.
-    add_area(coll, "Rim", (0.30, 0.38, 0.30), (0.0, 0.0, 0.08), 0.10, 0.55, KEY_W * 0.85, "#FFE0BC", 60)
+    add_area(coll, "Rim", (0.30, 0.38, 0.30), (0.0, 0.0, 0.08), 0.10, 0.55, KEY_W * 0.85, "#FFEEDD", 60)
     # Top: soft overhead kiss for the starter's top surface and lid.
     add_area(coll, "Top", (-0.05, -0.10, 0.55), tgt, 0.4, 0.4, KEY_W * 0.15, "#FFF1DE")
 
