@@ -132,6 +132,36 @@ func primitives(key: String) -> Dictionary:
 	return src
 
 
+## The canonical form for free-form dictionaries (event payloads, journal args and data): whole numbers are
+## ints, everything else unchanged, recursively. JSON gives every number back as a float, so without this a
+## save and load would turn 50 into 50.0 and change the saved text (PROP-02).
+static func canonical(v: Variant) -> Variant:
+	match typeof(v):
+		TYPE_FLOAT:
+			var x: float = v
+			if not is_nan(x) and not is_inf(x) and x == floorf(x) and absf(x) < _MAX_SAFE_INT:
+				return int(x)
+			return x
+		TYPE_DICTIONARY:
+			var src: Dictionary = v
+			var out: Dictionary = {}
+			for k: Variant in src:
+				out[k] = canonical(src[k])
+			return out
+		TYPE_ARRAY:
+			var arr: Array = v
+			var list: Array = []
+			for item: Variant in arr:
+				list.append(canonical(item))
+			return list
+	return v
+
+
+static func canonical_dict(d: Dictionary) -> Dictionary:
+	var out: Dictionary = canonical(d)
+	return out
+
+
 func _to_float(v: Variant) -> float:
 	var t: int = typeof(v)
 	if t == TYPE_FLOAT:

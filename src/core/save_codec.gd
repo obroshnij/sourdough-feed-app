@@ -7,11 +7,74 @@ extends RefCounted
 const FORMAT: String = "sourdough.save"
 const CURRENT_VERSION: int = 1
 const NEWLINE: int = 10
+const OPEN_BRACE: int = 123
+## Godot 4.7.2's JSON parser is not correctly rounded for 17-digit numbers: about 1 in 4 sim floats came
+## back 1 ulp off after stringify(full_precision) and parse (measured in tests/unit/core). A float whose
+## text doesn't parse back exactly is written as {"$f64": "<16 hex digits of its bits>"}, so a save and
+## load is lossless (PROP-01, PROP-02). Values that round-trip stay plain numbers.
+const F64_KEY: String = "$f64"
+
+static var _json: JSON = JSON.new()
 
 
-## Sorted keys, full precision, one line.
+## Sorted keys, full precision, one line, floats packed losslessly.
 static func payload_text(payload: Dictionary) -> String:
-	return JSON.stringify(payload, "", true, true)
+	return JSON.stringify(pack_floats(payload), "", true, true)
+
+
+static func pack_floats(v: Variant) -> Variant:
+	match typeof(v):
+		TYPE_FLOAT:
+			var x: float = v
+			if _round_trips(x):
+				return x
+			var b := PackedByteArray()
+			b.resize(8)
+			b.encode_double(0, x)
+			return {F64_KEY: b.hex_encode()}
+		TYPE_DICTIONARY:
+			var src: Dictionary = v
+			var out: Dictionary = {}
+			for k: Variant in src:
+				out[k] = pack_floats(src[k])
+			return out
+		TYPE_ARRAY:
+			var arr: Array = v
+			var list: Array = []
+			for item: Variant in arr:
+				list.append(pack_floats(item))
+			return list
+	return v
+
+
+static func unpack_floats(v: Variant) -> Variant:
+	match typeof(v):
+		TYPE_DICTIONARY:
+			var src: Dictionary = v
+			if src.size() == 1 and src.has(F64_KEY) and typeof(src[F64_KEY]) == TYPE_STRING:
+				var hex: String = src[F64_KEY]
+				if hex.length() == 16 and hex.is_valid_hex_number():
+					return hex.hex_decode().decode_double(0)
+			var out: Dictionary = {}
+			for k: Variant in src:
+				out[k] = unpack_floats(src[k])
+			return out
+		TYPE_ARRAY:
+			var arr: Array = v
+			var list: Array = []
+			for item: Variant in arr:
+				list.append(unpack_floats(item))
+			return list
+	return v
+
+
+static func _round_trips(x: float) -> bool:
+	if is_nan(x) or is_inf(x):
+		return false
+	if _json.parse(JSON.stringify(x, "", false, true)) != OK:
+		return false
+	var back: Variant = _json.data
+	return typeof(back) == TYPE_FLOAT and back == x
 
 
 static func encode(payload: Dictionary) -> PackedByteArray:
@@ -31,7 +94,9 @@ static func decode(bytes: PackedByteArray, allow_bare: bool = false) -> SaveDeco
 	var out := SaveDecoded.new()
 	var nl: int = bytes.find(NEWLINE)
 	var header: Dictionary = {}
-	if nl > 0:
+	# Only text that starts with "{" is decoded, so binary garbage never reaches the UTF-8 decoder (which
+	# prints "Unicode parsing error" to stderr, though it logs no error).
+	if nl > 0 and bytes[0] == OPEN_BRACE:
 		header = _parse_object(bytes.slice(0, nl).get_string_from_utf8())
 	if header.is_empty() or not header.has("format"):
 		if allow_bare:
@@ -54,7 +119,7 @@ static func decode(bytes: PackedByteArray, allow_bare: bool = false) -> SaveDeco
 		out.reason = &"too_new" if version > CURRENT_VERSION else &"bad_header"
 		return out
 	var body: PackedByteArray = bytes.slice(nl + 1)
-	if body.size() != length or body.is_empty():
+	if body.size() != length or body.is_empty() or body[0] != OPEN_BRACE:
 		out.reason = &"length"
 		return out
 	var ctx := HashingContext.new()
@@ -79,6 +144,12 @@ static func decode(bytes: PackedByteArray, allow_bare: bool = false) -> SaveDeco
 static func _decode_bare(bytes: PackedByteArray) -> SaveDecoded:
 	var out := SaveDecoded.new()
 	out.bare = true
+	var start: int = 0
+	while start < bytes.size() and bytes[start] in [9, 10, 13, 32]:
+		start += 1
+	if start >= bytes.size() or bytes[start] != OPEN_BRACE:
+		out.reason = &"json"
+		return out
 	var payload: Dictionary = _parse_object(bytes.get_string_from_utf8())
 	if payload.is_empty():
 		out.reason = &"json"
@@ -103,5 +174,5 @@ static func _parse_object(text: String) -> Dictionary:
 	var data: Variant = json.data
 	if typeof(data) != TYPE_DICTIONARY:
 		return {}
-	var d: Dictionary = data
+	var d: Dictionary = unpack_floats(data)
 	return d

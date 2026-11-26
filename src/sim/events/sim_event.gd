@@ -44,7 +44,7 @@ func to_dict() -> Dictionary:
 		"tier": String(tier),
 		"created_unix": created_unix,
 		"local_minute_of_day": local_minute_of_day,
-		"payload": payload.duplicate(),
+		"payload": DictReader.canonical_dict(payload),
 		"expires_unix": expires_unix,
 		"expires_if": String(expires_if),
 		"not_before_unix": not_before_unix,
@@ -60,7 +60,7 @@ static func from_dict(d: Dictionary) -> SimEvent:
 	e.tier = r.id("tier")
 	e.created_unix = r.integer("created_unix")
 	e.local_minute_of_day = r.integer("local_minute_of_day")
-	e.payload = r.primitives("payload")
+	e.payload = DictReader.canonical_dict(r.primitives("payload"))
 	e.expires_unix = r.integer("expires_unix")
 	e.expires_if = r.id("expires_if")
 	e.not_before_unix = r.integer("not_before_unix")
