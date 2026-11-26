@@ -29,11 +29,10 @@ const FIXTURE_SAVE_DIR: String = "user://fixture_saves"
 const AUTOSAVE_INTERVAL_S: int = 600
 const SAVE_FAILED_KEY: StringName = &"REASON_SAVE_FAILED"
 const NOT_READY_KEY: StringName = &"REASON_NOT_READY"
-const PENDING_TRANSLATIONS: Array[String] = [
-	"res://src/i18n/pending_core.en.translation",
-	"res://src/i18n/pending_view.en.translation",
-	"res://src/i18n/pending_ui.en.translation",
-]
+## Frame cap (architecture.md §11): 60 while interacting, 30 after 3 s with no interaction.
+const ACTIVE_FPS: int = 60
+const IDLE_FPS: int = 30
+const IDLE_AFTER_S: float = 3.0
 const PAYLOAD_SECTIONS: Array[String] = [
 	"environment", "events", "history", "journal", "memorials", "meta", "rng", "starter",
 ]
@@ -79,12 +78,14 @@ var _last_mono_ms: int = 0
 var _last_save_wall: int = 0
 var _save_failing: bool = false
 var _timer: Timer = null
+var _idle_timer: Timer = null
 var _flags: DevFlags = DevFlags.new()
 
 
 func _ready() -> void:
 	_flags = DevFlags.parse()
-	_load_pending_translations()
+	I18nLoader.load_all()
+	_wire_bus()
 
 
 # ------------------------------------------------------------------ lifecycle
@@ -113,6 +114,7 @@ func start() -> void:
 	else:
 		boot()
 	_start_timer()
+	_on_interaction_ended()
 
 
 ## Launch (architecture.md §6.1): load (or start new), clock rules, catch-up, save, session_ready.
@@ -719,15 +721,6 @@ func _apply_parts(parts: Parts) -> void:
 	_refresh()
 
 
-func _load_pending_translations() -> void:
-	for path: String in PENDING_TRANSLATIONS:
-		if ResourceLoader.exists(path):
-			var res: Resource = load(path)
-			var t: Translation = res as Translation
-			if t != null:
-				TranslationServer.add_translation(t)
-
-
 func _start_timer() -> void:
 	if _timer != null:
 		return
@@ -749,3 +742,32 @@ func _schedule_timer() -> void:
 func _on_timer() -> void:
 	tick()
 	_schedule_timer()
+
+
+## The autoload listens to Bus for the frame cap. A poke (starter_tapped) never changes the sim.
+func _wire_bus() -> void:
+	var bus: Node = get_node_or_null("/root/Bus")
+	if bus == null:
+		return
+	bus.connect(&"interaction_started", _on_interaction_started)
+	bus.connect(&"interaction_ended", _on_interaction_ended)
+
+
+func _on_interaction_started() -> void:
+	Engine.max_fps = ACTIVE_FPS
+	if _idle_timer != null:
+		_idle_timer.stop()
+
+
+func _on_interaction_ended() -> void:
+	if _idle_timer == null:
+		_idle_timer = Timer.new()
+		_idle_timer.one_shot = true
+		_idle_timer.timeout.connect(_on_idle)
+		add_child(_idle_timer)
+	if _idle_timer.is_inside_tree():
+		_idle_timer.start(IDLE_AFTER_S)
+
+
+func _on_idle() -> void:
+	Engine.max_fps = IDLE_FPS

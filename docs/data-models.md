@@ -14,6 +14,7 @@ Sources: `starter-simulation-spec.md` v1 (§1, §12, §16, §17), `game-designer
 | Ranges | The sim clamps every stored float to its range after each step. A test asserts it (property test) |
 | Serialization | Each class has `to_dict() -> Dictionary` and `static from_dict(d: Dictionary) -> <Class>`. `from_dict` converts numbers explicitly (`int(d.x)`), because JSON gives back every number as a float **[ran]**. It checks `typeof()` before every read and returns null on a missing key or wrong type. Assigning a wrong-typed Variant to a typed variable logs a script error **[ran]**, which the test runner's Logger counts as a failure, so a corrupt file must fail silently |
 | 64-bit ints | RNG seeds and states are saved as **decimal strings**. As JSON numbers they lose precision above 2^53 **[ran]** |
+| Floats | Every `float` in the save payload is saved as a **16-character hex string of its IEEE-754 bits**: the 8 bytes from `PackedByteArray.encode_double(0, x)`, then `hex_encode()` (little-endian byte order). Examples: 0.25 is `"000000000000d03f"`, 150.0 is `"0000000000c06240"`. Reason: Godot 4.7.2's JSON number parser isn't correctly rounded (for example, 1.9469610637576158 reads back as 1.946961063757616), so about a third of doubles come back 1 ulp off (33,968 of 100,000 between 1e-6 and 1e3), even with `full_precision` **[ran]**, found by `qa-engineer`. The bit pattern round-trips exactly (0 of 100,000 off) **[ran]**. The decoder also accepts a plain JSON number for a float field (lossy), so hand-written dev fixtures stay writable. The writer always writes hex |
 | Text | No player-facing text in data. Keys only (`architecture.md` §10). The player's starter name is the one exception |
 
 ## 2. `StarterState` (stored)
@@ -240,7 +241,7 @@ Line 1 is a header. Everything after the first newline is the payload, byte for 
 {"environment":{...},"events":{...},...}
 ```
 
-- Payload text: `JSON.stringify(payload, "", true, true)` (sorted keys, full precision). Without full precision, `1/3` is written as `0.333333333333333` and does not round-trip **[ran]**.
+- Payload text: `JSON.stringify(payload, "", true, true)` (sorted keys, full precision). Floats are already hex strings by then (§1), so only ints and strings are JSON numbers and text. Full precision alone is not enough: it fixed `1/3` but leaves about a third of doubles 1 ulp off after parsing **[ran]**.
 - `sha256` = `payload_text.sha256_text()`. `bytes` = UTF-8 byte length.
 - **The checksum covers the stored bytes.** It is never recomputed from a re-serialized Dictionary, because parse then stringify is not byte-stable (`1` comes back as `1.0`) **[ran]**.
 
@@ -267,6 +268,8 @@ Try in order: `save.json`, `save.tmp`, `save.prev`. If the winner is `save.tmp`,
 Dev fixtures: `--fixture=<path>` (debug builds only) and `SaveStore.load_from_path(path)` accept either a full save file or a **bare payload** JSON with no header line, so QA and the tracks can hand-write fixtures. A bare payload skips the checksum and still runs migration and `from_dict`.
 
 ### 9.6 Example payload v1 (synthetic values, pretty-printed here; the real file is one compact line)
+
+For readability, floats below are shown as decimals. The real file writes each one as its hex bit pattern (§1), so `"food": 0.18` is stored as `"food": "0ad7a3703d0ac73f"` and `"mass_g": 150.0` as `"mass_g": "0000000000c06240"`. `Session.dump_state(path)` writes this readable decimal form for humans. Exact comparisons use the real payload.
 
 ```json
 {
