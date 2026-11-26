@@ -11,13 +11,13 @@ Owner: director (the only writer). Teammates report by message. Last updated 202
 | Game design, mechanics, progression | `game-designer` | done | BT-1 to BT-17, L-1 to L-11 |
 | Narrative, events catalog, game copy | `narrative-designer` | done | 612 strings; checker in `tools/i18n/` passes |
 | Art direction and look-dev jar v0 | `art-director` | done | GLB passes `verify_glb.py`; 8 preview renders |
-| Architecture, data models, technical decisions | `tech-architect` | done | ADR-001, 002, 003 and 015 wait on the spike |
-| Jar spike | `godot-developer` | in progress | Benchmarks running |
+| Architecture, data models, technical decisions | `tech-architect` | done | ADR-001 to 003 and 011 accepted with spike evidence; ADR-015 waits on a device |
+| Jar spike | `godot-developer` | done | Mac estimates within budget; starter look not yet premium (D-037). Optional Compatibility color tuning still running, uncommitted |
 | UX design | `ux-designer` | done | |
 | Test plan and acceptance criteria | `qa-engineer` | done | AC-01 to AC-12 |
 | Wave B cross-review | all | done | Scientist's safety sign-off: yes |
-| MVP scope, roadmap, decision log | director | done | `docs/mvp-scope.md`, `docs/roadmap.md`, D-017 to D-034 |
-| Present to the user | director | next | |
+| MVP scope, roadmap, decision log | director | done | `docs/mvp-scope.md`, `docs/roadmap.md`, D-017 to D-037 |
+| Present to the user | director | done | Waiting for review |
 
 ## Waiting on the user
 
