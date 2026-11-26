@@ -383,6 +383,17 @@ func get_settings() -> SettingsStore:
 	return _settings
 
 
+## UI changes get_settings()'s fields, then calls this: writes settings.cfg and emits Bus.settings_changed.
+func save_settings() -> Error:
+	if _settings == null:
+		return ERR_UNCONFIGURED
+	var err: Error = _settings.save_settings()
+	var bus: Node = get_node_or_null("/root/Bus") if is_inside_tree() else null
+	if bus != null:
+		bus.emit_signal(&"settings_changed")
+	return err
+
+
 func get_last_catch_up() -> CatchUpResult:
 	return _last_summary
 
