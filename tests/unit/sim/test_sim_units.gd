@@ -250,6 +250,29 @@ func test_visual_mapper_rules() -> void:
 		check(float(worst.get(f, 0.0)) <= float(MAX_DELTA[f]), "%s max step %s <= %s" % [f, worst.get(f, 0.0), MAX_DELTA[f]])
 
 
+func test_streak_amount_matches_art_targets() -> void:
+	if not require(&"m2_sim"):
+		return
+	var env: EnvironmentState = counter()
+	var s: StarterState = fed(SimFixtures.mature())
+	var seen: Dictionary = {}
+	for i: int in 9 * 24 * 60:
+		var st: StringName = StateDeriver.derive(s, env).state
+		if not seen.has(st) and [&"collapsing", &"hungry", &"unhealthy", &"moldy"].has(st):
+			seen[st] = true
+		Sim.step(s, env)
+		if i == 12 * 60:
+			check_eq(StateDeriver.derive(s, env).state, &"collapsing", "12 h after a 1:1:1 feed is collapsing")
+			check_close(VisualMapper.from_state(s, env).streak_amount, 0.8, 0.0, 0.05, "collapsing streaks about 0.8")
+		if i == 30 * 60:
+			check_close(VisualMapper.from_state(s, env).streak_amount, 0.5, 0.0, 0.05, "hungry streaks about 0.5")
+		if i == 110 * 60:
+			check_eq(StateDeriver.derive(s, env).state, &"unhealthy", "110 h unfed is unhealthy")
+			check_close(VisualMapper.from_state(s, env).streak_amount, 0.6, 0.0, 0.05, "unhealthy streaks about 0.6")
+	check(s.moldy, "ends moldy")
+	check_close(VisualMapper.from_state(s, env).streak_amount, 0.6, 0.0, 0.05, "moldy streaks about 0.6")
+
+
 func test_presets() -> void:
 	if not require(&"m2_sim"):
 		return
