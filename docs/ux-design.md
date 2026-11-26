@@ -197,7 +197,7 @@ On the Pro Max, the far-left bar slot (Feed) falls in S for a right thumb. That'
 | Double-tap window | 300 ms between taps, at most 24 pt apart |
 | Long-press | 500 ms, within the 10 pt slop |
 | Orbit yaw | ±70° from the front, with an 8° rubber band. Unlimited if art-director's set reads well at 360° (open). The spike benchmark orbits 360°, so the frame budget already covers unlimited yaw |
-| Orbit pitch (free orbit) | −5° to +35°, with a 5° rubber band. At −10° the zoomed-out camera sat at counter height (spike). Inspection presets may go past this: `surface` uses about 60° |
+| Orbit pitch (free orbit) | −5° to +35°, with a 5° rubber band. At −10° the zoomed-out camera sat at counter height (spike). Inspection presets may go past this: `surface` uses 76° |
 | Zoom | 1.0× (home distance) to 2.2× (home distance ÷ 2.2), with an 8% rubber band |
 | Orbit inertia | exponential decay, τ = 250 ms. Off with reduce motion |
 | Idle return | after 20 s with no touch, the camera eases home over 1,500 ms. Off with reduce motion |
@@ -377,7 +377,7 @@ Tapping a chip moves the camera (500 ms, ease-in-out cubic). The camera then hol
 | `bubbles` | Glass wall at the starter's mid-height, the side facing the light | Close-up, glass fills 70% of the jar region | Glass focus pull, bubbles in sharp focus |
 | `consistency` | Jar mouth, from 50° above | Medium | A spoon lifts a strand and lets it fall |
 | `height` | Side view at the band | Medium, band and top both in frame | Band glints, a faint guide line rises from band to top |
-| `surface` | Into the mouth from about 60° pitch, a preset beyond the free-orbit cap. The spike needed about 60° to see the top | Close-up | Lid lifts away |
+| `surface` | Into the mouth from **76°** pitch, a preset beyond the free-orbit cap (art-director's proposal, art-direction §15). The sight line clears the lip when tan θ ≥ (170 − h) / 34 mm, where h is the cap height. At 60° that needs h ≥ 111 mm, which no state reaches, so the view went through two layers of glass. At 76° it needs h ≥ 33.6 mm, so the top is visible at every level above that. If the lowest cap is under 34 mm, use 78° (h ≥ 10 mm) | Close-up | Lid lifts away |
 | `development` | Slow orbit, 40° over 3 s, at home distance × 1.2 | Wide | None. Reduce motion: a static wide 3/4 view |
 
 - Results come from the sim state only (CLAUDE.md hard rule 2). The observation describes what the jar shows. The meaning connects it to the state, in plain words.
