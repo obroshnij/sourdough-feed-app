@@ -34,7 +34,7 @@ Source of truth for the jar: `art/blender/scripts/build_jar.py`. Change a parame
 | Enamel cap | `#EFE7D8` | Cream |
 | Linen | `#E6DCCA` with stripe `#8E9F86` | Oatmeal linen, sage stripes |
 | Twine | `#B79C74` | |
-| Rubber band | `#5F7458` | Deep sage |
+| Rubber band | `#7A9271` | Sage. Was `#5F7458`; T2 lifted it because it read near-black in real time. Accepted in Phase 2 sign-off |
 | Counter oak | `#D2C09E` / `#B19B76` | Pale butcher block |
 | Tiles | `#A3B69F` / `#97AB91`, grout `#DCD4C4` | Sage glaze, out of focus. Authored greener because warm light pulls it toward khaki |
 | World ambient | `#F3E8D8` top, `#5A554E` bottom | Near-neutral floor. A brown floor turned the starter's shadow side caramel |
@@ -66,7 +66,7 @@ Type: Figtree for all UI (measured 0.427 to 0.440 em). Fraunces only for the sta
 
 | Light | Blender v0 (`setup_lights_camera`) | Godot (Mobile) | Compatibility |
 |---|---|---|---|
-| Key | Area 0.30 x 0.80 m, front-left high, 3.8 W, `#FFEAD6`, spread 75 degrees | DirectionalLight3D, warm 4300 K look, shadows on (1 split, max distance 1.5 m, soft PCF) | Same, shadow filter low |
+| Key | Area 0.30 x 0.80 m, front-left high, 3.8 W, `#FFEAD6`, spread 75 degrees | DirectionalLight3D, 60 degrees left and 50 degrees up, `#FFF6EE` (T2, accepted: puts the shadow side in its row). Shadows on (1 split, max distance 1.5 m, soft PCF) | No shadow maps (a shadowed light lit about 5x too hard). Analytic drop shadow in the counter shader. Filmic plus a grade, since Compatibility has no AgX |
 | Fill | Area 0.9 m, front-right, 16% of key, `#F2F2F2` | Ambient from the sky or cubemap, energy 0.35 | Same |
 | Rim | Strip 0.10 x 0.55 m behind-right, 85% of key, `#FFEEDD` | SpotLight3D behind-right, no shadow. It draws the glass edge highlight | OmniLight3D, no shadow |
 | Top | Area 0.4 m overhead, 15% of key | Folded into ambient | Same |
@@ -404,7 +404,7 @@ Generator: `python3 -I art/textures/make_starter_masks.py` (numpy only, about 1.
 - **D, drying breakup:** dried residue is removed where D < 0.55 x age. Fine cells (about 2 x 3 mm) crack at their edges first, so old film breaks into flecks, never strips.
 - **Why two channels:** `bubble_density` and `bubble_size` are separate VisualParams. One channel can't give both "few and big" and "many and small".
 
-**Import:** these are data, not color. Sampler uniforms without `source_color`, with `filter_linear_mipmap, repeat_enable` (the liner too: its first and last rows are zero, and v is clamped in code). VRAM Compressed should hold, because two-channel formats keep smooth fields. Switch to VRAM Uncompressed if bubble edges speckle. Memory is about 0.34 MB per 512 x 512 mask compressed with mips, 0.7 MB uncompressed (1.75 MB for all three, inside the 8 MB scene budget). A gray + alpha PNG should sample as (L, L, L, A): read `.r` and `.a`, and confirm it on first import (§15). The committed `assets/textures/*.png.import` files set `compress/mode=2` (VRAM Compressed) and `mipmaps/generate=true`, edited by hand: Godot's first import defaulted to Lossless with no mipmaps.
+**Import:** these are data, not color. Sampler uniforms without `source_color`, with `filter_linear_mipmap, repeat_enable` (the liner too: its first and last rows are zero, and v is clamped in code). **Use VRAM Uncompressed** (`compress/mode=3`). T2 measured that VRAM Compressed stores gray + alpha as DXT5, which puts F in 5:6:5 color endpoints: max error 0.20, and feathery pocket edges. P in alpha stayed exact. Uncompressed is 0.7 MB per 512 x 512 mask with mips, 1.75 MB for all three, inside the 8 MB scene budget. A gray + alpha PNG should sample as (L, L, L, A): read `.r` and `.a`, and confirm it on first import (§15). The settled `.import` files (mode 3, mipmaps on) come from T2's Godot import. Art runs no Godot.
 
 **Mapping.** `v_pos` is the object-space `VERTEX` after displacement. Both meshes have their origin on the inner floor, so `v_pos.y` is the height above the floor. Side and liner use UV0.x, the lathe angle, which has no derivative seam. Godot v grows down the image, so the minus signs keep image-up = world-up, as in the reference renders.
 
@@ -555,3 +555,12 @@ Measure as in §3: 31 px patch means, sRGB 8-bit, HSV. Captures at the §7 pose 
 | Everywhere | Every capture | §2.3 | Nothing under hue 25 at S over 50% (orange is reserved for mold) |
 
 I sign off when every row passes in all three captures and the board's tells (§16.2) read side by side. The director then shows the user, as D-037 requires.
+
+**First review, 2026-11-26** (T2 commit 293b09c, `captures/view/`, 99 frames). Not signed off yet.
+- **Approved on Mobile Tier A and B:** bubbles (the same pattern as the board: irregular, clustered, read as cavities), pockets, cap color, hooch and residue. 153 of 156 rows pass.
+- **Must fix:**
+  - **Pointed cap (T2).** The `at_peak` and `active` cap comes to a point in the side close-ups, where the board shows a rounded arc. Check the cap term is `1 - UV2.x * UV2.x` (§5). Check the lumps noise doesn't lift the single pole vertex: fade lumps to 0 inside `UV2.x < 0.15`.
+  - **Clipped glass stripe on Compatibility (T2).** A vertical glass highlight clips 11.5% of the `at_peak` side close-up and 1.3% of the pose. §3 says nothing clips, and the stripe hides the paste. It is probably also why the two Compatibility R7/R8 misses on `active` happened; re-measure after the fix.
+  - **Backdrop (art).** The in-focus big-tile wall competes with the jar. §1 and §10 want a soft-focus kitchen. Art owes the baked, pre-blurred backdrop image (§4 `M_Backdrop`), plus the counter and lid textures.
+- **Minor:** from the top view, the glass walls read gray and smoky against the board's pale glass. The dried residue on `hungry` is a little dense, but it stays pale, so it is accepted.
+- **Accepted deviations:** key light direction and color (§3), backlight_k 0.15 instead of 0.35, no shadow maps on Compatibility, Filmic plus a grade on Compatibility, band `#7A9271` (§2.1), VRAM Uncompressed masks (§16.3), pale dried residue.
