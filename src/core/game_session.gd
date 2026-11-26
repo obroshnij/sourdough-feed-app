@@ -29,11 +29,6 @@ const FIXTURE_SAVE_DIR: String = "user://fixture_saves"
 const AUTOSAVE_INTERVAL_S: int = 600
 const SAVE_FAILED_KEY: StringName = &"REASON_SAVE_FAILED"
 const NOT_READY_KEY: StringName = &"REASON_NOT_READY"
-const PENDING_TRANSLATIONS: Array[String] = [
-	"res://src/i18n/pending_core.en.translation",
-	"res://src/i18n/pending_view.en.translation",
-	"res://src/i18n/pending_ui.en.translation",
-]
 const PAYLOAD_SECTIONS: Array[String] = [
 	"environment", "events", "history", "journal", "memorials", "meta", "rng", "starter",
 ]
@@ -84,7 +79,7 @@ var _flags: DevFlags = DevFlags.new()
 
 func _ready() -> void:
 	_flags = DevFlags.parse()
-	_load_pending_translations()
+	I18nLoader.load_all()
 
 
 # ------------------------------------------------------------------ lifecycle
@@ -717,15 +712,6 @@ func _apply_parts(parts: Parts) -> void:
 		_rng_seed = bytes.decode_s64(0)
 		_rng.seed = _rng_seed
 	_refresh()
-
-
-func _load_pending_translations() -> void:
-	for path: String in PENDING_TRANSLATIONS:
-		if ResourceLoader.exists(path):
-			var res: Resource = load(path)
-			var t: Translation = res as Translation
-			if t != null:
-				TranslationServer.add_translation(t)
 
 
 func _start_timer() -> void:
