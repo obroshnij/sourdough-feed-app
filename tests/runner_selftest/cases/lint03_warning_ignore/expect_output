@@ -1,0 +1,3 @@
+FAIL res://tests/lint/test_lint_03_typing.gd::test_no_warning_ignore_for_typing typing warnings may not be silenced
+res://src/silenced.gd:4
+PASS res://tests/lint/test_lint_03_typing.gd::test_every_src_script_compiles

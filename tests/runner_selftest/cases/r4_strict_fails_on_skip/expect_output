@@ -1,0 +1,2 @@
+SKIP res://tests/test_skips.gd::test_waits waits on purpose
+FAIL strict: 1 skipped

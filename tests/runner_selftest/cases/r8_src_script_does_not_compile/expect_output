@@ -1,0 +1,3 @@
+FAIL res://tests/lint/test_lint_03_typing.gd::test_every_src_script_compiles 1 of 1 scripts don't compile
+res://src/untyped_member.gd
+PASS res://tests/lint/test_lint_03_typing.gd::test_typing_warnings_are_errors

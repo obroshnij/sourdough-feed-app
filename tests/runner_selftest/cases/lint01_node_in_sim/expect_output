@@ -1,0 +1,2 @@
+FAIL res://tests/lint/test_lint_01_sim_purity.gd::test_lint_01_sim_scripts_are_not_nodes
+res://src/sim/sneaky_panel.gd extends Control, a Node

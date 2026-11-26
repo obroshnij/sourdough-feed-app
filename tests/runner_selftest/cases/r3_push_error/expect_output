@@ -1,0 +1,3 @@
+FAIL res://tests/test_push_error.gd::test_push_error_fails logged: ERROR: boom from a test
+PASS res://tests/test_push_error.gd::test_expected_error_is_allowed (1 checks)
+FAIL res://tests/test_push_error.gd::test_expected_error_that_never_comes expected an error containing "this never happens"

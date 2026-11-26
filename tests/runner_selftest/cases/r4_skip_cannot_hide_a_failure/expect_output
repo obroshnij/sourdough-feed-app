@@ -1,0 +1,2 @@
+FAIL res://tests/test_skip_after_failure.gd::test_fails_then_skips this failed before the skip
+RESULT: 1 passed, 1 failed, 0 skipped
