@@ -12,7 +12,7 @@ Every player-facing string with its `tr()` key, ready for `en.csv`. Voice: [`nar
 
 - Keys are `UPPER_SNAKE_CASE`, ASCII only (`^[A-Z][A-Z0-9_]*$`): `<AREA>_<ID>_<PART>`, for example `SMELL_YOGURT_2`. Agreed with `tech-architect` (architecture.md §10, ADR-014).
 - **Each string appears exactly once** across `narrative.md`, `events-catalog.md` and this file, in a `Key | Text | Max` table. Nothing else in these docs is shipped text.
-- `src/i18n/en.csv` (columns `keys,en`) is **generated** from those rows by narrative's build script in `tools/i18n/` (Phase 2). Nobody hand-edits the CSV.
+- `src/i18n/en.csv` (columns `keys,en`) is **generated** from those rows by `python3 -I tools/i18n/build_catalog.py .`, which runs the copy check (§16) first. Nobody hand-edits the CSV.
 - Docs use straight quotes and apostrophes. The build converts them to curly ones. `ux-designer` checks that the Theme font has the glyphs.
 - During Phase 2 and 3, code tracks put placeholder keys only in their own `src/i18n/pending_core.csv`, `pending_view.csv` or `pending_ui.csv`. Narrative moves them into these docs in a copy pass, and the track deletes its row. One writer per file.
 - Godot CSV translations have no plural forms, so copy avoids plurals: counts appear as label and value pairs, or the key is split (`_HOURS` / `_DAYS`) so the number is always plural.
@@ -597,8 +597,11 @@ Heading, then at most 3 moment rows (oldest first), then the "Now" row, which re
 | `AWAY_RECOVERING` | It's still getting its strength back. | 44 |
 | `AWAY_QUIET` | A quiet stretch. Not much changed. | 44 |
 | `AWAY_LONG_REST` | A long rest. It mostly just waited. | 44 |
+| `AWAY_CAPPED` | After two weeks, it held still until now. | 44 |
 
 `AWAY_TITLE_LONG` replaces the heading after 3 days or more away. It says hello, not how long.
+
+`AWAY_CAPPED` is the D-024 line for an absence longer than 14 days. Show it when `CatchUpResult.capped` is true. It is always kept, as the last moment row before "Now", because the hold comes after everything else that happened. It tells the player the starter stopped changing at the 14-day cap (architecture §5.1) without counting the days or scolding. If the cap ever changes, "two weeks" changes with it.
 
 ## 11. Journal
 
@@ -785,4 +788,4 @@ Local only, opt-in, outside quiet hours (D-007, game-design OD-1). No guilt, no 
 
 It also runs `qa-engineer`'s LINT-06 word lists, mapped to the real key prefixes (safety: `STATUS_MOLDY`, `STATUS_UNHEALTHY`, `SMELL_MUSTY`, `SMELL_MOLDY`, `INSPECT_*_MOLDY*`, `INSPECT_*_UNHEALTHY*`, `INSPECT_SURFACE_HOOCH_DARK`, `EVENT_WARNING_SIGNS`, `EVENT_MOLD_FOUND`, `MOLD_`, `MEMORIAL_`, `NOTIF_WARNING`; hunger: `STATUS_HUNGRY`, `STATUS_DORMANT_STARVED`, `SMELL_ACETONE`, `SMELL_ALCOHOL`, `SMELL_STRONGLY_ACIDIC`, `EVENT_HOOCH_FORMING`, `EVENT_HUNGRY_AGAIN`, `EVENT_FIRST_ACETONE`, `INSPECT_SURFACE_HOOCH`, `INSPECT_*_HUNGRY*`, `FEED_HOOCH`, `GLOSS_HOOCH`). Every moldy *message* (`STATUS_MOLDY_HINT` and `_TAP`, `SMELL_MOLDY_BODY`, `INSPECT_*MOLDY*_MEAN`, `MOLD_SHEET_BODY*`, `MOLD_FEED_BLOCKED`) must contain "discard". Titles, status words, observations and buttons are exempt because they always appear beside one of those.
 
-**Last run, 2026-11-26:** `python3 -I tools/i18n/check_copy.py .` over 614 strings (narrative 123, events 69, game copy 422). First run found 3 over-length strings, all fixed. Second run: 0 problems. After the scientist's wave B review (21 fixes, 3 strings removed, 6 added, net 612 strings), the run still finds 0 problems. It also confirmed the smell rule shows all 3 variants within 300 feeds and never repeats a line on consecutive cycles.
+**Last run, 2026-11-26:** `python3 -I tools/i18n/check_copy.py .` over 614 strings (narrative 123, events 69, game copy 422). First run found 3 over-length strings, all fixed. Second run: 0 problems. After the scientist's wave B review (21 fixes, 3 strings removed, 6 added, net 612 strings), the run still finds 0 problems. It also confirmed the smell rule shows all 3 variants within 300 feeds and never repeats a line on consecutive cycles. Phase 2, 2026-11-26: after adding `AWAY_CAPPED`, the checker reports 613 strings (narrative 123, events 68, game copy 422) and 0 problems, and `build_catalog.py` writes all 613 to `en.csv`.

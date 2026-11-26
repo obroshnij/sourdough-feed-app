@@ -317,6 +317,7 @@ Rows are built by `ReturnSummary.build()` (mechanics §8). Narrative ordering on
 3. On a return to `moldy`, the rows are: the warning line, then `EVENT_MOLD_FOUND_AWAY`. Then the sheet opens.
 4. The "Now" row reuses the status word and hint (ux). No new string.
 5. Moments that aren't events (resting in the fridge, a quiet stretch) use the `AWAY_*` rows in [`game-copy.md`](game-copy.md) §10.
+6. If catch-up was capped (away more than 14 days, D-024), `AWAY_CAPPED` is always kept, as the last row before "Now". It takes one of the 3 slots.
 
 ## 6. Decisions (events)
 

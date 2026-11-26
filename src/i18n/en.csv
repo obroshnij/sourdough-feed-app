@@ -1,0 +1,614 @@
+keys,en
+ACH_DEEP_SLEEPER_BODY,Woke a starter after two weeks or more in the fridge.
+ACH_DEEP_SLEEPER_TITLE,Deep sleeper
+ACH_FLOUR_TOUR_BODY,Fed it all four flours.
+ACH_FLOUR_TOUR_TITLE,Flour tour
+ACH_FULL_NOSE_BODY,Smelled every stage of a healthy rise and fall.
+ACH_FULL_NOSE_TITLE,Full nose
+ACH_GOOD_TIMING_BODY,Fed it at or just after its peak 10 times.
+ACH_GOOD_TIMING_TITLE,Good timing
+ACH_LONG_HAUL_BODY,100 days with the same starter.
+ACH_LONG_HAUL_TITLE,The long haul
+ACH_PEAK_WATCHER_BODY,Looked in at its peak 5 times.
+ACH_PEAK_WATCHER_TITLE,Peak watcher
+ACH_RESCUER_BODY,Brought a starter back from warning signs.
+ACH_RESCUER_TITLE,Rescuer
+ACTION_ENVIRONMENT,Place
+ACTION_ENVIRONMENT_A11Y,Place: choose where it lives
+ACTION_FEED,Feed
+ACTION_FEED_A11Y,Feed the starter
+ACTION_INSPECT,Inspect
+ACTION_INSPECT_A11Y,Inspect the starter
+ACTION_JOURNAL,Journal
+ACTION_JOURNAL_A11Y,Open the journal
+ACTION_SMELL,Smell
+ACTION_SMELL_A11Y,Smell the starter
+AWAY_CAPPED,"After two weeks, it held still until now."
+AWAY_FELL,It fell back after its peak.
+AWAY_FRIDGE,It rested in the fridge. Barely a bubble.
+AWAY_LONG_REST,A long rest. It mostly just waited.
+AWAY_QUIET,A quiet stretch. Not much changed.
+AWAY_RAN_DOWN,It ran low and went quiet.
+AWAY_RECOVERING,It’s still getting its strength back.
+AWAY_ROSE,It rose steadily.
+AWAY_TITLE,While you were away
+AWAY_TITLE_LONG,Welcome back
+CONTAINER_CERAMIC_CROCK,Ceramic crock
+CONTAINER_CLASSIC_JAR,Classic jar
+CONTAINER_FERMENTATION_VESSEL,Fermenter
+CONTAINER_WIDE_MOUTH_JAR,Wide-mouth jar
+EMPTY_JAR_BODY,Clean and waiting. Start again whenever you’re ready.
+EMPTY_JAR_TITLE,An empty jar
+EVENT_BACK_TO_STRENGTH_AWAY,It rose like its old self again.
+EVENT_BACK_TO_STRENGTH_JOURNAL_BODY,"After a rough patch, a full rise again. Starters are forgiving like that. A couple of good feeds and it’s itself again."
+EVENT_BACK_TO_STRENGTH_JOURNAL_TITLE,Back to strength
+EVENT_BACK_TO_STRENGTH_TOAST,Back to its old self. That was a proper rise.
+EVENT_BIG_BUBBLE_JOURNAL_BODY,A big bubble rose and popped around {time}. Showing off.
+EVENT_BIG_BUBBLE_JOURNAL_TITLE,Big bubble
+EVENT_BIG_BUBBLE_TOAST_1,"One big bubble just rose and popped. Showing off, really."
+EVENT_BIG_BUBBLE_TOAST_2,"Pop. A big one, right at the top."
+EVENT_BIG_BUBBLE_TOAST_3,A big bubble surfaced and burst. It’s in fine form.
+EVENT_FED_BEFORE_PEAK_BODY,"Fed mid-rise a few times now. That’s fine, but it dilutes it, so each peak comes later. The dome is the sweet spot."
+EVENT_FED_BEFORE_PEAK_BTN,Got it
+EVENT_FED_BEFORE_PEAK_JOURNAL_BODY,Peak is the sweet spot for feeding. Look for a full dome and big bubbles near the top.
+EVENT_FED_BEFORE_PEAK_JOURNAL_TITLE,Note to self
+EVENT_FED_BEFORE_PEAK_TITLE,Try waiting for the peak
+EVENT_FIRST_ACETONE_JOURNAL_BODY,"First whiff of alcohol or nail polish remover. Startling, but normal: a hungry starter makes these as it runs out of food. A feed or two clears it."
+EVENT_FIRST_ACETONE_JOURNAL_TITLE,A sharp smell
+EVENT_FIRST_ACETONE_TOAST,Sharp and boozy? That’s hunger. A feed fixes it.
+EVENT_FIRST_RISE_AWAY,"It began to rise, all by itself."
+EVENT_FIRST_RISE_JOURNAL_BODY,"The first rise on the real clock. Fresh flour, a little time, and it climbed past the rubber band on its own. That never really gets old."
+EVENT_FIRST_RISE_JOURNAL_TITLE,First rise
+EVENT_FIRST_RISE_TOAST,"Look at the band. It’s rising, all by itself."
+EVENT_GETTING_STRETCHY_JOURNAL_BODY,"Lift a spoonful at its peak and it pulls into strands now. That’s a stronger, steadier starter. Check any time with Inspect, then Consistency."
+EVENT_GETTING_STRETCHY_JOURNAL_TITLE,Getting stretchy
+EVENT_GETTING_STRETCHY_TOAST,It’s getting stretchy. A sign it’s growing up.
+EVENT_HOOCH_FORMING_AWAY,A layer of hooch formed on top.
+EVENT_HOOCH_FORMING_JOURNAL_BODY,"Liquid on top, gray to brown and sometimes even black, called hooch. It’s mostly water and alcohol from a hungry starter, and it’s normal. Pour it off or stir it in, then feed."
+EVENT_HOOCH_FORMING_JOURNAL_TITLE,Hooch
+EVENT_HOOCH_FORMING_TOAST,Liquid on top? That’s hooch. It just means hungry.
+EVENT_HUNGRY_AGAIN_AWAY,It ran out of food and fell back.
+EVENT_HUNGRY_AGAIN_BODY,It has eaten everything and fallen back. A sour smell is normal now. Feed it whenever it suits you.
+EVENT_HUNGRY_AGAIN_BTN,Feed it
+EVENT_HUNGRY_AGAIN_DISMISS,Later
+EVENT_HUNGRY_AGAIN_JOURNAL_BODY,"The food ran out around {time}. It fell back and turned sour, right on cue."
+EVENT_HUNGRY_AGAIN_JOURNAL_TITLE,Hungry again
+EVENT_HUNGRY_AGAIN_TITLE,Ready for a feed
+EVENT_MOLD_FOUND_AWAY,Mold appeared on the surface.
+EVENT_OFF_TO_NAP_ENERGETIC,Into the fridge. It seems mildly offended.
+EVENT_OFF_TO_NAP_JOURNAL_BODY,"Into the fridge around {time}. The cold slows it nearly to a stop, so it can wait days or weeks. When it comes out, a feed or two will wake it."
+EVENT_OFF_TO_NAP_JOURNAL_TITLE,Off for a nap
+EVENT_OFF_TO_NAP_PATIENT,Into the fridge. It seems to find this restful.
+EVENT_OFF_TO_NAP_RESILIENT,Into the fridge. It takes this in stride.
+EVENT_OFF_TO_NAP_SENSITIVE,Into the fridge. It takes the cold a bit personally.
+EVENT_OFF_TO_NAP_TOAST,Into the fridge. It’ll slow right down and wait.
+EVENT_PEAKED_WHILE_AWAY_AWAY_BIG,"More than doubled, peaking around {time}."
+EVENT_PEAKED_WHILE_AWAY_AWAY_DOUBLE,"Doubled, peaking around {time}."
+EVENT_PEAKED_WHILE_AWAY_AWAY_NEAR,"Nearly doubled, peaking around {time}."
+EVENT_PEAKED_WHILE_AWAY_AWAY_SMALL,"Rose a little, peaking around {time}."
+EVENT_PEAKED_WHILE_AWAY_JOURNAL_BODY,It peaked around {time}. The streaks on the glass show how high it climbed before it fell back.
+EVENT_PEAKED_WHILE_AWAY_JOURNAL_TITLE,Peaked while you were out
+EVENT_PEAK_NOW_ENERGETIC,"At its peak, and thoroughly pleased about it."
+EVENT_PEAK_NOW_JOURNAL_BODY,"Saw it at its peak around {time}: domed, glossy, bubbles right up to the top. The best moment to feed it, or to bake."
+EVENT_PEAK_NOW_JOURNAL_TITLE,Caught it at its peak
+EVENT_PEAK_NOW_PATIENT,"At its peak. No fuss, no hurry, just there."
+EVENT_PEAK_NOW_RESILIENT,At its peak. Steady as ever.
+EVENT_PEAK_NOW_SENSITIVE,At its peak. It seems to like being noticed.
+EVENT_PEAK_NOW_TOAST,"At its peak. Tall, domed and rather pleased with itself."
+EVENT_TRAIT_DRIFT_JOURNAL_BODY,"Lately it has seemed like a different sort of starter. The journal has updated its opinion. Character, not chemistry: it rises the same as ever."
+EVENT_TRAIT_DRIFT_JOURNAL_TITLE,A change of character
+EVENT_TRAIT_DRIFT_TOAST,{name} seems to have changed its ways lately.
+EVENT_WAKING_UP_AWAY,It woke up and started to rise.
+EVENT_WAKING_UP_JOURNAL_BODY,"The first rise since the fridge. Cold starters take a feed or two to get going, and this one is on its way."
+EVENT_WAKING_UP_JOURNAL_TITLE,Awake
+EVENT_WAKING_UP_TOAST,It’s rising again. The nap is over.
+EVENT_WARM_AND_QUICK_AWAY,"It was warm, so it peaked early."
+EVENT_WARM_AND_QUICK_JOURNAL_BODY,"Peaked well ahead of its usual counter time. Warmth speeds it up, and it gets hungry sooner too. Handy when you want a peak soon."
+EVENT_WARM_AND_QUICK_JOURNAL_TITLE,Warm and quick
+EVENT_WARM_AND_QUICK_TOAST,Peaked early. The warm spot speeds everything up.
+EVENT_WARNING_SIGNS_AWAY_DAYS,Warning signs began about {days} days ago.
+EVENT_WARNING_SIGNS_AWAY_HOURS,Warning signs began about {hours} hours ago.
+EVENT_WARNING_SIGNS_BODY,"It smells musty, and it looks run down: flat, few bubbles, maybe a dry skin on top. These are warning signs. No mold yet. Look at the surface first: fuzz of any color, or pink or orange, means discard. If you see none, feed it now. One feed usually turns it around."
+EVENT_WARNING_SIGNS_BTN_FEED,Feed it now
+EVENT_WARNING_SIGNS_BTN_LOOK,Look first
+EVENT_WARNING_SIGNS_JOURNAL_BODY,"Warning signs showed up: a musty smell and a tired, flat look. No mold yet. A careful look, then a feed, is the fix."
+EVENT_WARNING_SIGNS_JOURNAL_TITLE,Warning signs
+EVENT_WARNING_SIGNS_OUTCOME_FED,Fed through the warning signs. Look in again tomorrow.
+EVENT_WARNING_SIGNS_TITLE,Warning signs
+FEED_DONE_TITLE,Fed
+FEED_EARLY_NOTE,"Still rising. Fine to feed, but the next peak comes later."
+FEED_EXACT_BTN,Pick a ratio
+FEED_FIT_FRIDGE,It’ll barely rise in the fridge. Feed it when it comes out.
+FEED_FIT_TOO_COOL,Even 1:1:1 will peak late here. A warmer spot fits better.
+FEED_FIT_TOO_WARM,Even 1:5:5 will peak early here. A cooler spot fits better.
+FEED_HOOCH_NOTE,Either is fine. Stirring it in just makes it a bit runnier.
+FEED_HOOCH_POUR,Pour off
+FEED_HOOCH_PROMPT,"Hooch on top. Pour it off, or stir it in?"
+FEED_HOOCH_STIR,Stir in
+FEED_MIX_BTN,Mix
+FEED_MIX_HOLD,Hold to mix.
+FEED_OPTION_LATER_TITLE,Later today
+FEED_OPTION_SOON_TITLE,In a few hours
+FEED_OPTION_SUB,{ratio} · keep {grams} g
+FEED_OPTION_TOMORROW_TITLE,Tomorrow morning
+FEED_RESCUE_NOTE,Good call. Fresh food gives it a clean start.
+FEED_ROUTINE_HINT,Feeding once a day? “Tomorrow morning” fits that rhythm.
+FEED_SAME_AS_LAST,Same as last time
+FEED_SCHEDULE_QUESTION,When will you check next?
+FEED_SHEET_TITLE,Feed
+FEED_SKIP_ANIM_BTN,Skip
+FEED_STEP_FLOUR,Flour
+FEED_STEP_HOOCH,Hooch
+FEED_STEP_HYDRATION,Hydration
+FEED_STEP_TIMING,Timing
+FEED_SUMMARY,Keep {grams} g · {ratio} · {flour}
+FLOUR_RYE,Rye
+FLOUR_RYE_NOTE,The sourest. A lower rise and a cracked top.
+FLOUR_SPELT,Spelt
+FLOUR_SPELT_NOTE,"Looser, with a lower, softer dome."
+FLOUR_WHITE_BREAD,Bread flour
+FLOUR_WHITE_BREAD_NOTE,"The mildest. A tall, smooth dome."
+FLOUR_WHOLE_WHEAT,Whole wheat
+FLOUR_WHOLE_WHEAT_NOTE,"Tan and flecked, with a sourer smell."
+FORECAST_LINE,It should be at its best {window}.
+GLOSS_DISCARD,"Discard: the part you take out before feeding, so the jar doesn’t overflow."
+GLOSS_FEED,"Feed: fresh flour and water, so it has food again."
+GLOSS_HOOCH,"Hooch: liquid on top, gray to brown, sometimes black. A sign it’s hungry."
+GLOSS_HYDRATION,"Hydration: water divided by flour, times 100. Equal weights make 100%."
+GLOSS_PEAK,"Peak: its tallest point after a feed, just before it falls."
+GLOSS_RATIO,"Ratio: starter, flour and water by weight. 1:1:1 means equal parts."
+GLOSS_RUBBER_BAND,The rubber band marks where it started after a feed. Bakers really do this.
+GLOSS_STARTER,"Starter: flour and water, alive with wild yeast and bacteria. It raises sourdough bread."
+HYDRATION_LOOSE,Loose
+HYDRATION_LOOSE_NOTE,Water at 125% of the flour. Loose and pourable.
+HYDRATION_STANDARD,Standard
+HYDRATION_STANDARD_NOTE,Equal weights of flour and water. The usual.
+HYDRATION_STIFF,Stiff
+HYDRATION_STIFF_NOTE,Water at 60% of the flour. Thick and firm.
+INSPECT_ANY_MOLDY_MEAN,Please discard all of it and wash the jar.
+INSPECT_ANY_MOLDY_OBS,There’s mold on the surface. No need to look closer.
+INSPECT_BUBBLES_ACTIVE_MEAN,It’s making gas steadily. That gas is what raises bread.
+INSPECT_BUBBLES_ACTIVE_OBS,"Lots of bubbles, small and medium, all through the jar."
+INSPECT_BUBBLES_AT_PEAK_MEAN,Peak activity. A great moment to feed it.
+INSPECT_BUBBLES_AT_PEAK_OBS,"Bubbles all the way up, some breaking through the dome."
+INSPECT_BUBBLES_COLLAPSING_MEAN,The gas is escaping as the food runs out. It’s past peak.
+INSPECT_BUBBLES_COLLAPSING_OBS,"Bubbles are bursting, and the top looks pocked."
+INSPECT_BUBBLES_DEVELOPING_MEAN,Fermentation has started. The rise is on its way.
+INSPECT_BUBBLES_DEVELOPING_OBS,"A scattering of small bubbles, mostly against the glass."
+INSPECT_BUBBLES_DORMANT_MEAN_COLD,"The cold slows everything down. It’s resting, and can wait."
+INSPECT_BUBBLES_DORMANT_MEAN_STARVED,It has waited a long time for food. A feed or two will wake it.
+INSPECT_BUBBLES_DORMANT_OBS,"Almost none. Maybe one, rising very slowly."
+INSPECT_BUBBLES_FRESHLY_FED_MEAN,Normal right after a feed. Bubbles come as the yeast wakes up.
+INSPECT_BUBBLES_FRESHLY_FED_OBS,Hardly any. Just a few air pockets from stirring.
+INSPECT_BUBBLES_HUNGRY_MEAN,It has used up its food. A feed brings the bubbles back.
+INSPECT_BUBBLES_HUNGRY_OBS,A few spent bubbles. Most have burst.
+INSPECT_BUBBLES_NEAR_PEAK_MEAN,Big bubbles up high mean peak is close.
+INSPECT_BUBBLES_NEAR_PEAK_OBS,"Big bubbles near the top, a few popping at the surface."
+INSPECT_BUBBLES_UNHEALTHY_MEAN,"A warning sign. Check the surface, then feed. One feed usually turns it around."
+INSPECT_BUBBLES_UNHEALTHY_OBS,"Very few bubbles, and slow to form."
+INSPECT_CHIP_BUBBLES,Bubbles
+INSPECT_CHIP_CONSISTENCY,Consistency
+INSPECT_CHIP_DEVELOPMENT,Development
+INSPECT_CHIP_HEIGHT,Height
+INSPECT_CHIP_SURFACE,Surface
+INSPECT_CONSISTENCY_ACTIVE_MEAN,Good activity. It’s on track.
+INSPECT_CONSISTENCY_ACTIVE_OBS,Softer and airier as it fills with gas.
+INSPECT_CONSISTENCY_AT_PEAK_MEAN,This texture means it’s strong and ready.
+INSPECT_CONSISTENCY_AT_PEAK_OBS,"Light, stretchy and webby, like marshmallow fluff."
+INSPECT_CONSISTENCY_AT_PEAK_STIFF_OBS,"Puffy and spongy, like a well-risen dough."
+INSPECT_CONSISTENCY_COLLAPSING_MEAN,Acid and time soften it as the food runs out. Feed soon.
+INSPECT_CONSISTENCY_COLLAPSING_OBS,Looser now. The web is breaking down.
+INSPECT_CONSISTENCY_DEVELOPING_MEAN,Mostly fresh food so far. Give it time.
+INSPECT_CONSISTENCY_DEVELOPING_OBS,"Still thick, with a few small air pockets."
+INSPECT_CONSISTENCY_DORMANT_MEAN_COLD,The cold keeps it firm and quiet.
+INSPECT_CONSISTENCY_DORMANT_MEAN_STARVED,It has waited a long time. Feed it to bring it round.
+INSPECT_CONSISTENCY_DORMANT_OBS_COLD,Firm and cold.
+INSPECT_CONSISTENCY_DORMANT_OBS_STARVED,Thin and runny.
+INSPECT_CONSISTENCY_DORMANT_STIFF_OBS_STARVED,Soft and sticky.
+INSPECT_CONSISTENCY_FRESHLY_FED_MEAN,"Fresh flour and water, just mixed in."
+INSPECT_CONSISTENCY_FRESHLY_FED_OBS,"Thick and smooth, like pancake batter."
+INSPECT_CONSISTENCY_FRESHLY_FED_STIFF_OBS,"Firm, like a soft bread dough."
+INSPECT_CONSISTENCY_HUNGRY_MEAN,A hungry starter goes runny. A feed thickens it again.
+INSPECT_CONSISTENCY_HUNGRY_OBS,"Thin and soupy, almost pourable."
+INSPECT_CONSISTENCY_HUNGRY_STIFF_OBS,"Softer and sticky, but it still holds its shape."
+INSPECT_CONSISTENCY_NEAR_PEAK_MEAN,Strands are forming. A sign of a strong rise.
+INSPECT_CONSISTENCY_NEAR_PEAK_OBS,Light and spongy. It stretches a little off the spoon.
+INSPECT_CONSISTENCY_UNHEALTHY_MEAN,"A warning sign. Check the surface, then feed it."
+INSPECT_CONSISTENCY_UNHEALTHY_OBS,Slack and lifeless under a dry skin.
+INSPECT_DEVELOPMENT_MATURE_MEAN,"A mature starter, strong enough to raise bread."
+INSPECT_DEVELOPMENT_MATURE_OBS,"Strong and reliable. It doubles, and bounces back well."
+INSPECT_DEVELOPMENT_SEASONED_MEAN,A seasoned starter. The kind people hand down.
+INSPECT_DEVELOPMENT_SEASONED_OBS,Robust and dependable. It has seen a few things.
+INSPECT_DEVELOPMENT_STEADY_MEAN,Maturing nicely. Keep doing what you’re doing.
+INSPECT_DEVELOPMENT_STEADY_OBS,Steadier now. It rises higher and sooner than it did when young.
+INSPECT_DEVELOPMENT_UNHEALTHY_MEAN,"Check the surface, then feed it. It can still recover."
+INSPECT_DEVELOPMENT_UNHEALTHY_OBS,"Run down, with warning signs."
+INSPECT_DEVELOPMENT_WEAKENED_MEAN,Regular feeds at room temperature rebuild it.
+INSPECT_DEVELOPMENT_WEAKENED_OBS,Weaker than usual after a hard stretch.
+INSPECT_DEVELOPMENT_YOUNG_MEAN,Normal for a young starter. Regular feeds build it up.
+INSPECT_DEVELOPMENT_YOUNG_OBS,"Young. A little slower and lower for now, and sometimes a cheesy smell."
+INSPECT_HEIGHT_ACTIVE_MEAN,It’s rising steadily. Peak is still to come.
+INSPECT_HEIGHT_ACTIVE_OBS,"Above the band, and climbing."
+INSPECT_HEIGHT_AT_PEAK_BIG_OBS,"At its peak, well over double its starting height."
+INSPECT_HEIGHT_AT_PEAK_DOUBLE_OBS,"At its peak, about double its starting height."
+INSPECT_HEIGHT_AT_PEAK_MEAN,"Peak: its tallest point, just before it falls. Feed it now."
+INSPECT_HEIGHT_AT_PEAK_NEAR_OBS,"At its peak, nearly double its starting height."
+INSPECT_HEIGHT_AT_PEAK_SMALL_OBS,"At its peak, not far above the band."
+INSPECT_HEIGHT_COLLAPSING_MEAN,It peaked and is falling back. A good time to feed.
+INSPECT_HEIGHT_COLLAPSING_OBS,Dropped from its high point. Streaks on the glass show how tall it got.
+INSPECT_HEIGHT_DEVELOPING_MEAN,The rise has begun.
+INSPECT_HEIGHT_DEVELOPING_OBS,Just above the rubber band.
+INSPECT_HEIGHT_DORMANT_MEAN_COLD,The cold keeps it low and still. It’ll rise again once it’s warm and fed.
+INSPECT_HEIGHT_DORMANT_MEAN_STARVED,It has run out of energy. A feed or two will get it rising.
+INSPECT_HEIGHT_DORMANT_OBS,"Barely above the band, and not moving."
+INSPECT_HEIGHT_FRESHLY_FED_MEAN,That’s the starting line. Watch it climb from here.
+INSPECT_HEIGHT_FRESHLY_FED_OBS,Level with the rubber band.
+INSPECT_HEIGHT_HUNGRY_MEAN,It rose and fell. The food is gone.
+INSPECT_HEIGHT_HUNGRY_OBS,"Sunk back down, with streaks high on the glass."
+INSPECT_HEIGHT_NEAR_PEAK_MEAN,Peak is close.
+INSPECT_HEIGHT_NEAR_PEAK_OBS,"High up the jar, and the climb is slowing."
+INSPECT_HEIGHT_UNHEALTHY_MEAN,"A warning sign. Check the surface, then feed it."
+INSPECT_HEIGHT_UNHEALTHY_OBS,Flat. It has barely risen in a while.
+INSPECT_RECOVERING_MEAN,Weaker than usual for now. Regular feeds rebuild it.
+INSPECT_SURFACE_ACTIVE_MEAN,"Good, steady activity."
+INSPECT_SURFACE_ACTIVE_OBS,"Bumpy and bubbly, starting to dome."
+INSPECT_SURFACE_AT_PEAK_MEAN,The dome means peak. A great moment to feed.
+INSPECT_SURFACE_AT_PEAK_OBS,"A full, rounded dome, freckled with bubbles."
+INSPECT_SURFACE_AT_PEAK_RYE_OBS,"A low top, cracked and pitted with bubbles."
+INSPECT_SURFACE_AT_PEAK_SPELT_OBS,"A low, soft dome, freckled with bubbles."
+INSPECT_SURFACE_AT_PEAK_WHOLE_WHEAT_OBS,"A rounded dome, tan and flecked, freckled with bubbles."
+INSPECT_SURFACE_COLLAPSING_MEAN,Past peak. It’s falling back.
+INSPECT_SURFACE_COLLAPSING_OBS,"The dome has sunk in the middle, wrinkled and pocked."
+INSPECT_SURFACE_DEVELOPING_MEAN,Things are starting.
+INSPECT_SURFACE_DEVELOPING_OBS,"Mostly smooth, with a few pinprick bubbles."
+INSPECT_SURFACE_DORMANT_MEAN_COLD,Resting in the cold. That’s what the fridge is for.
+INSPECT_SURFACE_DORMANT_MEAN_STARVED,Run down after a long wait. Feed it today.
+INSPECT_SURFACE_DORMANT_OBS,Flat and still.
+INSPECT_SURFACE_FRESHLY_FED_MEAN,Freshly fed. Nothing to see yet.
+INSPECT_SURFACE_FRESHLY_FED_OBS,"Smooth, flat and a little glossy."
+INSPECT_SURFACE_HOOCH_DARK_MEAN,"Dark hooch is still a hunger sign, but it has been a while. Feed it today."
+INSPECT_SURFACE_HOOCH_DARK_OBS,"A thicker, darker layer of hooch on top."
+INSPECT_SURFACE_HOOCH_MEAN,"A hunger sign, and normal. Pour it off or stir it in, then feed."
+INSPECT_SURFACE_HOOCH_OBS,A layer of grayish liquid on top. That’s hooch.
+INSPECT_SURFACE_HUNGRY_MEAN,Hungry. Feed it when it suits you.
+INSPECT_SURFACE_HUNGRY_OBS,"Flat and sunken, pocked with burst bubbles."
+INSPECT_SURFACE_MOLDY_FUZZ_OBS,Fuzzy spots on the surface. That’s mold.
+INSPECT_SURFACE_MOLDY_MEAN,"It can’t be saved. Discard all of it, even parts that look clean."
+INSPECT_SURFACE_MOLDY_TINT_OBS,"Fuzzy spots of mold, and pink or orange spoilage."
+INSPECT_SURFACE_NEAR_PEAK_MEAN,Nearly at its peak.
+INSPECT_SURFACE_NEAR_PEAK_OBS,"Domed, with bubbles stretching the top."
+INSPECT_SURFACE_UNHEALTHY_MEAN,"Warning sign. Fuzz, or pink or orange color, means discard. If none, feed it now."
+INSPECT_SURFACE_UNHEALTHY_OBS,"A dull, dry skin across the top, maybe with dark liquid."
+JAR_A11Y_DESC,Drag to turn the jar. Pinch to look closer.
+JAR_A11Y_NAME,Starter jar
+JOURNAL_CHAPTER_SINCE,Since {start_date}
+JOURNAL_DAY_ONE_BODY,"Took over from M. today. Named it {name}. Watched it rise, then fed it right at its peak. It seemed to approve."
+JOURNAL_DAY_ONE_SKIP_BODY,Took over from M. today. Named it {name}. Fed it and left it to get on with things.
+JOURNAL_DAY_ONE_TITLE,Day one
+JOURNAL_EMPTY_BODY,"Notes appear here as it rises, falls and gets fed."
+JOURNAL_EMPTY_TITLE,Nothing yet
+JOURNAL_LOG_FEED,"Fed {ratio}, {flour}. Kept {grams} g."
+JOURNAL_LOG_FEED_AT_PEAK,"Fed at its peak. {ratio}, {flour}."
+JOURNAL_LOG_FEED_RESCUE,Fed through the warning signs.
+JOURNAL_LOG_HOOCH_POURED,Poured off the hooch.
+JOURNAL_LOG_HOOCH_STIRRED,Stirred the hooch back in.
+JOURNAL_LOG_MOVE_COUNTER,Moved to the counter.
+JOURNAL_LOG_MOVE_PROOFING_BOX,Into the proofing box.
+JOURNAL_LOG_MOVE_WARM_SPOT,Moved to the warm spot.
+JOURNAL_LOG_MOVE_WINDOW_SILL,Moved to the window sill.
+JOURNAL_LOG_SMELL,Smell: {smell}.
+JOURNAL_RENAME_BTN,Rename
+JOURNAL_RENAME_TITLE,A new name
+JOURNAL_SCREEN_TITLE,Journal
+LOC_COUNTER,Counter
+LOC_COUNTER_SUB,Usual pace
+LOC_FRIDGE,Fridge
+LOC_FRIDGE_SUB,A long pause
+LOC_PROOFING_BOX,Proofing box
+LOC_PROOFING_BOX_SUB,You set it
+LOC_WARM_SPOT,Warm spot
+LOC_WARM_SPOT_SUB,Faster rise
+LOC_WINDOW_SILL,Window sill
+LOC_WINDOW_SILL_SUB,Slower rise
+MEMORIAL_CAUSE_UNFED,It went about {days} days without a feed at room temperature. That’s long enough for mold to take hold.
+MEMORIAL_DATES,{start_date} to {end_date}
+MEMORIAL_EPITAPH_1,It rose and fell and rose again. A good life for flour and water.
+MEMORIAL_EPITAPH_2,"Flour, water and good company. Not a bad recipe."
+MEMORIAL_EPITAPH_3,It made the kitchen smell like a bakery. That counts for a lot.
+MEMORIAL_EPITAPH_ENERGETIC,It greeted every feed like good news.
+MEMORIAL_EPITAPH_PATIENT,"It never hurried, and never needed to."
+MEMORIAL_EPITAPH_RESILIENT,It weathered plenty before this.
+MEMORIAL_EPITAPH_SENSITIVE,"It noticed everything, including you."
+MEMORIAL_STAT_BEST,Tallest rise
+MEMORIAL_STAT_DAYS,Days together
+MEMORIAL_STAT_FEEDS,Feeds
+MEMORIAL_STAT_PEAKS,Peaks
+MEMORIAL_STAT_TRAIT,Character
+MEMORIAL_TIP,"Worth knowing: in the fridge, a starter can wait weeks between feeds."
+MEMORIAL_TITLE,{name}
+MILESTONE_FIRST_DOUBLE_BODY,It doubled its height after a feed for the first time. Many bakers use doubling as their sign that a starter is ready to bake with.
+MILESTONE_FIRST_DOUBLE_TITLE,Doubled
+MILESTONE_FIRST_DOUBLE_TOAST,It doubled. Bakers love to see that.
+MILESTONE_FIRST_FEED_BODY,"The first feed on the real clock: {ratio}, {flour}. From here on, it runs on its own time."
+MILESTONE_FIRST_FEED_TITLE,First feed
+MILESTONE_FIRST_PEAK_BODY,"The first peak on the real clock, seen or not. Peak is its tallest point, and the best moment to feed it or bake with it."
+MILESTONE_FIRST_PEAK_TITLE,First peak
+MILESTONE_FIRST_PEAK_TOAST,Its first peak with you. Domed and very pleased.
+MILESTONE_FLOUR_RYE_BODY,"Fed with rye for the first time. Rye makes the sourest starter of all, with a lower rise and a cracked, pitted top."
+MILESTONE_FLOUR_RYE_TITLE,Rye
+MILESTONE_FLOUR_RYE_TOAST,"First rye feed. Expect it sourer, and a bit lower."
+MILESTONE_FLOUR_SPELT_BODY,Fed with spelt for the first time. Spelt is an old relative of wheat. It makes a looser starter with a lower dome.
+MILESTONE_FLOUR_SPELT_TITLE,Spelt
+MILESTONE_FLOUR_SPELT_TOAST,"First spelt feed. Looser, with a softer dome."
+MILESTONE_FLOUR_WHOLE_WHEAT_BODY,"Fed with whole wheat for the first time. It turns the starter tan and flecked, and a little sourer than white flour."
+MILESTONE_FLOUR_WHOLE_WHEAT_TITLE,Whole wheat
+MILESTONE_FLOUR_WHOLE_WHEAT_TOAST,First whole wheat feed. Notice the flecks?
+MILESTONE_NAMED_BODY,"It answers to {name} now. Well, it doesn’t answer. But it’s a good name."
+MILESTONE_NAMED_TITLE,Named
+MILESTONE_NOSE_FOR_IT_BODY,"Four different smells so far. Smell is the quickest way to read a starter, and you’re getting good at it."
+MILESTONE_NOSE_FOR_IT_TITLE,A nose for it
+MILESTONE_NOSE_FOR_IT_TOAST,Four smells and counting. You’ve got a nose for this.
+MILESTONE_ONE_MONTH_BODY,"A month in. Plenty of feeds, plenty of peaks, and a jar that smells like home."
+MILESTONE_ONE_MONTH_TITLE,One month
+MILESTONE_ONE_MONTH_TOAST,One month together. A proper partnership.
+MILESTONE_ONE_WEEK_BODY,"A week of rising and falling. It has settled into your kitchen, and you’ve settled into its rhythm."
+MILESTONE_ONE_WEEK_TITLE,One week
+MILESTONE_ONE_WEEK_TOAST,One week together.
+MILESTONE_RESCUED_BODY,"Warning signs, then a feed, and it pulled through. Worth remembering: musty and flat means look closely, then feed."
+MILESTONE_RESCUED_TITLE,Rescued
+MILESTONE_RESCUED_TOAST,Out of the woods. The warning signs are gone.
+MILESTONE_STAGE_MATURE_BODY,A mature starter: it doubles reliably and bounces back well. Strong enough to raise a loaf. M. would be pleased.
+MILESTONE_STAGE_MATURE_TITLE,Ready to bake
+MILESTONE_STAGE_MATURE_TOAST,Ready to bake. It doubles reliably now.
+MILESTONE_STAGE_SEASONED_BODY,"Robust, reliable and hard to rattle. This is the kind of starter people hand down."
+MILESTONE_STAGE_SEASONED_TITLE,Seasoned
+MILESTONE_STAGE_SEASONED_TOAST,Seasoned. It has seen a few things.
+MILESTONE_STAGE_STEADY_BODY,It rises higher and sooner now than the young thing M. left behind. A steady starter.
+MILESTONE_STAGE_STEADY_TITLE,Steady
+MILESTONE_STAGE_STEADY_TOAST,Stronger now. It has come into its own.
+MOLD_BTN_DISCARD,Discard it
+MOLD_BTN_LATER,Not yet
+MOLD_CONFIRM_BODY,"This can’t be undone. Its journal stays, with a page of its own."
+MOLD_CONFIRM_NO,Not yet
+MOLD_CONFIRM_TITLE,Discard {name}?
+MOLD_CONFIRM_YES,Discard
+MOLD_DONE_TOAST,Done. The jar is washed and drying.
+MOLD_FEED_BLOCKED,Feeding can’t fix mold. Please discard it.
+MOLD_SHEET_BODY,"There’s fuzzy growth on the surface. That’s mold. A moldy starter can’t be saved. Mold reaches deeper than it shows, so discard all of it, even the parts that look clean. Please don’t use it or taste it. Then wash the jar well. This happens, even to careful bakers."
+MOLD_SHEET_BODY_TINT,"There’s fuzzy growth on the surface. That’s mold, and the pink or orange color is spoilage too. A moldy starter can’t be saved. Discard all of it, even the parts that look clean. Please don’t use it or taste it. Then wash the jar well. This happens, even to careful bakers."
+MOLD_SHEET_TITLE,This is mold
+NAME_BODY,Plenty of bakers name their starter. It’s easier to care about a name than a jar.
+NAME_BTN_CONFIRM,That’s its name
+NAME_BTN_SUGGEST,Suggest another
+NAME_DONE_TOAST,{name} it is.
+NAME_FIELD_A11Y,Starter name
+NAME_SUGGEST_01,Mabel
+NAME_SUGGEST_02,Otto
+NAME_SUGGEST_03,Agnes
+NAME_SUGGEST_04,Walter
+NAME_SUGGEST_05,Florence
+NAME_SUGGEST_06,Gus
+NAME_SUGGEST_07,Edna
+NAME_SUGGEST_08,Herman
+NAME_SUGGEST_09,Dolores
+NAME_SUGGEST_10,Bernard
+NAME_SUGGEST_11,Crumb
+NAME_SUGGEST_12,Barm
+NAME_SUGGEST_13,Biscuit
+NAME_SUGGEST_14,Treacle
+NAME_SUGGEST_15,Nutmeg
+NAME_SUGGEST_16,Pickle
+NAME_SUGGEST_17,Mother
+NAME_SUGGEST_18,Ferdinand
+NAME_SUGGEST_19,Proofrock
+NAME_SUGGEST_20,Breadley
+NAME_SUGGEST_21,Gluten Morgen
+NAME_SUGGEST_22,The Lodger
+NAME_SUGGEST_23,Sourpuss
+NAME_SUGGEST_24,Patience
+NAME_TITLE,Give it a name
+NOTIF_HUNGRY_BODY,{name} has eaten everything. Feed it whenever suits you.
+NOTIF_HUNGRY_TITLE,Ready for a feed
+NOTIF_PEAK_SOON_BODY,{name} should peak soon. A good time to feed it.
+NOTIF_PEAK_SOON_TITLE,Nearly at its peak
+NOTIF_WARNING_BODY,Away? That’s OK. {name} is showing warning signs. A feed soon turns it around.
+NOTIF_WARNING_TITLE,Warning signs
+ONBOARD_FEED_COACH,"It’s at its peak, so it’s ready for a feed. Tap Feed."
+ONBOARD_FEED_DISCARD,"First, the discard: take some out so it won’t overflow."
+ONBOARD_FEED_DONE,Fed. The rubber band marks its new starting line.
+ONBOARD_FEED_SCHEDULE,More fresh flour for the same starter means a later peak.
+ONBOARD_HANDOFF_BODY,"From here, time runs for real. It should be at its best {window}. Look in then, or whenever suits you."
+ONBOARD_HANDOFF_BTN,Got it
+ONBOARD_HANDOFF_FRIDGE,Busy few days? The fridge slows it right down.
+ONBOARD_HANDOFF_JOURNAL,M.’s journal is yours now. It keeps notes for you.
+ONBOARD_HANDOFF_TITLE,"Now, the real clock"
+ONBOARD_INSPECT_COACH,"Look closer. Tap Inspect, then Bubbles."
+ONBOARD_LOOK_COACH,Drag to turn the jar. Pinch to look closer.
+ONBOARD_LOOK_DONE,The jar shows you almost everything. Almost.
+ONBOARD_NOTE_BODY,"A sourdough starter: flour and water, alive with wild yeast and bacteria. Feed it, and it will raise bread for years. M."
+ONBOARD_NOTE_BTN_SKIP,I know starters
+ONBOARD_NOTE_BTN_TOUR,Show me around
+ONBOARD_NOTE_TITLE,It came with a note
+ONBOARD_SKIP_DONE,All yours. The journal has notes if you want them.
+ONBOARD_SMELL_AFTER,The smell changes as it rises. Your nose will learn it.
+ONBOARD_SMELL_COACH,Now smell it. Tap Smell.
+ONBOARD_TIMELAPSE_BADGE,Time-lapse
+ONBOARD_TIMELAPSE_BODY,"Here are the next few hours, sped up. The rubber band marks where it started."
+ONBOARD_TIMELAPSE_BTN,Watch
+ONBOARD_TIMELAPSE_PEAK,That’s its peak: as tall as it gets. Time to feed it.
+ONBOARD_TIMELAPSE_TITLE,Watch it rise
+PLACE_DIAL_LABEL,Warmth
+PLACE_TEMP_LABEL,Temperature
+PLACE_TITLE,Where it lives
+REACT_FEED_AT_PEAK,Fed right at its peak. Nicely timed.
+REACT_FEED_ENERGETIC,Fed. It seems delighted with the new flour.
+REACT_FEED_LATE,Fed. That should perk it up.
+REACT_FEED_NEUTRAL_1,"Fed. Flat, smooth and full of possibility."
+REACT_FEED_NEUTRAL_2,"Fresh flour, fresh water. It’ll take it from here."
+REACT_FEED_NEUTRAL_3,"Fed. Now the quiet part, where it does all the work."
+REACT_FEED_PATIENT,Fed. It settles in without any fuss.
+REACT_FEED_RESILIENT,Fed. Business as usual.
+REACT_FEED_SENSITIVE,Fed. It seems to appreciate the attention.
+REACT_FRIDGE_OUT_ENERGETIC,Out of the cold. A feed or two and it’ll be itself again.
+REACT_FRIDGE_OUT_NEUTRAL,Out of the cold. A feed or two will wake it.
+REACT_FRIDGE_OUT_PATIENT,Out of the cold. It’ll wake when it’s ready. A feed helps.
+REACT_FRIDGE_OUT_RESILIENT,"Out of the cold, unbothered. A feed or two will wake it."
+REACT_FRIDGE_OUT_SENSITIVE,Out of the cold. Be gentle. A feed or two will wake it.
+REACT_MOVE_COOL,A cooler spot. Things will slow down a little.
+REACT_MOVE_COUNTER,Back on the counter. Its usual pace.
+REACT_MOVE_PROOFING,Into the proofing box. Warm and steady.
+REACT_MOVE_WARM,"Somewhere warmer. A faster rise, and hungry sooner."
+RESTART_BODY_FIRST,"In the fridge, a small jar with M.’s writing on the lid: “Spare. Just in case.”"
+RESTART_BODY_LATER,"A friend has a spoonful of starter to spare. It’s young, but it’s ready."
+RESTART_BTN_LATER,Not today
+RESTART_BTN_YES,Start again
+RESTART_TITLE,Start again?
+SETTINGS_A11Y,Settings
+SMELL_ACETONE_1,"Sharp and solvent, like nail polish remover."
+SMELL_ACETONE_2,"Sharp and chemical. Nail polish remover, clearly."
+SMELL_ACETONE_3,"Like nail polish remover. Odd, from flour and water."
+SMELL_ACETONE_MEANING,"Very hungry. Odd, but normal. A feed or two clears it."
+SMELL_ACETONE_NOTE,nail polish remover
+SMELL_ACETONE_TITLE,Nail polish remover
+SMELL_ALCOHOL_1,"Boozy, like stale beer."
+SMELL_ALCOHOL_2,"A whiff of alcohol, like cheap wine."
+SMELL_ALCOHOL_3,"Beery and sharp, like the morning after a party."
+SMELL_ALCOHOL_MEANING,Hungry. Alcohol builds up when food runs low. Normal. Feed it.
+SMELL_ALCOHOL_NOTE,beer
+SMELL_ALCOHOL_TITLE,Boozy
+SMELL_CHEESY_1,"A little cheesy, like parmesan rind."
+SMELL_CHEESY_2,"Faintly cheesy. A bit like old socks, honestly."
+SMELL_CHEESY_3,"Cheesy and slightly funky, like a cheese counter."
+SMELL_CHEESY_MEANING,Normal for a young starter. It fades as it matures.
+SMELL_CHEESY_NOTE,parmesan
+SMELL_CHEESY_TITLE,Cheesy
+SMELL_FAINT_1,Barely anything. The cold keeps its smells to itself.
+SMELL_FAINT_2,"Faint and cool. A ghost of tang, not much more."
+SMELL_FAINT_MEANING,"It’s cold, so everything slows down, smells included."
+SMELL_FAINT_TITLE,Very faint
+SMELL_FRESH_YEASTY_1,"Fresh and bready, like a bakery door opening."
+SMELL_FRESH_YEASTY_2,"Warm and yeasty, like bread dough left to rise."
+SMELL_FRESH_YEASTY_3,"That fresh-bread smell, soft and inviting."
+SMELL_FRESH_YEASTY_MEANING,Mid-rise. The yeast is busy making gas.
+SMELL_FRESH_YEASTY_NOTE,fresh bread
+SMELL_FRESH_YEASTY_TITLE,Yeasty
+SMELL_MILDLY_FRUITY_1,"A soft fruitiness, like a bowl of ripe apples."
+SMELL_MILDLY_FRUITY_2,"Faintly fruity. Pear, maybe, or apple skins."
+SMELL_MILDLY_FRUITY_3,"A gentle fruit note, like a fresh-cut apple."
+SMELL_MILDLY_FRUITY_MEANING,"Often early in the rise, as the yeast wakes up."
+SMELL_MILDLY_FRUITY_NOTE,ripe fruit
+SMELL_MILDLY_FRUITY_TITLE,Fruity
+SMELL_MOLDY_BODY,No need to sniff a moldy jar. The surface says enough. Please discard it.
+SMELL_MOLDY_TITLE,Best not
+SMELL_MUSTY_1,"Musty, like a damp cellar."
+SMELL_MUSTY_2,"A stale, musty note, like damp cardboard."
+SMELL_MUSTY_3,"Damp and musty, under the sourness."
+SMELL_MUSTY_MEANING,"A warning sign. Check the surface first: fuzz or color means discard. If none, feed it."
+SMELL_MUSTY_NOTE,damp cellar
+SMELL_MUSTY_TITLE,Musty
+SMELL_NOTE_CLEAR,And some {note}.
+SMELL_NOTE_FAINT,A hint of {note}.
+SMELL_PLEASANTLY_TANGY_1,"A bright, clean tang with a little sweetness behind it."
+SMELL_PLEASANTLY_TANGY_2,"Pleasantly sour, like the crumb of a good sourdough."
+SMELL_PLEASANTLY_TANGY_3,Tangy and lively. Your nose will want another go.
+SMELL_PLEASANTLY_TANGY_MEANING,"Around its peak, or just past it. The smell bakers hope for."
+SMELL_PLEASANTLY_TANGY_NOTE,tang
+SMELL_PLEASANTLY_TANGY_TITLE,Tangy
+SMELL_STRONGLY_ACIDIC_1,"Sharp and sour, like vinegar."
+SMELL_STRONGLY_ACIDIC_2,Strongly sour. It catches the back of your nose.
+SMELL_STRONGLY_ACIDIC_3,"Vinegar-sharp, with not much sweetness left."
+SMELL_STRONGLY_ACIDIC_MEANING,Hungry. Acid builds up once the food runs out. Normal. Feed it.
+SMELL_STRONGLY_ACIDIC_NOTE,vinegar
+SMELL_STRONGLY_ACIDIC_TITLE,Very sour
+SMELL_WET_FLOUR_1,Like flour and water stirred together. Mild and clean.
+SMELL_WET_FLOUR_2,"A clean, floury smell, like a bag of flour on a damp day."
+SMELL_WET_FLOUR_3,"Raw dough, plain and mild. Not much else, yet."
+SMELL_WET_FLOUR_MEANING,Just fed. The yeast hasn’t really got going yet.
+SMELL_WET_FLOUR_NOTE,wet flour
+SMELL_WET_FLOUR_TITLE,Wet flour
+SMELL_YOGURT_1,"Mild and milky-sour, like plain yogurt."
+SMELL_YOGURT_2,"A soft, creamy tang. Plain yogurt, more or less."
+SMELL_YOGURT_3,Like a freshly opened tub of yogurt.
+SMELL_YOGURT_MEANING,The bacteria are at work. Lactic acid gives that yogurt note.
+SMELL_YOGURT_NOTE,yogurt
+SMELL_YOGURT_TITLE,Yogurt
+STATUS_A11Y,Status: {word}. {hint}
+STATUS_ACTIVE_HINT,Bubbly and climbing steadily
+STATUS_ACTIVE_TAP,Busy making gas. That gas is what raises bread.
+STATUS_ACTIVE_WORD,Rising
+STATUS_AT_PEAK_HINT,"Tall, domed, at its best"
+STATUS_AT_PEAK_TAP,"Its tallest point, just before it falls. The best time to feed it."
+STATUS_AT_PEAK_WORD,At its peak
+STATUS_COLLAPSING_HINT,"Dome falling, food running low"
+STATUS_COLLAPSING_TAP,It peaked and is falling back. A fine time to feed.
+STATUS_COLLAPSING_WORD,Past peak
+STATUS_DEVELOPING_HINT,First bubbles are forming
+STATUS_DEVELOPING_TAP,The yeast is waking up. It’s starting to rise.
+STATUS_DEVELOPING_WORD,Stirring
+STATUS_DORMANT_COLD_HINT,Cold and quiet. It can wait
+STATUS_DORMANT_COLD_TAP,The cold slows it nearly to a stop. A feed or two wakes it later.
+STATUS_DORMANT_COLD_WORD,Resting
+STATUS_DORMANT_STARVED_HINT,Very hungry. Feed it today
+STATUS_DORMANT_STARVED_TAP,It has gone a long time without food. A feed or two brings it round.
+STATUS_DORMANT_STARVED_WORD,Run down
+STATUS_FRESHLY_FED_HINT,"Flat, smooth and settling in"
+STATUS_FRESHLY_FED_TAP,"Fresh flour and water, just mixed in. The rise comes next."
+STATUS_FRESHLY_FED_WORD,Just fed
+STATUS_HUNGRY_HINT,Food’s gone. Ready for a feed
+STATUS_HUNGRY_TAP,It has eaten everything. Sour smells and hooch are normal now. Feed it.
+STATUS_HUNGRY_WORD,Hungry
+STATUS_MOLDY_HINT,Mold. Please discard it
+STATUS_MOLDY_TAP,Mold can’t be fixed. Discard all of it and wash the jar.
+STATUS_MOLDY_WORD,Moldy
+STATUS_NEAR_PEAK_HINT,"Rise slowing, dome forming"
+STATUS_NEAR_PEAK_TAP,Close to its tallest. Peak comes soon.
+STATUS_NEAR_PEAK_WORD,Nearly there
+STATUS_RECOVERING_HINT,Getting its strength back
+STATUS_RECOVERING_TAP,Weaker than usual after a hard stretch. Regular feeds rebuild it.
+STATUS_RECOVERING_WORD,Recovering
+STATUS_UNHEALTHY_HINT,"Warning signs. Look, then feed"
+STATUS_UNHEALTHY_TAP,"Musty, run down. No mold yet. Fuzz or color on top means discard. If none, feed it."
+STATUS_UNHEALTHY_WORD,At risk
+TOAST_A11Y_MORE,Opens the journal entry
+TRAIT_ENERGETIC_JOURNAL_BODY,"Keen on everything: a feed, a warm spot, a bit of attention. It greets each feed like good news. This won’t change how it rises, only how it carries itself."
+TRAIT_ENERGETIC_JOURNAL_TITLE,The energetic type
+TRAIT_ENERGETIC_NAME,Energetic
+TRAIT_ENERGETIC_REVEAL_TOAST,It’s clear now: {name} is the energetic type.
+TRAIT_PATIENT_JOURNAL_BODY,"Unhurried and unbothered. It does things properly, in order, without fuss. This won’t change how it rises, only how it carries itself."
+TRAIT_PATIENT_JOURNAL_TITLE,The patient type
+TRAIT_PATIENT_NAME,Patient
+TRAIT_PATIENT_REVEAL_TOAST,It’s clear now: {name} is the patient type.
+TRAIT_RESILIENT_JOURNAL_BODY,"Hard to rattle. It meets cold and hunger with something like a shrug. This won’t change how it rises, only how it carries itself."
+TRAIT_RESILIENT_JOURNAL_TITLE,The resilient type
+TRAIT_RESILIENT_NAME,Resilient
+TRAIT_RESILIENT_REVEAL_TOAST,It’s clear now: {name} is the resilient type.
+TRAIT_SENSITIVE_JOURNAL_BODY,"It notices things. A new flour, a new spot, a cold draft. It seems to take it all to heart. This won’t change how it rises, only how it carries itself."
+TRAIT_SENSITIVE_JOURNAL_TITLE,The sensitive type
+TRAIT_SENSITIVE_NAME,Sensitive
+TRAIT_SENSITIVE_REVEAL_TOAST,It’s clear now: {name} is the sensitive type.
+UNLOCK_HYDRATION_BODY,"You can now change how much water goes in. Stiff, standard or loose. Standard is equal weights of flour and water."
+UNLOCK_HYDRATION_TOAST,New: stiffer or looser feeds.
+UNLOCK_INSPECT_BODY,It’s steady enough now to show more. Consistency shows how strong it is. Development shows how far it has come.
+UNLOCK_INSPECT_TOAST,Two new things to inspect: Consistency and Development.
+UNLOCK_PROOFING_BOX_BODY,"A proofing box holds a steady warmth you choose, from 24 to 30 °C. Handy for timing a peak just so."
+UNLOCK_PROOFING_BOX_TOAST,New spot: a proofing box. You set the warmth.
+UNLOCK_RYE_BODY,Rye is in the pantry now. Try it in the feed sheet.
+UNLOCK_RYE_TOAST,New in the pantry: rye flour.
+UNLOCK_SPELT_BODY,Spelt is in the pantry now. Try it in the feed sheet.
+UNLOCK_SPELT_TOAST,New in the pantry: spelt flour.
+UNLOCK_WHOLE_WHEAT_BODY,Whole wheat is in the pantry now. Pick it in the feed sheet to see how it changes things.
+UNLOCK_WHOLE_WHEAT_TOAST,New in the pantry: whole wheat flour.
+UNLOCK_WINDOW_SILL_BODY,The window sill is a few degrees cooler than the counter. A slower rise suits a once-a-day feed.
+UNLOCK_WINDOW_SILL_TOAST,"New spot: the window sill. Cooler, slower."
+WINDOW_LATER,in a day or two
+WINDOW_LUNCHTIME,around lunchtime
+WINDOW_OVERNIGHT,overnight
+WINDOW_SOON,within the hour
+WINDOW_THIS_AFTERNOON,this afternoon
+WINDOW_THIS_EVENING,this evening
+WINDOW_THIS_MORNING,this morning
+WINDOW_TOMORROW_AFTERNOON,tomorrow afternoon
+WINDOW_TOMORROW_EVENING,tomorrow evening
+WINDOW_TOMORROW_LUNCHTIME,tomorrow lunchtime
+WINDOW_TOMORROW_MORNING,tomorrow morning
+WINDOW_TONIGHT,tonight
