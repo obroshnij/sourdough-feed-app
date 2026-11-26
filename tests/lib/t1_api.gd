@@ -26,7 +26,16 @@ static func find_script(class_id: StringName) -> GDScript:
 	return null
 
 
+## QA only: `QA_FORCE_MILESTONES=m3_clock,m4_save tests/run.sh` runs gated tests before T1
+## declares them, to report problems early. Never set it in CI or in a green-run report.
+static func forced(milestone: StringName) -> bool:
+	var ids: PackedStringArray = OS.get_environment("QA_FORCE_MILESTONES").split(",", false)
+	return ids.has(String(milestone)) or ids.has("all")
+
+
 static func landed(milestone: StringName) -> bool:
+	if forced(milestone):
+		return true
 	var script: GDScript = find_script(&"Milestones")
 	if script == null:
 		return false
