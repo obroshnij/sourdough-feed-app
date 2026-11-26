@@ -254,7 +254,7 @@ func apply(action: GameAction) -> ActionResult:
 			result.readout = smell
 			if smell.primary != &"" and not _seen_this_cycle(&"smell", "primary", String(smell.primary)):
 				entry = _make_entry(&"smell", &"JOURNAL_LOG_SMELL", {"primary": String(smell.primary)})
-				entry.args = {"descriptor": String(smell.primary)}
+				entry.args = {"smell": String(Keys.smell(smell.primary, "TITLE"))}
 		&"inspect":
 			var inspect: InspectAction = action
 			var look: InspectionReadout = Inspection.read(_starter, _env, inspect.inspect_kind)
@@ -264,7 +264,8 @@ func apply(action: GameAction) -> ActionResult:
 		&"rename":
 			var rename: RenameAction = action
 			_starter.name = rename.new_name.strip_edges()
-			entry = _make_entry(&"rename", &"", rename.to_dict())
+			entry = _make_entry(&"rename", &"JOURNAL_LOG_RENAME", rename.to_dict())
+			entry.args = {"name": _starter.name}
 		&"ack_event":
 			var ack: AckEventAction = action
 			_ledger.remove_pending(ack.event_uid)
@@ -290,6 +291,12 @@ func apply(action: GameAction) -> ActionResult:
 	if not rules.is_empty():
 		var ctx: EventContext = _context(before, derived_before, action)
 		result.events = EventRules.process(ctx, rules)
+	# A fridge move that fires off_to_nap is told by the event's own journal entry (game-copy §11).
+	if entry != null and entry.kind == &"environment":
+		for e: SimEvent in result.events:
+			if e.id == &"off_to_nap":
+				entry = null
+				break
 	# 7. journal
 	if entry != null:
 		_append_journal(entry)
@@ -495,6 +502,8 @@ func _emit_events(events: Array[SimEvent]) -> void:
 		var entry: JournalEntry = _make_entry(&"event", StringName("EVENT_%s_JOURNAL_TITLE" % Keys.up(e.id)),
 			{"event_id": String(e.id), "event_uid": e.uid})
 		entry.at_unix = e.created_unix
+		# Rules put the copy's placeholder values in the payload (events-catalog.md).
+		entry.args = DictReader.canonical_dict(e.payload)
 		_append_journal(entry)
 		journal_appended.emit(entry)
 		event_raised.emit(e)
@@ -569,6 +578,7 @@ func _discard_starter(action: DiscardStarterAction) -> JournalEntry:
 		if e.starter_id == _starter.id and e.kind == &"feed":
 			m.feeds_count += 1
 	var entry: JournalEntry = _make_entry(&"memorial", &"MEMORIAL_TITLE", m.to_dict())
+	entry.args = {"name": m.name}
 	var preset: StringName = &"first_restart" if _memorials.is_empty() else &"restart"
 	_memorials.append(m)
 	_starter = StarterPresets.make(preset, now)
@@ -594,7 +604,18 @@ func _feed_entry(feed: FeedAction, before: StarterState, derived_before: Derived
 	data["feed_u"] = _starter.feed_u
 	var entry: JournalEntry = _make_entry(&"feed", key, data)
 	var r: Vector2 = feed.ratio()
-	entry.args = {"ratio": "1:%d:%d" % [roundi(r.x), roundi(r.y)], "flour_g": roundi(feed.flour_total_g())}
+	# game-copy §11: ratio, flour (a key; Keys.format translates it) and grams kept.
+	var main_flour: StringName = &"white_bread"
+	var most: float = -1.0
+	for id: StringName in feed.flour_g:
+		if feed.flour_g[id] > most:
+			most = feed.flour_g[id]
+			main_flour = id
+	entry.args = {
+		"ratio": "1:%d:%d" % [roundi(r.x), roundi(r.y)],
+		"flour": String(Keys.flour(main_flour)),
+		"grams": roundi(feed.kept_g),
+	}
 	return entry
 
 
@@ -618,8 +639,10 @@ func _append_journal(entry: JournalEntry) -> void:
 func _journal_transitions(res: CatchUpResult) -> void:
 	for t: Dictionary in res.transitions:
 		var to_state: String = t.get("to", "")
+		var cause: String = t.get("cause", "")
 		var at: int = t.get("at_unix", 0)
-		var e: JournalEntry = _make_entry(&"state_change", Keys.status_word(StringName(to_state)), t.duplicate())
+		var e: JournalEntry = _make_entry(&"state_change", Keys.status_word(StringName(to_state), StringName(cause)),
+			t.duplicate())
 		e.at_unix = at
 		e.state_id = StringName(to_state)
 		_append_journal(e)

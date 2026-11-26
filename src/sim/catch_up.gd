@@ -50,6 +50,7 @@ static func run_with_rules(state: StarterState, env: EnvironmentState, history: 
 		if d.state != prev_d.state:
 			res.transitions.append({
 				"at_unix": state.sim_time_unix, "from": String(prev_d.state), "to": String(d.state),
+				"cause": String(d.dormant_cause),
 			})
 		if state.rise > peak_rise:
 			peak_rise = state.rise
