@@ -208,7 +208,8 @@ static func _panels(t: Theme, p: UiPalette) -> void:
 		t.set_stylebox(&"panel", type, _flat(surface, 20, 0, 0))
 	var plate: StyleBoxFlat = _flat(p.plate(), 24, 16, 12)
 	_panel(t, &"HudPlate", plate)
-	_panel(t, &"BarPlate", _flat(p.plate(), 28, 4, 4))
+	# No vertical padding: the five buttons are the 72 pt slots themselves (ux-design §4).
+	_panel(t, &"BarPlate", _flat(p.plate(), 28, 4, 0))
 	var sheet: StyleBoxFlat = _flat(surface, 24, 20, 8)
 	sheet.corner_radius_bottom_left = 0
 	sheet.corner_radius_bottom_right = 0

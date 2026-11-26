@@ -1,6 +1,9 @@
 class_name ActionBarButton
 extends Button
 ## ActionBarButton (ux-design §4 and §17): icon 28 over a 14 pt semibold label, at least 64 x 64.
+## The button lays out its own icon and label in the 72 pt slot: 10 top, icon 28, gap 4, one label line
+## (at most 20 at the 16 pt cap), and at least 10 below. Godot's own icon-over-text layout made the slot
+## 76 to 80 tall, which pushed the bar to 84 and took that height from the jar.
 ## States: open (filled icon plus a 4 pt accent pill under the label), emphasized (halo ring plus a 10 pt dot
 ## badge, a shape and not just color), locked (disabled look; a tap shows the reason instead of acting).
 ## Long-press (500 ms) shows the label at 200% for low vision and doesn't act.
@@ -9,6 +12,9 @@ signal activated(action_id: StringName)
 signal locked_pressed(reason_key: StringName)
 
 const MIN_SIZE := Vector2(64, 64)
+const SLOT_HEIGHT: float = 72.0
+const PAD_TOP: float = 10.0
+const GAP: float = 4.0
 const ICON: float = 28.0
 const DOT: float = 10.0
 const OPEN_PILL := Vector2(16, 4)
@@ -33,6 +39,8 @@ var locked_reason_key: StringName = &"":
 		theme_type_variation = &"ActionBarButtonLocked" if v != &"" else &"ActionBarButton"
 		_refresh_text()
 
+var _label: String = ""
+var _icon: Texture2D = null
 var _hold_timer: Timer = null
 var _popup: PanelContainer = null
 var _popup_label: Label = null
@@ -46,11 +54,8 @@ func _ready() -> void:
 	custom_minimum_size = MIN_SIZE
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	size_flags_vertical = Control.SIZE_EXPAND_FILL
-	icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
-	alignment = HORIZONTAL_ALIGNMENT_CENTER
-	text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
-	clip_text = false
+	text = ""
+	icon = null
 	_refresh_icon()
 	_refresh_text()
 	_hold_timer = Timer.new()
@@ -81,19 +86,38 @@ func is_popup_visible() -> bool:
 	return _popup != null and _popup.visible
 
 
+## The drawn label (the Button's own text stays empty).
+func label_text() -> String:
+	return _label
+
+
+## Where the icon and the label's line box are drawn, in local coordinates.
+func icon_rect() -> Rect2:
+	return Rect2(Vector2((size.x - ICON) * 0.5, PAD_TOP), Vector2(ICON, ICON))
+
+
+func label_rect() -> Rect2:
+	var font: Font = get_theme_font(&"font")
+	var fsize: int = get_theme_font_size(&"font_size")
+	var w: float = font.get_string_size(_label, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize).x
+	return Rect2(Vector2((size.x - w) * 0.5, PAD_TOP + ICON + GAP), Vector2(w, font.get_height(fsize)))
+
+
 func _refresh_icon() -> void:
 	if is_node_ready():
-		icon = UiIcon.action(action_id, is_open)
+		_icon = UiIcon.action(action_id, is_open)
+		queue_redraw()
 
 
 func _refresh_text() -> void:
 	if not is_node_ready():
 		return
-	text = tr(label_key())
+	_label = tr(label_key())
 	accessibility_name = tr(a11y_key())
 	accessibility_description = tr(locked_reason_key) if locked_reason_key != &"" else ""
 	if _popup_label != null:
-		_popup_label.text = text
+		_popup_label.text = _label
+	queue_redraw()
 
 
 func _gui_input(event: InputEvent) -> void:
@@ -124,7 +148,7 @@ func _on_up() -> void:
 
 func _on_hold() -> void:
 	_long_pressed = true
-	_popup_label.text = text
+	_popup_label.text = _label
 	_popup.reset_size()
 	_popup.show()
 	var popup_size: Vector2 = _popup.get_combined_minimum_size()
@@ -160,11 +184,20 @@ func _build_popup() -> void:
 
 
 func _draw() -> void:
-	var box: StyleBox = get_theme_stylebox(&"normal")
-	var icon_center := Vector2(size.x * 0.5, box.get_margin(SIDE_TOP) + ICON * 0.5)
+	var down: bool = is_pressed() and get_draw_mode() in [DRAW_PRESSED, DRAW_HOVER_PRESSED]
+	var ink: Color = get_theme_color(&"font_pressed_color" if down else &"font_color")
+	var ir: Rect2 = icon_rect()
+	if _icon != null:
+		draw_texture_rect(_icon, ir, false, get_theme_color(&"icon_pressed_color" if down else &"icon_normal_color"))
+	var font: Font = get_theme_font(&"font")
+	var fsize: int = get_theme_font_size(&"font_size")
+	var lr: Rect2 = label_rect()
+	draw_string(font, Vector2(lr.position.x, lr.position.y + font.get_ascent(fsize)), _label,
+		HORIZONTAL_ALIGNMENT_LEFT, -1, fsize, ink)
+	var icon_center: Vector2 = ir.get_center()
 	var accent: Color = get_theme_color(&"accent", ThemeBuilder.PALETTE_TYPE)
 	if emphasized:
-		draw_arc(icon_center, ICON * 0.5 + 6.0, 0.0, TAU, 48, Color(accent, 0.45), 3.0, true)
+		draw_arc(icon_center, ICON * 0.5 + 4.0, 0.0, TAU, 48, Color(accent, 0.45), 3.0, true)
 		draw_circle(icon_center + Vector2(ICON * 0.5 + 2.0, -ICON * 0.5 + 1.0), DOT * 0.5, accent)
 	if is_open:
 		var r := Rect2(Vector2(size.x * 0.5 - OPEN_PILL.x * 0.5, size.y - OPEN_PILL.y - 1.0), OPEN_PILL)

@@ -93,9 +93,9 @@ corner_detail = 12
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7nq0d"]
 content_margin_left = 4.0
-content_margin_top = 4.0
+content_margin_top = 0.0
 content_margin_right = 4.0
-content_margin_bottom = 4.0
+content_margin_bottom = 0.0
 bg_color = Color(0.9843137, 0.9647059, 0.9254902, 0.88)
 corner_radius_top_left = 28
 corner_radius_top_right = 28
