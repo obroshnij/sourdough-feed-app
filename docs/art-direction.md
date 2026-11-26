@@ -68,7 +68,7 @@ Type: Figtree for all UI (measured 0.427 to 0.440 em). Fraunces only for the sta
 |---|---|---|---|
 | Key | Area 0.30 x 0.80 m, front-left high, 3.8 W, `#FFEAD6`, spread 75 degrees | DirectionalLight3D, 60 degrees left and 50 degrees up, `#FFF6EE` (T2, accepted: puts the shadow side in its row). Shadows on (1 split, max distance 1.5 m, soft PCF) | No shadow maps (a shadowed light lit about 5x too hard). Analytic drop shadow in the counter shader. Filmic plus a grade, since Compatibility has no AgX |
 | Fill | Area 0.9 m, front-right, 16% of key, `#F2F2F2` | Ambient from the sky or cubemap, energy 0.35 | Same |
-| Rim | Strip 0.10 x 0.55 m behind-right, 85% of key, `#FFEEDD` | SpotLight3D behind-right, no shadow. It draws the glass edge highlight | OmniLight3D, no shadow |
+| Rim | Strip 0.10 x 0.55 m behind-right, 85% of key, `#FFEEDD` | DirectionalLight3D from behind-right, no shadow, `#FFEEDD` (T2, accepted: no falloff to tune, and one light type on both renderers). It draws the glass edge highlight | Same |
 | Top | Area 0.4 m overhead, 15% of key | Folded into ambient | Same |
 | Environment | Gradient world, strength 0.30 | One baked 128 px cubemap of the kitchen (reflections on glass and starter). Tonemap and exposure: T2's choice, signed off against the reference look below | Cubemap only. Tonemap and exposure: T2, against the same reference look |
 | Contact shadow | Real | Baked soft AO decal under the jar (64 px texture) | Same |
@@ -556,11 +556,24 @@ Measure as in §3: 31 px patch means, sRGB 8-bit, HSV. Captures at the §7 pose 
 
 I sign off when every row passes in all three captures and the board's tells (§16.2) read side by side. The director then shows the user, as D-037 requires.
 
-**First review, 2026-11-26** (T2 commit 293b09c, `captures/view/`, 99 frames). Not signed off yet.
-- **Approved on Mobile Tier A and B:** bubbles (the same pattern as the board: irregular, clustered, read as cavities), pockets, cap color, hooch and residue. 153 of 156 rows pass.
-- **Must fix:**
-  - **Pointed cap (T2).** The `at_peak` and `active` cap comes to a point in the side close-ups, where the board shows a rounded arc. Check the cap term is `1 - UV2.x * UV2.x` (§5). Check the lumps noise doesn't lift the single pole vertex: fade lumps to 0 inside `UV2.x < 0.15`.
-  - **Clipped glass stripe on Compatibility (T2).** A vertical glass highlight clips 11.5% of the `at_peak` side close-up and 1.3% of the pose. §3 says nothing clips, and the stripe hides the paste. It is probably also why the two Compatibility R7/R8 misses on `active` happened; re-measure after the fix.
-  - **Backdrop (art).** The in-focus big-tile wall competes with the jar. §1 and §10 want a soft-focus kitchen. Art owes the baked, pre-blurred backdrop image (§4 `M_Backdrop`), plus the counter and lid textures.
-- **Minor:** from the top view, the glass walls read gray and smoky against the board's pale glass. The dried residue on `hungry` is a little dense, but it stays pale, so it is accepted.
-- **Accepted deviations:** key light direction and color (§3), backlight_k 0.15 instead of 0.35, no shadow maps on Compatibility, Filmic plus a grade on Compatibility, band `#7A9271` (§2.1), VRAM Uncompressed masks (§16.3), pale dried residue.
+**Review, 2026-11-26** (T2 work merged in 6aa85c1, `captures/view/`, 99 frames; 153 of 156 rows pass). **Not signed off yet on any renderer.** Bubbles, pockets, cap color, hooch and residue match the board on all three captures.
+
+| Renderer | Verdict | Fixes before re-check |
+|---|---|---|
+| Mobile Tier B | Not yet | Fix 1 |
+| Mobile Tier A | Not yet | Fix 1. Its R7 pocket S of 17.95% counts as a pass (rounding) |
+| Compatibility Tier A | Not yet | Fixes 1 and 2, then re-measure R7 and R8 on `active` |
+
+- **Fix 1, pointed cap** (`src/view/shaders/starter_common.gdshaderinc`, `cap_offset()`). The cap term in `starter.gdshader` is correct (`1 - UV2.x²`). The point comes from the lump term:
+  - `fbm3` spans about 0 to 1, which is wider than the Blender noise the board uses, and a lump near the center shows as a corner at grazing angles. A Blender render without depth of field confirms the board's arc stays round at the same height.
+  - Change it to `float lump = lumps * LUMPS_MAX_M * (fbm3(xz * 70.0) - 0.5) * 0.5 * smoothstep(0.0, 0.3, length(xz) / starter_r);`.
+  - Target: in the `at_peak` §16.2 side close-up, the cap's top edge is a smooth arc with no corner. To confirm the cause first, capture once with `lumps` = 0.
+- **Fix 2, clipped glass stripe on Compatibility** (`glass_common.gdshaderinc`, `spec_strength`, now 5.0 on both renderers). Make it a `ViewLook` field. Set it to about 1.5 for Compatibility, where Filmic clips what AgX rolls off, and keep 5.0 on Mobile.
+  - Target: under 0.5% of pixels at max channel 0.99 or above in the `at_peak` side close-up (now 11.5%), and under 0.1% in the pose (now 1.3%; the board has 0.07%).
+- **Minor, not blocking:** from the top view, the glass walls read gray. Lower `reflection_strength` on the inner pass, or lighten what the sky shows below the horizon.
+- **Rulings on T2's deviations:**
+  - **Shadow maps off on both renderers, with the counter shader drawing the drop shadow: accepted.** The drop shadow must follow the key direction. The lid shadow offset is a known gap to fix.
+  - **Masks VRAM Uncompressed: accepted** (§16.3).
+  - **Directional rim light: accepted** (§3).
+  - **Home yaw:** reference captures and sign-off stay at yaw 0 (§7). The in-game home pose may use ux-designer's slight 3/4 angle. I propose -12 degrees, which moves the camera toward the key side so more of the lit cream faces the player. The kitchen set I'm building covers the ±70 degree orbit either way.
+  - **Also accepted:** key light direction and color (§3), backlight_k 0.15 instead of 0.35, Filmic plus a grade on Compatibility, band `#7A9271` (§2.1), pale dried residue.
