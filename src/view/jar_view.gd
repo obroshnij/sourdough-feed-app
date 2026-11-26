@@ -186,7 +186,8 @@ func apply_look(look: ViewLook, key_dir: Vector3, rim_dir: Vector3) -> void:
 	if lid_mat != null:
 		lid_mat.set_shader_parameter(&"grade_value", look.dressing_value)
 	if quality != null:
-		quality.set_shared(&"glass_grade", look.glass_grade)
+		quality.set_shared(&"reflection_strength", look.glass_reflection)
+		quality.set_shared(&"spec_strength", look.glass_spec)
 		quality.set_shared(&"key_dir", key_dir)
 		quality.set_shared(&"rim_dir", rim_dir)
 

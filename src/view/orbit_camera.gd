@@ -6,7 +6,8 @@ extends Node3D
 ## - One finger orbits (yaw 0.30 deg/pt, pitch 0.20 deg/pt) with inertia (tau 250 ms).
 ## - Our own pinch zooms 1.0x (home distance) to 2.2x, with an 8% rubber band while held.
 ## - Double tap eases home over 350 ms. 20 s idle eases home over 1.5 s.
-## - Free orbit: yaw +-70 deg (8 deg band), pitch -5 to +35 deg (5 deg band). Focus presets
+## - Home: yaw -12 deg (toward the key side), pitch 15 deg, the art preview distance and target.
+## - Free orbit: yaw +-70 deg from the front (8 deg band), pitch -5 to +35 deg (5 deg band). Focus presets
 ##   (inspection) may go past these.
 ## - Frame shift: an off-axis frustum centers the jar in the region the UI leaves free.
 ## Pose angles are in degrees.
@@ -16,7 +17,11 @@ signal zoom_limit_reached()
 
 const HOME_TARGET: Vector3 = Vector3(0.0, 0.105, 0.0)
 const HOME_DISTANCE: float = 0.58
-const HOME_YAW: float = 0.0
+## In game the home pose turns 12 degrees toward the key side (director, after the art review).
+## Captures for sign-off use yaw 0, the reference pose.
+const HOME_YAW: float = -12.0
+## Free-orbit yaw limits are measured from the front (ux-design §6), not from home.
+const FRONT_YAW: float = 0.0
 const HOME_PITCH: float = 15.0
 const FOV_DEG: float = 33.4
 const NEAR: float = 0.01
@@ -288,7 +293,7 @@ func _on_orbited(delta_pt: Vector2) -> void:
 		return
 	var dyaw: float = -delta_pt.x * YAW_PER_PT
 	var dpitch: float = delta_pt.y * PITCH_PER_PT
-	yaw = _banded(yaw, dyaw, HOME_YAW - YAW_LIMIT, HOME_YAW + YAW_LIMIT, YAW_BAND)
+	yaw = _banded(yaw, dyaw, FRONT_YAW - YAW_LIMIT, FRONT_YAW + YAW_LIMIT, YAW_BAND)
 	pitch = _banded(pitch, dpitch, PITCH_MIN, PITCH_MAX, PITCH_BAND)
 	_frame_dyaw += dyaw
 	_frame_dpitch += dpitch
@@ -374,8 +379,8 @@ func _coast(delta: float) -> void:
 		pitch_velocity = 0.0
 	if focus_target == &"" and _anim_t < 0.0:
 		var k: float = 1.0 - exp(-SETTLE_RATE * delta)
-		var y_lo: float = HOME_YAW - YAW_LIMIT
-		var y_hi: float = HOME_YAW + YAW_LIMIT
+		var y_lo: float = FRONT_YAW - YAW_LIMIT
+		var y_hi: float = FRONT_YAW + YAW_LIMIT
 		if yaw > y_hi or yaw < y_lo:
 			yaw_velocity = 0.0
 			yaw = _settle(clampf(yaw, y_lo - YAW_BAND, y_hi + YAW_BAND), y_lo, y_hi, k)

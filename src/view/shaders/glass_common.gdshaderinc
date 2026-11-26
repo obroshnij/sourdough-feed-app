@@ -10,10 +10,8 @@ uniform vec3 rim_dir = vec3(0.7, 0.25, -0.65);
 uniform vec3 rim_color : source_color = vec3(0.92, 0.95, 1.0);
 uniform vec3 edge_tint : source_color = vec3(0.16, 0.24, 0.20);
 uniform float f0 = 0.04;
-uniform float reflection_strength = 1.0;
-uniform float spec_strength = 5.0;
-// Per-renderer grade (ViewLook): Compatibility's Filmic clips the HDR softbox reflection.
-uniform float glass_grade = 1.0;
+uniform float reflection_strength = 1.0;   // ViewLook.glass_reflection: 1.0 Mobile, 0.35 Compatibility
+uniform float spec_strength = 5.0;   // ViewLook.glass_spec: 5.0 Mobile, 1.5 Compatibility
 uniform float spec_power = 900.0;
 uniform float base_absorb = 0.03;
 uniform float edge_absorb = 0.5;
@@ -37,6 +35,6 @@ void glass_shade(vec3 normal_v, vec3 view_v, mat4 inv_view, float strength,
 	vec3 spec = (key_color * s_key + rim_color * s_rim * 0.6) * spec_strength * (1.0 - 0.6 * fog);
 	float absorb = clamp(base_absorb + edge_absorb * pow(1.0 - ndv, edge_power), 0.0, 1.0);
 	float transmit = (1.0 - fres) * (1.0 - absorb) * (1.0 - 0.5 * fog);
-	emit = ((refl * fres + spec) * glass_grade + edge_tint * absorb * 0.5 + vec3(0.55) * fog * 0.5) * strength;
+	emit = (refl * fres + spec + edge_tint * absorb * 0.5 + vec3(0.55) * fog * 0.5) * strength;
 	alpha = (1.0 - transmit) * strength;
 }
