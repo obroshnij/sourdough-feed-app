@@ -132,6 +132,40 @@ func primitives(key: String) -> Dictionary:
 	return src
 
 
+## D-040: a float's save form is the 16-character hex of its 64-bit pattern (little-endian bytes, as
+## PackedByteArray.encode_double writes them): 0.25 is "000000000000d03f". Lossless, unlike JSON numbers.
+static func float_to_hex(x: float) -> String:
+	var b := PackedByteArray()
+	b.resize(8)
+	b.encode_double(0, x)
+	return b.hex_encode()
+
+
+static func is_float_hex(s: String) -> bool:
+	if s.length() != 16:
+		return false
+	for c: String in s:
+		if not "0123456789abcdef".contains(c):
+			return false
+	return true
+
+
+## A float from a JSON number or a D-040 hex string. NaN when it is neither (callers check).
+static func float_of(v: Variant) -> float:
+	var t: int = typeof(v)
+	if t == TYPE_FLOAT:
+		var x: float = v
+		return x
+	if t == TYPE_INT:
+		var n: int = v
+		return float(n)
+	if t == TYPE_STRING:
+		var s: String = v
+		if is_float_hex(s):
+			return s.hex_decode().decode_double(0)
+	return NAN
+
+
 ## The canonical form for free-form dictionaries (event payloads, journal args and data): whole numbers are
 ## ints, everything else unchanged, recursively. JSON gives every number back as a float, so without this a
 ## save and load would turn 50 into 50.0 and change the saved text (PROP-02).
@@ -162,19 +196,13 @@ static func canonical_dict(d: Dictionary) -> Dictionary:
 	return out
 
 
+## Accepts a JSON number (hand-written fixtures) or a D-040 hex string (saves).
 func _to_float(v: Variant) -> float:
-	var t: int = typeof(v)
-	if t == TYPE_FLOAT:
-		var x: float = v
-		if is_nan(x) or is_inf(x):
-			ok = false
-			return 0.0
-		return x
-	if t == TYPE_INT:
-		var n: int = v
-		return float(n)
-	ok = false
-	return 0.0
+	var x: float = float_of(v)
+	if is_nan(x) or is_inf(x):
+		ok = false
+		return 0.0
+	return x
 
 
 func _to_int(v: Variant) -> int:

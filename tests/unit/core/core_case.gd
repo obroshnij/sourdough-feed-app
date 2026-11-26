@@ -52,11 +52,12 @@ static func write_bytes(path: String, bytes: PackedByteArray) -> void:
 	f.close()
 
 
-## Sorted, full-precision payload text without `meta` (saved_unix and save_count legitimately differ).
+## The saved payload text (D-040: floats as hex bits) without `meta` (saved_unix and save_count
+## legitimately differ). This is what PROP-02 compares.
 static func payload_text(p: Dictionary) -> String:
 	var copy: Dictionary = p.duplicate(true)
 	copy.erase("meta")
-	return JSON.stringify(copy, "", true, true)
+	return SaveCodec.payload_text(copy)
 
 
 static func session(dir: String, clock: FakeClock) -> GameSession:

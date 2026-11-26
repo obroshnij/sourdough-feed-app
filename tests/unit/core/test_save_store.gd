@@ -30,7 +30,8 @@ func test_round_trip_and_header() -> void:
 	var report: SaveLoadReport = SaveStore.new(d).load_latest()
 	check(report.ok and report.source == "save.json", "loads save.json")
 	var starter: Dictionary = report.payload["starter"]
-	check_eq(starter["rise"], 1.0 / 3.0, "full precision round-trips 1/3")
+	check_eq(starter["rise"], DictReader.float_to_hex(1.0 / 3.0), "D-040 floats are stored as hex bits")
+	check_eq(DictReader.float_of(starter["rise"]), 1.0 / 3.0, "1/3 round-trips exactly")
 	check_eq(starter["name"], "Dough \"Nut\"", "strings round-trip")
 
 
@@ -155,11 +156,16 @@ func test_floats_round_trip_losslessly() -> void:
 	check_eq(back.size(), values.size(), "same count")
 	var changed: int = 0
 	for i: int in mini(back.size(), values.size()):
-		if typeof(back[i]) != TYPE_FLOAT or back[i] != values[i]:
+		var x: float = DictReader.float_of(back[i])
+		var want: float = values[i]
+		if x != want or (want == 0.0 and DictReader.float_to_hex(x) != DictReader.float_to_hex(want)):
 			changed += 1
 	check_eq(changed, 0, "values changed by a save round trip")
-	var plain: String = SaveCodec.payload_text({"a": 22.0, "b": 0.5})
-	check_eq(plain, "{\"a\":22.0,\"b\":0.5}", "values that round-trip stay plain numbers")
+	check_eq(SaveCodec.payload_text({"a": 0.25}), "{\"a\":\"000000000000d03f\"}", "the D-040 contract example")
+	var fixture := DictReader.new({"x": 22.5, "y": "000000000000d03f", "z": "Dough Nut"})
+	check(fixture.num("x") == 22.5 and fixture.num("y") == 0.25 and fixture.ok, "plain numbers and hex both read")
+	fixture.num("z")
+	check(not fixture.ok, "any other string is rejected")
 
 
 func test_load_from_path_accepts_a_bare_payload() -> void:

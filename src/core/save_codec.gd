@@ -8,16 +8,14 @@ const FORMAT: String = "sourdough.save"
 const CURRENT_VERSION: int = 1
 const NEWLINE: int = 10
 const OPEN_BRACE: int = 123
-## Godot 4.7.2's JSON parser is not correctly rounded for 17-digit numbers: about 1 in 4 sim floats came
-## back 1 ulp off after stringify(full_precision) and parse (measured in tests/unit/core). A float whose
-## text doesn't parse back exactly is written as {"$f64": "<16 hex digits of its bits>"}, so a save and
-## load is lossless (PROP-01, PROP-02). Values that round-trip stay plain numbers.
-const F64_KEY: String = "$f64"
-
-static var _json: JSON = JSON.new()
+## D-040 (data-models §1, §9.2, ADR-005): Godot 4.7.2's JSON number parser changes about 30% of doubles by
+## one step, so every float in the payload is written as the 16-character hex of its 64-bit pattern
+## (DictReader.float_to_hex). Typed readers (DictReader.num) accept that or a plain JSON number, so
+## hand-written fixtures still work. Free-form dictionaries keep the hex string after a load
+## (read it with DictReader.float_of); the saved text stays identical either way.
 
 
-## Sorted keys, full precision, one line, floats packed losslessly.
+## Sorted keys, full precision, one line, every float as hex.
 static func payload_text(payload: Dictionary) -> String:
 	return JSON.stringify(pack_floats(payload), "", true, true)
 
@@ -26,12 +24,7 @@ static func pack_floats(v: Variant) -> Variant:
 	match typeof(v):
 		TYPE_FLOAT:
 			var x: float = v
-			if _round_trips(x):
-				return x
-			var b := PackedByteArray()
-			b.resize(8)
-			b.encode_double(0, x)
-			return {F64_KEY: b.hex_encode()}
+			return DictReader.float_to_hex(x)
 		TYPE_DICTIONARY:
 			var src: Dictionary = v
 			var out: Dictionary = {}
@@ -46,35 +39,6 @@ static func pack_floats(v: Variant) -> Variant:
 			return list
 	return v
 
-
-static func unpack_floats(v: Variant) -> Variant:
-	match typeof(v):
-		TYPE_DICTIONARY:
-			var src: Dictionary = v
-			if src.size() == 1 and src.has(F64_KEY) and typeof(src[F64_KEY]) == TYPE_STRING:
-				var hex: String = src[F64_KEY]
-				if hex.length() == 16 and hex.is_valid_hex_number():
-					return hex.hex_decode().decode_double(0)
-			var out: Dictionary = {}
-			for k: Variant in src:
-				out[k] = unpack_floats(src[k])
-			return out
-		TYPE_ARRAY:
-			var arr: Array = v
-			var list: Array = []
-			for item: Variant in arr:
-				list.append(unpack_floats(item))
-			return list
-	return v
-
-
-static func _round_trips(x: float) -> bool:
-	if is_nan(x) or is_inf(x):
-		return false
-	if _json.parse(JSON.stringify(x, "", false, true)) != OK:
-		return false
-	var back: Variant = _json.data
-	return typeof(back) == TYPE_FLOAT and back == x
 
 
 static func encode(payload: Dictionary) -> PackedByteArray:
@@ -174,5 +138,5 @@ static func _parse_object(text: String) -> Dictionary:
 	var data: Variant = json.data
 	if typeof(data) != TYPE_DICTIONARY:
 		return {}
-	var d: Dictionary = unpack_floats(data)
+	var d: Dictionary = data
 	return d
