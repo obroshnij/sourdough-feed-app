@@ -294,7 +294,7 @@ Phone numbers are targets. Nothing is measured on a phone yet (D-004).
 Command for humans and CI: **`tests/run.sh`** (owned by `qa-engineer`). It:
 1. runs `godot --headless --path . --import`. **Required**: in a fresh checkout without `.godot/`, `class_name` types fail to resolve under `-s` and the run **exits 0** **[ran]**.
 2. runs `godot --headless --path . -s res://tests/run_tests.gd -- [--filter=<substring>]` under an outer `perl -e 'alarm 300; exec @ARGV'` timeout. A runtime error directly in `_init` hangs **[ran]**.
-3. passes only if the exit code is 0 **and** the last stdout line matches `^RESULT: [0-9]+ passed, 0 failed$`. A parse error in the runner itself exits 0 **[ran]**.
+3. passes only if the exit code is 0 **and** the last stdout line is the runner's `RESULT:` line with 0 failed. The exact line format, including skipped counts, is defined by `test-plan.md` R-5 and R-6. A parse error in the runner itself exits 0 **[ran]**.
 
 `run_tests.gd` contract (all **[ran]** in 4.7.2):
 - Runs from `_initialize()`, not `_init()`.
