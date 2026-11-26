@@ -1,0 +1,32 @@
+# Godot 4 (commit .import and .uid files; only the cache folder is ignored)
+.godot/
+*.translation
+/android/
+
+# Build output
+/build/
+/exports/
+*.apk
+*.aab
+*.ipa
+*.dSYM/
+
+# Signing material and secrets: never commit
+*.keystore
+*.jks
+*.p12
+*.mobileprovision
+*.cer
+.env
+.env.*
+export_credentials.cfg
+
+# Blender autosaves and backups
+*.blend1
+*.blend2
+*.blend@
+
+# Tooling
+__pycache__/
+*.pyc
+.DS_Store

@@ -1,0 +1,57 @@
+# Sourdough
+
+A cozy 3D virtual pet for iOS and Android. The player keeps a living sourdough starter happy in a glass jar. Godot 4.7.2, statically typed GDScript, Blender 5.3 assets exported as GLB. Fully offline, no backend.
+
+> **The workspace `CLAUDE.md` one folder up (`/Users/dev/dev/sourdough-app/CLAUDE.md`) and `AGENTS.md` describe Kultura, a different app.** None of their rules, stack, commands or file paths apply to this repo. Ignore them here.
+
+## Where things are
+
+| Start here | What |
+|---|---|
+| [`docs/vision.md`](docs/vision.md) | Pillars, scope, canonical ids (states, actions, flours), file ownership, team process. Read before anything else. |
+| [`docs/decisions.md`](docs/decisions.md) | Every product and technical decision, with status. |
+| [`production/board.md`](production/board.md) | Who is doing what right now. |
+| `.claude/agents/` | The studio's specialist agents and the shared team contract. |
+
+**Status:** Phase 1 (research and design). There is no game code yet, only throwaway spikes in `spikes/`.
+
+## Toolchain (verified 2026-11-26)
+
+| Tool | Path | Version |
+|---|---|---|
+| Godot | `/Applications/Godot.app/Contents/MacOS/Godot` | 4.7.2.stable.official.ed1daf0bf |
+| Blender | `/Applications/Blender.app/Contents/MacOS/Blender` | 5.3.0 |
+| Xcode | `/Applications/Xcode.app` | 27.2, iPhone 17 Pro simulators |
+| JDK | `/Applications/Android Studio.app/Contents/jbr/Contents/Home` | OpenJDK 21.0.10 |
+| Android SDK | `~/Library/Android/sdk` | Missing platform 36, build-tools 36.1.0 and the NDK |
+
+Godot export templates are **not** installed (1,281 MB, ask before downloading). There is no physical test phone yet: performance numbers from the Mac or simulators are estimates and must be labeled that way.
+
+## Verified commands
+
+Only commands that have actually been run go here.
+
+```bash
+/Applications/Godot.app/Contents/MacOS/Godot --version      # 4.7.2.stable.official.ed1daf0bf
+/Applications/Blender.app/Contents/MacOS/Blender --version  # Blender 5.3.0
+```
+
+## Hard rules
+
+1. **The simulation is pure.** `src/sim/` never touches Nodes, scenes or engine singletons (`Time`, `OS`, global `randi()`). Time arrives as arguments, randomness from a seeded `RandomNumberGenerator` passed in. Same inputs, same outputs.
+2. **The jar never shows what the sim didn't produce.** Visuals come from `VisualMapper.from_state()`. Smell and inspection text come from the state, never from an unrelated random pick.
+3. **Every player-facing string goes through `tr()`** with a key in `src/i18n/`. No literal text in scenes or scripts.
+4. **Static typing everywhere.** Untyped declarations are errors.
+5. **Never present potentially unsafe starter as safe.** Fuzzy growth of any color, or pink, orange or red streaks, means discard. See `docs/sourdough-science.md`.
+6. **Offline only.** No network calls, accounts or analytics.
+7. **Status is never shown by color alone.** Always an icon and a word too.
+8. **Write only the files you own** (ownership map in `docs/vision.md`). Ask the owner to change anything else.
+9. **Don't claim it works without running it.** Say what you ran and what you saw.
+10. **Public repo.** No secrets, signing keys, keystores, provisioning profiles or personal data, ever.
+11. **Writing style** for docs, comments and copy: plain language, American spelling, no em dashes.
+
+## Git
+
+- `main` holds the reviewed state. Each phase works on its own branch (`phase-1-design`, then `phase-2-foundation`, and so on), pushed to `origin`.
+- Committing and pushing is approved. Merging a phase branch waits for the user's review.
+- Commit `.import` and `.uid` files. Ignore only `.godot/`.

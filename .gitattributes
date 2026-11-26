@@ -1,0 +1,18 @@
+# Normalize text, keep LF everywhere (Godot and shell scripts expect it)
+* text=auto eol=lf
+
+# Binary assets. No Git LFS for now; revisit if .blend or texture sizes grow.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.exr binary
+*.hdr binary
+*.glb binary
+*.blend binary
+*.otf binary
+*.ttf binary
+*.woff2 binary
+*.wav binary
+*.ogg binary
+*.mp3 binary
