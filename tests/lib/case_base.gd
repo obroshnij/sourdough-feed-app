@@ -38,6 +38,9 @@ func check(condition: bool, message: String) -> bool:
 
 
 func check_eq(actual: Variant, expected: Variant, message: String = "") -> bool:
+	if typeof(actual) == TYPE_DICTIONARY and typeof(expected) == TYPE_DICTIONARY:
+		return check(values_equal(actual, expected),
+				"%sdictionaries differ: %s" % [_prefix(message), dict_diff(actual, expected)])
 	return check(values_equal(actual, expected),
 			"%sexpected %s, got %s" % [_prefix(message), show(expected), show(actual)])
 
@@ -126,6 +129,23 @@ static func show(value: Variant) -> String:
 			return "\"%s\"" % String(value)
 		_:
 			return str(value)
+
+
+## The keys whose values differ, as "key: expected X, got Y; ...". Missing keys show as <none>.
+static func dict_diff(actual: Dictionary, expected: Dictionary) -> String:
+	var parts: PackedStringArray = PackedStringArray()
+	var keys: Array = expected.keys()
+	for key: Variant in actual.keys():
+		if not expected.has(key):
+			keys.append(key)
+	for key: Variant in keys:
+		var has_a: bool = actual.has(key)
+		var has_e: bool = expected.has(key)
+		if has_a and has_e and values_equal(actual[key], expected[key]):
+			continue
+		parts.append("%s: expected %s, got %s" % [str(key), show(expected[key]) if has_e else "<none>",
+				show(actual[key]) if has_a else "<none>"])
+	return "; ".join(parts)
 
 
 static func _prefix(message: String) -> String:

@@ -96,7 +96,7 @@ Evidence tags: **[ran]** = headless run in a scratch project (see the verificati
 - **Context.** Godot's own backup save (temp file then rename, in `FileAccessUnix`) only runs when backup save is enabled, which the editor does **[src]**. Godot never calls `fsync` **[src]**.
 - **Decision.**
   1. File = one JSON header line (`format`, `version`, `sha256`, `bytes`) + `\n` + the payload, byte for byte (`data-models.md` §9).
-  2. Payload written with `JSON.stringify(payload, "", true, true)`.
+  2. Payload written with `JSON.stringify(payload, "", true, true)`, with **every float stored as the hex string of its IEEE-754 bits** (`data-models.md` §1). Corrected in wave B, see below.
   3. Checksum over the stored payload bytes, not a re-serialization.
   4. RNG seeds and states as decimal strings.
   5. Write `save.tmp`, rename `save.json` to `save.prev`, rename `save.tmp` to `save.json`, using **`DirAccess.open("user://saves").rename()`**, never `DirAccess.rename_absolute()`.
@@ -108,7 +108,7 @@ Evidence tags: **[ran]** = headless run in a scratch project (see the verificati
      Otherwise every corrupt-file test fails under the runner's Logger.
   7. Only a trusted `save.json` (loaded or written this session) rotates into `save.prev`. Anything that fails to load goes to `quarantine/` and is never deleted, except to keep the newest 5 sets. Before a fresh starter is created, all candidates are quarantined (`qa-engineer` findings SAVE-17 and SAVE-06, both data-loss paths in v0 of this design).
 - **Why the amendments.**
-  - Default `JSON.stringify` writes `1/3` as `0.333333333333333`, which does not round-trip. Full precision does **[ran]**.
+  - Default `JSON.stringify` writes `1/3` as `0.333333333333333`, which does not round-trip. Full precision fixes that case **[ran]**, but **not in general**. My v0 evidence was one lucky value. `qa-engineer` found that the 4.7.2 JSON number parser isn't correctly rounded: `0.00038268223404884337` and even the 16-decimal 1.9469610637576158 read back 1 ulp off. I reproduced it: 33,968 of 100,000 log-uniform doubles between 1e-6 and 1e3 came back wrong through full-precision JSON. `String.num_scientific` plus `to_float()` gave the same 33,968. The hex of the 64-bit pattern gave 0 **[ran]**. Without the fix, a save then load changes the starter by 1 ulp, which breaks the exact determinism properties (PROP-01, PROP-02, SAVE-01). Player impact would be nil, but exact tests are what catch port bugs, so the save stays exact rather than tests gaining a tolerance.
   - Parse then stringify is not byte-stable (`1` becomes `1.0`), so a re-serialized checksum would never match **[ran]**.
   - 2^53+1 and a real RNG state lose precision as JSON numbers. As strings they round-trip **[ran]**.
   - `rename_absolute` always uses `ACCESS_FILESYSTEM` with a globalized path **[src: core/io/dir_access.cpp]**. On Android, `ACCESS_FILESYSTEM` is `DirAccessJAndroid`, which goes through JNI to `FileData.rename`, which calls `File.renameTo` **[src]**. `user://` on Android, iOS and macOS is `DirAccessUnix`, which calls POSIX `::rename` **[src: drivers/unix/dir_access_unix.cpp, platform/android/os_android.cpp, drivers/unix/os_unix.cpp via OS_AppleEmbedded]**. POSIX rename replaces the destination atomically.
@@ -216,6 +216,8 @@ Godot `4.7.2.stable.official.ed1daf0bf` on an Apple M4, scratch projects under `
 | `t_perf.gd` (twice) | 20,160 steps of 60 s in 22.1 and 22.4 ms. 4,032 steps of 300 s in 4.6 and 4.4 ms |
 | `t_settings.gd`, `t_api.gd`, `t_ui.gd` | Setting names and defaults cited above. `get_current_rendering_method` present. `Engine.max_fps` settable. Typed `Dictionary[StringName, float]` works. `Control.accessibility_*` present |
 | `t_silent.gd` (wave B), with a counting `Logger` | `JSON.parse_string("{not json")`: 1 logged error. `JSON.new().parse()`: `Parse error`, 0 logged. `FileAccess.open` and `file_exists` on a missing file: 0 logged. Typed `var x: float = "high"`: 1 logged script error. Invalid UTF-8 via `get_string_from_utf8`: 0 logged, string mangled |
+| `t_float.gd` (wave B) | 100,000 doubles, `pow(10, randf_range(-6, 3))`, seed 42. Wrong after a round trip: JSON full precision 33,968; `num_scientific` through JSON 33,968; `num_scientific` plus `to_float()` 33,968; hex of `encode_double` bytes 0 |
+| `t_hex.gd` (wave B) | 0.25 is `000000000000d03f`, 1/3 is `555555555555d53f`, 0.18 is `0ad7a3703d0ac73f`, 150.0 is `0000000000c06240`. All decode back equal |
 | `t_bytes.gd` (wave B) | `HashingContext` SHA-256 over the payload bytes read back equals `sha256_text()` of the written string. `get_file_as_bytes` on a missing file: size 0, nothing logged |
 | `assets/probe.gltf` import + `t_gltf.gd` | Node `extras` became `get_meta("extras")` Dictionaries with the authored values |
 

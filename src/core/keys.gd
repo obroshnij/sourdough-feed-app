@@ -33,6 +33,21 @@ static func smell(descriptor: StringName, part: String) -> StringName:
 	return StringName("SMELL_%s_%s" % [up(descriptor), part])
 
 
+## The display text for a key with args, such as a JournalEntry's text_key and args. An arg whose value is
+## itself a key (UPPER_SNAKE, like "FLOUR_WHOLE_WHEAT" or "SMELL_YOGURT_TITLE") is translated first, so the
+## save stores keys, never text in one language (game-copy §1.3, §11).
+static func format(text_key: StringName, args: Dictionary) -> String:
+	var resolved: Dictionary = {}
+	var key_shape := RegEx.create_from_string("^[A-Z][A-Z0-9_]*$")
+	for k: Variant in args:
+		var v: Variant = args[k]
+		if typeof(v) == TYPE_STRING and key_shape.search(String(v)) != null:
+			resolved[k] = TranslationServer.translate(StringName(String(v)))
+		else:
+			resolved[k] = v
+	return String(TranslationServer.translate(text_key)).format(resolved)
+
+
 static func location(location_id: StringName) -> StringName:
 	return StringName("LOC_%s" % up(location_id))
 

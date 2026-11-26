@@ -45,8 +45,8 @@ static func _first_index(list: Array[JournalEntry], kinds: Array[StringName]) ->
 func to_dict() -> Dictionary:
 	return {
 		"uid": uid, "starter_id": starter_id, "at_unix": at_unix, "kind": String(kind),
-		"state_id": String(state_id), "text_key": String(text_key), "args": args.duplicate(true),
-		"data": data.duplicate(true),
+		"state_id": String(state_id), "text_key": String(text_key), "args": DictReader.canonical_dict(args),
+		"data": DictReader.canonical_dict(data),
 	}
 
 
@@ -59,8 +59,8 @@ static func from_dict(d: Dictionary) -> JournalEntry:
 	e.kind = r.id("kind")
 	e.state_id = r.id("state_id")
 	e.text_key = r.id("text_key")
-	e.args = r.dict("args")
-	e.data = r.dict("data")
+	e.args = DictReader.canonical_dict(r.dict("args"))
+	e.data = DictReader.canonical_dict(r.dict("data"))
 	if not r.ok or not KINDS.has(e.kind):
 		return null
 	return e

@@ -1,6 +1,6 @@
 # Architecture
 
-Owner: `tech-architect`. Status: **draft v0, wave A** (2026-11-26). Engine: Godot 4.7.2, typed GDScript.
+Owner: `tech-architect`. Status: **v1, synced to the T1 code** on `phase-2-foundation` (2026-11-26, D-039 to D-042). Engine: Godot 4.7.2, typed GDScript.
 Related: [`data-models.md`](data-models.md) (every type named here), [`technical-decisions.md`](technical-decisions.md) (why, with evidence).
 
 Claims about Godot 4.7.2 are marked **[ran]** (verified with a headless run in a scratch project, details in `technical-decisions.md`), **[src]** (read in the 4.7.2-stable source), or **[unverified]**.
@@ -31,30 +31,40 @@ Rules:
 3. sim strings are **keys**, never text. `tr()` happens in ui.
 4. Enforced by `qa-engineer`'s LINT-01, which scans `src/sim/**/*.gd` for forbidden tokens and fails on any hit: `extends Node`, `Node.new`, `get_tree(`, `Time.`, `OS.`, `Engine.`, `Input.`, `DisplayServer.`, `FileAccess`, `DirAccess`, `load(`, `preload(`, `randi(`, `randf(`, `randomize(`, `tr(`.
 
-## 2. Directory layout (Phase 2 target)
+## 2. Directory layout
+
+`src/sim/` and `src/core/` list the files T1 has built. `view/`, `ui/` and `core/dev/` beyond `dev_flags.gd` are still the target.
 
 ```
 project.godot                      shared, owner: core track (§13)
 src/
-  main/        main.tscn, main.gd                    composes World + UI, adds dev nodes
-  sim/         starter_state.gd  environment_state.gd  feed_action.gd  actions.gd
-               flour_profile.gd  location_preset.gd  container_profile.gd  cover_profile.gd
-               sim.gd  sim_constants.gd  state_deriver.gd  visual_params.gd  visual_mapper.gd
-               starter_presets.gd  demo.gd
-               smell_model.gd  inspection.gd  forecast.gd  catch_up.gd  catch_up_result.gd
-               player_history.gd  journal_entry.gd  starter_snapshot.gd
+  main/        main.tscn, main.gd        composes World + UI, sets content scale, calls Session.start()
+  sim/         state:    starter_state.gd  environment_state.gd  derived_state.gd  starter_snapshot.gd
+               numbers:  sim_constants.gd  sim_catalog.gd  flour_profile.gd  location_preset.gd
+                         container_profile.gd  cover_profile.gd
+               actions:  game_action.gd  feed_action.gd  set_environment_action.gd  smell_action.gd
+                         inspect_action.gd  rename_action.gd  ack_event_action.gd
+                         discard_starter_action.gd  action_result.gd
+               model:    sim.gd  sim_rates.gd  state_deriver.gd  visual_params.gd  visual_mapper.gd
+                         starter_presets.gd  demo.gd  sim_fixtures.gd  local_day.gd
+               readouts: smell_model.gd  smell_readout.gd  inspection.gd  inspection_readout.gd
+                         forecast.gd  peak_forecast.gd  catch_up.gd  catch_up_result.gd
+               records:  player_history.gd  daily_bucket.gd  journal_entry.gd  memorial.gd  dict_reader.gd
   sim/events/  sim_event.gd  event_context.gd  event_rule.gd  event_rules.gd
                event_scheduler.gd  event_ledger.gd  return_summary.gd
-  sim/events/rules/   one file per rule, rule_<event_id>.gd
+  sim/events/rules/   one file per rule, rule_<event_id>.gd (none yet)
   core/        game_session.gd  bus.gd  clock.gd  system_clock.gd  debug_clock.gd  fake_clock.gd
-               time_policy.gd  save_store.gd  save_codec.gd  save_migrations.gd  settings_store.gd
-  core/dev/    dev_flags.gd  perf_log.gd  capture.gd  dev_overlay.tscn
+               time_policy.gd  time_resolution.gd  save_store.gd  save_codec.gd  save_decoded.gd
+               save_load_report.gd  save_meta.gd  save_migrations.gd  settings_store.gd
+               i18n_loader.gd  keys.gd  milestones.gd
+  core/dev/    dev_flags.gd  (later: perf_log.gd  capture.gd  dev_overlay.tscn)
   view/        world.tscn  jar_view.gd  jar_geometry.gd  orbit_camera.gd  touch_gestures.gd
                quality_tier.gd  shaders/*.gdshader  vfx/
   ui/          ui_root.tscn  theme/sourdough_theme.tres  hud/  sheets/  overlays/  components/
   i18n/        en.csv (generated)  pending_core.csv  pending_view.csv  pending_ui.csv   (*.translation git-ignored)
-data/
-  flours/*.tres  locations/*.tres  containers/*.tres  covers/*.tres
+data/          not created (D-042). Sim numbers live in SimConstants, mirroring tools/sim-reference/sim.py,
+               and SimCatalog.builtin() builds the profiles in code (data-models.md §3). T1 keeps the path
+               for later .tres profiles
 assets/3d/     jar_v0.glb (art-director)
 tests/         run_tests.gd  run.sh  lib/  fixtures/  scenarios/  unit/sim/  unit/core/  unit/view/  unit/ui/
 spikes/        Phase 1 only, has .gdignore
@@ -115,6 +125,7 @@ root
 | `camera_focus_released()` | ui to view | Back to the player's orbit |
 | `smell_moment_started()` / `smell_moment_finished()` | ui to view | Camera nudge, wisps |
 | `feed_moment(step: StringName)` | ui to view | `discard`, `scoop`, `pour`, `stir` animations |
+| `jar_region_changed(region: Rect2)` | ui to view | The free space between the top HUD plate and the action bar, in UI units (pt, since stretch is off, §13). Emitted on every layout change (text size, safe areas, rotation). The camera frames the jar to it (`ux-design.md` §2, §19.5) |
 | `starter_tapped(where: StringName)` | view to ui | `starter`, `glass`. A tap on the jar |
 | `interaction_started()` / `interaction_ended()` | both | Drives the frame cap (§11) |
 
@@ -148,7 +159,7 @@ UI builds FeedAction ──► Session.apply(action) ──► ActionResult
 - Catch-up cap: **14 days = 20,160 steps**. Beyond that, the state is held and `sim_time_unix` jumps to now. `CatchUpResult.capped = true`. The scientist accepts this (spec §16): it understates weakening after very long fridge absences, but the starter stays recoverable. Open for the director: a narrative line for "away more than 14 days".
 
 ### 5.2 `Clock` seam
-`Clock` (`RefCounted`): `now_unix() -> int`, `local_utc_offset_s() -> int`.
+`Clock` (`RefCounted`): `now_unix() -> int`, `local_utc_offset_s() -> int`, `monotonic_msec() -> int` (the in-session guard in §5.3, so `FakeClock` can test it; never saved).
 - `SystemClock`: `Time.get_unix_time_from_system()` and `Time.get_time_zone_from_system().bias` (minutes, times 60) **[ran]**.
 - `DebugClock`: wraps `SystemClock`, adds `time_scale` and `advance(s)`. Constructed **only** when `OS.is_debug_build()`. Release builds construct `SystemClock` directly, so no scale path exists.
 - `FakeClock` (tests): `set_now`, `advance`, `set_offset`.
@@ -161,7 +172,7 @@ Let `gap = state.sim_time_unix - clock.now_unix()`.
 | `gap <= 0` | Catch up `min(-gap, 14 d)` |
 | `0 < gap <= CLOCK_REANCHOR_GAP_S` (21,600 s = 6 h) | Elapsed 0. Keep the anchor (the clock went back a little; no rewind, no double count) |
 | `gap > CLOCK_REANCHOR_GAP_S` | Re-anchor: `sim_time_unix = grid(now)`, state unchanged, `meta.clock_reanchors += 1`. Fixes "set to 2030 by mistake, then corrected", which would otherwise freeze the starter for years |
-| In session | `Session` keeps the last wall time and `Time.get_ticks_msec()`. If wall delta exceeds monotonic delta by more than 300 s while foregrounded, advance by the monotonic delta only. Ticks are never saved |
+| In session | `Session` keeps the last wall time and `Clock.monotonic_msec()` (`Time.get_ticks_msec()` in `SystemClock`). If wall delta exceeds monotonic delta by more than 300 s while foregrounded, advance by the monotonic delta only. Ticks are never saved |
 
 This amends D-013 ("latest clock time ever seen"). See ADR-006.
 
@@ -178,19 +189,28 @@ Local time inside one catch-up uses the offset read at resume for the whole wind
 The only sped-up time a release build has, and it never touches the clock:
 1. `StarterPresets.make(preset_id, now)` builds a **temporary** state (`data-models.md` §2.1).
 2. `Demo.run(state, env, steps) -> Array[VisualParams]` (pure, `src/sim/demo.gd`) runs ordinary `Sim.step(state, env, 60)` calls. Playback speed comes from running many 60 s steps per frame, **never from a scaled `dt`**, so the demo shows exactly what the real sim does. The view plays the frames like the time-lapse.
-3. When the demo reaches `at_peak` (or the player skips, which uses the same at-peak preset), `StarterState.rebase_to(now)` sets the timestamps to now and `Session` creates the real save from it. Sim time is never ahead of the wall clock, so §5.3 is untouched.
+3. When the demo reaches `at_peak` (or the player skips, which uses the same at-peak preset), UI calls `Session.adopt_starter(state, name)`. It runs `StarterState.rebase_to(now)`, which sets the timestamps to now, and creates the real save from it. Sim time is never ahead of the wall clock, so §5.3 is untouched.
 
-Cost: a toy 11-variable step loop ran **14 days in 22 ms on an Apple M4 [ran, Mac estimate]**. The scientist's Python model of the real v1 equations ran 10 days with derivation in 0.12 s in CPython, and found that a 5-day run split at random points equals the unsplit run exactly (spec §16). A forecast is about 700 steps. Budget: 250 ms on the Mac for 14 days with the real sim and rules. If over, run `CatchUp.run` on `WorkerThreadPool`. It is pure and touches only its own objects, so this is safe.
+Cost: a toy 11-variable step loop ran **14 days in 22 ms on an Apple M4 [ran, Mac estimate]**. The scientist's Python model of the real v1 equations ran 10 days with derivation in 0.12 s in CPython, and found that a 5-day run split at random points equals the unsplit run exactly (spec §16). A forecast is about 700 steps. Budget: 250 ms on the Mac for 14 days with the real sim and rules. The real sim without rules takes 206 ms, so the headroom is small: see the risk in §11.
 
 ## 6. Launch, resume, background
 
-### 6.1 Launch (`Session._ready`, before Main is in the tree)
-1. Parse dev flags (debug builds only): `--fixture=`, `--time-scale=`, `--perf-log=`, `--capture=`.
-2. `SaveStore.load()`: `save.json`, verify the checksum, migrate. On failure, `save.prev`. On failure, a new starter, with `meta.recovered_from` set and a calm notice.
-3. Restore `sim_rng`: create it, then set `state` from the saved decimal string. **Never set `seed` after `state`**, because that resets the stream **[ran]**.
-4. Apply the clock rules (§5.3) and run catch-up.
-5. Save immediately (the catch-up result is now the truth).
-6. Emit `session_ready(summary)`. UI shows "while you were away" if `summary.simulated_s >= AWAY_SUMMARY_MIN_S` (3,600 s, the return threshold agreed by `ux-designer` and `game-designer` in `game-mechanics.md` §8).
+### 6.1 Launch (D-039: `Main` starts the boot, not `Session._ready`)
+
+| When | Who | Does |
+|---|---|---|
+| Autoload ready, before Main is in the tree | `Session._ready()` | Parses dev flags (debug builds only): `--fixture=`, `--time-scale=`, `--perf-log=`, `--capture=`. Registers translations with `I18nLoader.load_all()` (§10). Connects to `Bus` for the frame cap (§11). **Loads nothing** |
+| After World and UI are ready (children are ready before their parent), so both have connected to `Session` signals | `Main._ready()` | Sets `content_scale_factor` (and a 2x window on a 2x desktop screen, §13), then calls `Session.start()` |
+| Once | `Session.start()` | Builds the real seams unless `setup()` already ran: `SystemClock` (`DebugClock` in debug builds), `SaveStore` at `user://saves` (`user://fixture_saves` with `--fixture=`), `SettingsStore`. Then `boot()` (or `boot_from_fixture(path)`: no catch-up, shown as of now), then starts the 60 s grid timer and the idle frame-cap timer |
+
+`boot()`:
+1. `SaveStore.load_latest()` tries `save.json`, `save.tmp`, `save.prev` (`data-models.md` §9.4). If none passes, a new starter from the `new_game` preset. With no save at all, `is_first_run()` is true and UI runs onboarding and the demo, then `adopt_starter()` (§5.5). If saves existed but all failed, `meta.recovered_from = "quarantine"` and a calm notice.
+2. Restore `sim_rng`: create it, set `seed`, then set `state` from the saved decimal string. **Never set `seed` after `state`**, because that resets the stream **[ran]**.
+3. Apply the clock rules (§5.3) and run catch-up.
+4. Journal the state transitions and save immediately (the catch-up result is now the truth).
+5. Emit `state_changed`, then `session_ready(summary)`, then `event_raised` for each caught-up event. UI shows "while you were away" if `summary.simulated_s >= AWAY_SUMMARY_MIN_S` (3,600 s, the return threshold agreed by `ux-designer` and `game-designer` in `game-mechanics.md` §8).
+
+Tests never call `start()`. They use `GameSession.new()`, `setup(FakeClock.new(), SaveStore.new(dir))`, then `boot()`. So a `-s` run never touches `user://saves`.
 
 ### 6.2 Foreground
 - A 60 s timer, aligned to the grid, advances the sim to `grid(now)` and emits `state_changed`.
@@ -204,8 +224,9 @@ Cost: a toy 11-variable step loop ran **14 days in 22 ms on an Apple M4 [ran, Ma
 | `NOTIFICATION_APPLICATION_PAUSED` | 2015 | `on_background()`: advance to now, save. Mobile backgrounding |
 | `NOTIFICATION_APPLICATION_FOCUS_OUT` | 2017 | Same, idempotent (desktop and mobile) |
 | `NOTIFICATION_WM_CLOSE_REQUEST` | 1006 | Save, then quit (desktop) |
-| `NOTIFICATION_WM_GO_BACK_REQUEST` | 1007 | Android back. `quit_on_go_back = false`. UI closes the top sheet. With no sheet, save then `get_tree().quit()` |
+| `NOTIFICATION_WM_GO_BACK_REQUEST` | 1007 | Android back. `quit_on_go_back = false`. UI (T3) handles it: closes the top sheet, or with no sheet calls `Session.save_and_quit()` |
 | `NOTIFICATION_APPLICATION_RESUMED` | 2014 | `on_resume()`: clock rules, catch-up, `resumed(summary)` |
+| `NOTIFICATION_APPLICATION_FOCUS_IN` | 2016 | Same as resumed, only if `on_background()` ran (the desktop pair of FOCUS_OUT) |
 
 `on_background()` and `on_resume()` are public, so tests call them directly.
 
@@ -261,7 +282,10 @@ Cost: a toy 11-variable step loop ran **14 days in 22 ms on an Apple M4 [ran, Ma
 
 - **`src/i18n/en.csv`** (columns `keys,en`) is the shipped catalog. It is **generated** from every `Key | Text | Max` row in `narrative.md`, `events-catalog.md` and `game-copy.md` (614 strings at wave A) by a build script that `narrative-designer` owns. The build fails on any error from narrative's copy checker (lengths, unique keys, banned words, mold lines say "discard"). The script strips `(sci)` review marks and converts straight quotes to curly ones (the Theme font must include U+2018, U+2019, U+201C, U+201D; `ux-designer` checks). Nobody hand-edits `en.csv`.
 - Each code track may add **placeholder** keys only in its own file: `src/i18n/pending_core.csv`, `pending_view.csv`, `pending_ui.csv`. `narrative-designer` moves them into the docs (and so into `en.csv`) in a copy pass, and the track then deletes its row. No file has two writers.
-- All four CSVs are registered once in `internationalization/locale/translations` in the contracts commit. Generated `*.translation` files are git-ignored (`.gitignore`), so a fresh checkout needs `--import`, which is required anyway (§12).
+- **Registration happens at runtime, not in `project.godot`** (D-039). `I18nLoader.load_all()` (`src/core/i18n_loader.gd`) is called from `Session._ready()`, is idempotent, and tests that need `tr()` may call it too:
+  - `en.csv` uses the `csv_translation` importer, which writes `src/i18n/en.en.translation` (git-ignored, so a fresh checkout needs `--import`, which §12 requires anyway). The loader adds it with `TranslationServer.add_translation()` once it exists. Listing it in `project.godot` made a fresh `--import` log "Cannot open file", because the editor loads project translations before the first import has produced them (t1-sim-core).
+  - The three `pending_*.csv` files use the `keep` importer, so they produce no `.translation` file. The loader parses each `keys,en` CSV itself (`FileAccess.get_csv_line()`, RFC 4180 quoting) and registers it only when it has rows. A header-only CSV given to the CSV importer logs "Locale 'en' does not contain any translation" (t1-sim-core).
+  - `internationalization/locale/translations` stays unset.
 - **Key format** (narrative's, already used by 614 strings): `^[A-Z][A-Z0-9_]*$`, an area prefix, then canonical ids uppercased. Examples: `STATUS_AT_PEAK_WORD`, `SMELL_YOGURT_2`, `INSPECT_BUBBLES_...`, `ACTION_...`. Keys are unique across all four CSVs.
 - Code builds keys from canonical ids with one helper, `Keys.status_word(state_id)` and so on (`src/core/keys.gd`), so the uppercase mapping lives in one place.
 - sim returns keys plus args. ui calls `tr(key).format(args)`. Scene labels hold keys, with auto-translate on.
@@ -280,12 +304,15 @@ Phone numbers are targets. Nothing is measured on a phone yet (D-004).
 | Evidence protocol | Mac: GPU time from Vulkan (MoltenVK) only, plus frame time on Metal and Compatibility. Every number labeled "Mac estimate". Phone: re-measure as soon as a device exists (D-004) | Metal, opengl3 and ANGLE report no GPU time in 4.7.2 [spike] |
 | Frame, idle | `Engine.max_fps = 30` after 3 s with no touch and no tween. Back to 60 on `interaction_started` | `Engine.max_fps` settable at runtime **[ran]** |
 | Opaque full-screen UI (journal) | Hide `World` (no 3D draw) | |
-| Catch-up, 14 days | 250 ms on the Mac | Toy loop 22 ms **[ran]** |
+| Catch-up, 14 days | 250 ms on the Mac | **206 ms** with the real v1 sim and **no event rules** (t1-sim-core, Mac estimate, D-042). Toy loop 22 ms **[ran]** |
 | Launch to first frame of the jar | 2 s on a phone | |
 | Save | 128 KB or less, write under 10 ms | |
 | Scene | 16k tris or fewer, under 10 draw surfaces for the jar (art budget), under 30 draw calls total | `jar_v0.glb`: max 4 draw calls on Mobile, 10 on Compatibility [spike] |
 | Screen | `display/window/energy_saving/keep_screen_on = false` (4.7.2 default is **true [ran]**) | |
 
+- **Risk: catch-up headroom (D-042).** 206 of the 250 ms are spent before any event rule exists. Rules run after each of the 20,160 steps, so all of them together get about 2.2 µs per step. A phone CPU is slower than the M4, so a phone may need well over 250 ms even if the Mac passes **[unverified]**. Today catch-up runs on the main thread inside `boot()` and `on_resume()`, before the first jar frame.
+  - Check: a perf test times a 14-day catch-up with the full rule registry whenever rules land, and again on the first phone (D-004).
+  - Fallback if it passes 250 ms: `Session` runs `CatchUp.run` as a `WorkerThreadPool` task on copies of the starter, environment, history and ledger, shows the saved state meanwhile, refuses actions with `REASON_NOT_READY` (the same path as before boot), then swaps the results in and emits on the main thread. `CatchUp` is pure and touches only the objects passed in, so no locks are needed.
 - `low_processor_mode` is **not** used for the main scene. It only redraws on change, and the jar always breathes. It may be used for an opaque full-screen screen later.
 - No physics nodes. No `_process` on nodes that only react to signals.
 
@@ -294,7 +321,7 @@ Phone numbers are targets. Nothing is measured on a phone yet (D-004).
 Command for humans and CI: **`tests/run.sh`** (owned by `qa-engineer`). It:
 1. runs `godot --headless --path . --import`. **Required**: in a fresh checkout without `.godot/`, `class_name` types fail to resolve under `-s` and the run **exits 0** **[ran]**.
 2. runs `godot --headless --path . -s res://tests/run_tests.gd -- [--filter=<substring>]` under an outer `perl -e 'alarm 300; exec @ARGV'` timeout. A runtime error directly in `_init` hangs **[ran]**.
-3. passes only if the exit code is 0 **and** the last stdout line matches `^RESULT: [0-9]+ passed, 0 failed$`. A parse error in the runner itself exits 0 **[ran]**.
+3. passes only if the exit code is 0 **and** the last stdout line is the runner's `RESULT:` line with 0 failed. The exact line format, including skipped counts, is defined by `test-plan.md` R-5 and R-6. A parse error in the runner itself exits 0 **[ran]**.
 
 `run_tests.gd` contract (all **[ran]** in 4.7.2):
 - Runs from `_initialize()`, not `_init()`.
@@ -323,8 +350,9 @@ Seams for `qa-engineer`: `Clock` and `FakeClock`; `sim_rng` injected (the only R
 | `input_devices/pointing/emulate_touch_from_mouse` | `true` | Desktop testing |
 | `application/config/quit_on_go_back` | `false` | Back closes sheets first (§6.3) |
 | `display/window/energy_saving/keep_screen_on` | `false` | Battery |
-| `internationalization/locale/translations` | the three generated translation files | §10 |
+| `internationalization/locale/translations` | **unset** | Catalogs register at runtime through `I18nLoader` (§10, D-039) |
 | `autoload` | `Bus`, `Session` | §3.1 |
+| `input/*` | `dev_overlay` (F3) only | Until UI tracks need more (D-042) |
 
 ## 14. Phase 2 and 3 file ownership
 
@@ -355,7 +383,7 @@ Goal: at least three tracks in parallel git worktrees, with no file written by t
 | `export_presets.cfg` | T1 (Phase 5 release work) | Contains no secrets. Credentials stay in `.godot/` |
 
 ### 14.3 How parallel work starts
-1. **Contracts commit (T1, first, alone):** `project.godot`; both autoloads; every public `class_name` file from `data-models.md` with real fields and stub methods; `GameSession` with the full public API (stub logic, which loads a fixture); `bus.gd` with all signals; the generated `en.csv` plus the three empty pending CSVs, all registered; empty `world.tscn` and `ui_root.tscn` instanced by `main.tscn`.
+1. **Contracts commit (T1, first, alone):** `project.godot`; both autoloads; every public `class_name` file from `data-models.md` with real fields and stub methods; `GameSession` with the full public API (stub logic, which loads a fixture); `bus.gd` with all signals; the generated `en.csv` plus the three empty pending CSVs, all registered at runtime by `I18nLoader` (§10); empty `world.tscn` and `ui_root.tscn` instanced by `main.tscn`.
 2. Then T1, T2 and T3 branch from that commit into worktrees. T2 develops against a `VisualParams` scrubber scene. T3 develops against `--fixture=` saves and the stub session.
 3. Every worktree runs `tests/run.sh`, which includes the `--import` step. Each track commits the `.uid` and `.import` files for its own paths only.
 4. Contract changes after the commit: ask T1 (or me) by message, and T1 lands them as a small commit that the others rebase onto.
