@@ -42,6 +42,9 @@ var glass_spec: float = 5.0
 ## softbox is what clipped to a white stripe on Compatibility: the highlight alone did not.
 var glass_reflection: float = 1.0
 var hooch_value: float = 1.0
+var hooch_dark_lift: float = 1.0
+## Glass absorption at grazing angles (glass_common edge_absorb).
+var glass_edge_absorb: float = 0.5
 var hooch_desat: float = 0.0
 var backdrop_energy: float = 1.0
 ## Counter and lid brightness, and lid saturation.
@@ -67,6 +70,8 @@ static func for_renderer(renderer: String) -> ViewLook:
 		look.glass_spec = 1.5
 		look.glass_reflection = 0.35
 		look.lid_saturation = 0.8
+		look.hooch_dark_lift = 1.45
+		look.glass_edge_absorb = 0.35
 	return look
 
 
