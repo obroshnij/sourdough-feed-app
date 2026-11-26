@@ -1,6 +1,5 @@
-// Counter: pale oak butcher block (art-direction.md §2.1, §4) with a soft
-// contact shadow under the jar (§3: a baked AO decal, done here procedurally).
-// Placeholder until the baked 1024 x 512 albedo and roughness maps exist.
+// Counter: pale oak butcher block (art-direction.md §2.1, §4, §17) with a soft contact ring
+// and an analytic drop shadow along the key light. Strips run left to right along world x.
 shader_type spatial;
 render_mode diffuse_burley, specular_schlick_ggx;
 
@@ -10,7 +9,7 @@ render_mode diffuse_burley, specular_schlick_ggx;
 // adds warmth the Cycles render doesn't (counter row, art-direction.md §3).
 uniform vec3 oak_light : source_color = vec3(0.855, 0.816, 0.745);
 uniform vec3 oak_dark : source_color = vec3(0.737, 0.686, 0.596);
-uniform float plank_w = 0.045;
+uniform sampler2D oak_detail : filter_linear_mipmap, repeat_enable;
 uniform float jar_radius = 0.042;
 uniform float contact_strength = 0.55;
 uniform float grade_value = 1.0;
@@ -49,21 +48,8 @@ void vertex() {
 
 void fragment() {
 	vec2 p = v_world.xz;
-	// Planks run left to right (along x), like the preview.
-	float plank = floor(p.y / plank_w);
-	float ph = hash12(vec2(plank, 3.0));
-	vec2 q = vec2(p.x + ph * 3.0, p.y);
-	float grain = fbm3(vec2(q.x * 4.0, q.y * 220.0) + vec2(0.0, ph * 10.0));
-	float fine = vnoise(vec2(q.x * 30.0, q.y * 900.0));
-	float rings = 0.5 + 0.5 * sin(q.y * 900.0 + grain * 9.0 + q.x * 6.0);
-	float k = clamp(0.25 + 0.45 * grain + 0.2 * rings * 0.5 + 0.1 * fine + 0.15 * (ph - 0.5), 0.0, 1.0);
-	vec3 col = mix(oak_light, oak_dark, k * 0.75);
-	// Seam between planks.
-	float fy = fract(p.y / plank_w);
-	float seam_d = min(fy, 1.0 - fy) * plank_w;
-	float seam = 1.0 - 0.15 * (1.0 - smoothstep(0.0, 0.0012, seam_d));
-	col *= seam;
-	// Contact shadow: soft AO ring under the jar.
+	float dd = texture(oak_detail, v_world.xz / 0.36).r;
+	vec3 col = mix(oak_dark, oak_light, dd);
 	float d = length(p);
 	// Contact shadow: a soft ring where the glass meets the wood. Under the base the thick glass
 	// passes light, so the counter seen through it stays bright.
@@ -75,7 +61,7 @@ void fragment() {
 	float s_lid = cylinder_shadow(p, l, jar_radius, lid_y0, lid_y1) * lid_on;
 	float drop = max(max(s_starter, s_lid) * drop_strength, s_glass * glass_strength);
 	ALBEDO = col * contact * (1.0 - drop) * grade_value;
-	ROUGHNESS = 0.62 - 0.08 * rings;
+	ROUGHNESS = mix(0.62, 0.42, dd);
 	SPECULAR = 0.35;
 	AO = contact;
 	AO_LIGHT_AFFECT = 0.6;

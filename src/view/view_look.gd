@@ -43,7 +43,7 @@ var glass_spec: float = 5.0
 var glass_reflection: float = 1.0
 var hooch_value: float = 1.0
 var hooch_desat: float = 0.0
-var backdrop_energy: float = 0.75
+var backdrop_energy: float = 1.0
 ## Counter and lid brightness.
 var dressing_value: float = 1.0
 

@@ -12,6 +12,9 @@ const BACKDROP_SHADER: String = "res://src/view/shaders/backdrop.gdshader"
 const SIDE_MASK: String = "res://assets/textures/starter_side_bubbles.png"
 const TOP_MASK: String = "res://assets/textures/starter_top_pits.png"
 const LINER_MASK: String = "res://assets/textures/starter_liner_streaks.png"
+const WALL_TEX: String = "res://assets/textures/kitchen_backdrop.png"
+const COUNTER_DETAIL: String = "res://assets/textures/counter_oak_detail.png"
+const LID_DETAIL: String = "res://assets/textures/lid_oak_detail.png"
 
 ## Art #5F7458. Lifted a little: the Cycles reference reads light sage under its soft fill.
 const BAND_COLOR: Color = Color("#7A9271")
@@ -101,15 +104,18 @@ func _make_materials() -> void:
 		counter_mat = ShaderMaterial.new()
 		counter_mat.shader = load(COUNTER_SHADER) as Shader
 		counter_mat.set_shader_parameter(&"jar_radius", JarGeometry.OUTER_RADIUS_M)
+		counter_mat.set_shader_parameter(&"oak_detail", load(COUNTER_DETAIL) as Texture2D)
 		counter.material_override = counter_mat
 	if backdrop != null:
 		backdrop_mat = ShaderMaterial.new()
 		backdrop_mat.shader = load(BACKDROP_SHADER) as Shader
+		backdrop_mat.set_shader_parameter(&"wall_tex", load(WALL_TEX) as Texture2D)
 		backdrop.material_override = backdrop_mat
 		backdrop.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	if covers.has(&"loose_lid"):
 		lid_mat = ShaderMaterial.new()
 		lid_mat.shader = load(LID_WOOD_SHADER) as Shader
+		lid_mat.set_shader_parameter(&"grain", load(LID_DETAIL) as Texture2D)
 		covers[&"loose_lid"].material_override = lid_mat
 	if covers.has(&"tight_lid"):
 		var enamel: StandardMaterial3D = _standard(ENAMEL_COLOR, 0.35)
