@@ -18,7 +18,7 @@ All sizes are in **pt**: 1 UI unit = 1 iOS point = 1 Android dp (see §19).
 
 ## 1. Principles
 
-1. **The jar is the screen.** The 3D jar gets at least 55% of the screen height on every iPhone, at every text size. On the 360 × 640 Android profile the floor is 51% (D-043). UI floats on plates around it. Nothing sits on top of the starter.
+1. **The jar is the screen.** The 3D jar gets at least 55% of the screen height on every iPhone and every Android phone larger than 360 × 640, at every text size. On the 360 × 640 Android profile the floor is 51% (D-043). UI floats on plates around it. Nothing sits on top of the starter.
 2. **Read the jar, not a meter.** The main screen shows one status word with an icon and one plain hint. It never shows digits, bars, charts or percentages. Numbers live in the feed sheet, environment sheet and journal details.
 3. **One thumb, two taps.** Frequent actions sit in the bottom thumb zone. Checking the starter takes 0 taps, and feeding like last time takes 2 (§7).
 4. **One thing at a time.** At most one sheet, one card and one toast are visible. An open sheet owns the screen: the 3D view ignores touches, and events wait.
