@@ -414,7 +414,7 @@ Input is injected with `InputEventScreenTouch` and `InputEventScreenDrag`. Numbe
 | AC-08.2 | App open | The state changes | The pill updates when `state_changed` fires: a 250 ms crossfade plus a pulse, crossfade only with reduce motion. | auto |
 | AC-08.3 | The main screen, its toasts and cards | All visible text | No `[0-9]` outside the player-typed name (UX §4). | auto |
 | AC-08.4 | Inspect `height`, `bubbles`, `surface` | Each chip | The camera reaches the kind's framing in 500 ms. The card appears within 3 s. The readout keys follow spec §14 at its thresholds. Two taps (UX §7). `consistency` and `development` are absent in the slice. | auto |
-| AC-08.5 | `moldy` | Every action | Only inspect, journal and Discard are enabled. Feed, smell and environment are disabled, each with a visible reason (game-mechanics §1). `mold_found` can be closed with "Not now", but Discard stays on screen. The `surface` inspect and the status explainer say discard. The scientist signs off on every `unhealthy` and `moldy` string. LINT-06 passes. | auto + review |
+| AC-08.5 | `moldy` | Every action | Inspect and Journal work. Feed, Smell and Place are locked: each shows a 12 pt lock badge (never color alone) and, when tapped, a visible reason: Feed gives the `MOLD_FEED_BLOCKED` toast, Smell the "Best not" card (`SMELL_MOLDY_*`), Place the `REASON_MOLDY_LOCKED` toast. `mold_found` can be closed with "Not yet", and then a non-dismissable discard card stays above the bar. Discarding takes exactly 2 taps: "Discard it", then "Discard" in the confirmation (UX §7). The `surface` inspect and the status explainer say discard. The scientist signs off on every `unhealthy` and `moldy` string. LINT-06 passes. (UX numbers per ux-designer, 2026-11-26.) | auto + review |
 | AC-08.6 | Grayscale captures of all 11 states, in random order | Reviewed | Every state is named from the icon and word alone. | review |
 | AC-08.7 | A state shown for the first time | The main screen | The pill shows the "new" dot until tapped, and once only. | auto |
 | AC-08.8 | Status pill tapped | Explainer card | Body ≤ 120 characters. "Show me" moves the camera to the state's main cue. | auto |
@@ -486,6 +486,7 @@ Slice events (game-mechanics §7.4):
 | AC-12.12 | Sheet transitions | Captured | No regression over 20% (Mac and simulator estimates, §7). | capture |
 | AC-12.13 | UX wireframes | MAN-12 | ux-designer and art-director tick every item. | review |
 | AC-12.14 | Strings | LINT-04, LINT-06, LINT-08, LINT-11, LINT-12 | Pass. | auto |
+| AC-12.15 | Every phone in the §9 matrix, text at 100% and 150% | Layout under the harness's fixed-size root | The jar region is ≥ 55% of the screen height at 100% text on every phone, and at 150% on iPhones. On 360 × 640 at 150% it is ≥ 45%. Screens under 700 pt tall use compact-height mode: bar 64, HUD plate about 128. Otherwise the bar plate is exactly 72. The StatusPill is ≥ 44 tall. Numbers from ux-design §1, §2 and §4 (ux-designer, 2026-11-26). T3's layout test is the check. | auto |
 
 ---
 
