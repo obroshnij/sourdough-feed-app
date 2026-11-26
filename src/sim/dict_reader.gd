@@ -1,0 +1,162 @@
+class_name DictReader
+extends RefCounted
+## Quiet, typed reads from a parsed-JSON Dictionary (data-models.md §1).
+## It checks typeof() before every read and never logs an engine error. A missing key or a wrong type
+## sets `ok` to false and returns a zero value, so `from_dict` can return null on a corrupt file.
+## JSON gives every number back as a float, so integer fields accept whole floats.
+
+const _MAX_SAFE_INT: float = 9007199254740992.0
+
+var ok: bool = true
+var _d: Dictionary
+
+
+func _init(d: Dictionary) -> void:
+	_d = d
+
+
+func has(key: String) -> bool:
+	return _d.has(key)
+
+
+func num(key: String) -> float:
+	if not _d.has(key):
+		ok = false
+		return 0.0
+	return _to_float(_d[key])
+
+
+func integer(key: String) -> int:
+	if not _d.has(key):
+		ok = false
+		return 0
+	return _to_int(_d[key])
+
+
+func text(key: String) -> String:
+	if not _d.has(key):
+		ok = false
+		return ""
+	var v: Variant = _d[key]
+	var t: int = typeof(v)
+	if t == TYPE_STRING or t == TYPE_STRING_NAME:
+		var s: String = v
+		return s
+	ok = false
+	return ""
+
+
+func id(key: String) -> StringName:
+	return StringName(text(key))
+
+
+func flag(key: String) -> bool:
+	if not _d.has(key):
+		ok = false
+		return false
+	var v: Variant = _d[key]
+	if typeof(v) == TYPE_BOOL:
+		var b: bool = v
+		return b
+	ok = false
+	return false
+
+
+func dict(key: String) -> Dictionary:
+	if not _d.has(key):
+		ok = false
+		return {}
+	var v: Variant = _d[key]
+	if typeof(v) == TYPE_DICTIONARY:
+		var out: Dictionary = v
+		return out
+	ok = false
+	return {}
+
+
+func list(key: String) -> Array:
+	if not _d.has(key):
+		ok = false
+		return []
+	var v: Variant = _d[key]
+	if typeof(v) == TYPE_ARRAY:
+		var out: Array = v
+		return out
+	ok = false
+	return []
+
+
+func num_map(key: String) -> Dictionary[StringName, float]:
+	var out: Dictionary[StringName, float] = {}
+	var src: Dictionary = dict(key)
+	for k: Variant in src:
+		if typeof(k) != TYPE_STRING and typeof(k) != TYPE_STRING_NAME:
+			ok = false
+			continue
+		out[StringName("%s" % [k])] = _to_float(src[k])
+	return out
+
+
+func int_map(key: String) -> Dictionary[StringName, int]:
+	var out: Dictionary[StringName, int] = {}
+	var src: Dictionary = dict(key)
+	for k: Variant in src:
+		if typeof(k) != TYPE_STRING and typeof(k) != TYPE_STRING_NAME:
+			ok = false
+			continue
+		out[StringName("%s" % [k])] = _to_int(src[k])
+	return out
+
+
+func bool_map(key: String) -> Dictionary[StringName, bool]:
+	var out: Dictionary[StringName, bool] = {}
+	var src: Dictionary = dict(key)
+	for k: Variant in src:
+		var v: Variant = src[k]
+		if (typeof(k) != TYPE_STRING and typeof(k) != TYPE_STRING_NAME) or typeof(v) != TYPE_BOOL:
+			ok = false
+			continue
+		var b: bool = v
+		out[StringName("%s" % [k])] = b
+	return out
+
+
+## Payload dictionaries hold primitives only (int, float, String, bool), per data-models §5.
+func primitives(key: String) -> Dictionary:
+	var src: Dictionary = dict(key)
+	for k: Variant in src:
+		var t: int = typeof(src[k])
+		if typeof(k) != TYPE_STRING or not (t == TYPE_INT or t == TYPE_FLOAT or t == TYPE_STRING or t == TYPE_BOOL):
+			ok = false
+			return {}
+	return src
+
+
+func _to_float(v: Variant) -> float:
+	var t: int = typeof(v)
+	if t == TYPE_FLOAT:
+		var x: float = v
+		if is_nan(x) or is_inf(x):
+			ok = false
+			return 0.0
+		return x
+	if t == TYPE_INT:
+		var n: int = v
+		return float(n)
+	ok = false
+	return 0.0
+
+
+func _to_int(v: Variant) -> int:
+	var t: int = typeof(v)
+	if t == TYPE_INT:
+		var n: int = v
+		return n
+	if t == TYPE_FLOAT:
+		var x: float = v
+		if is_nan(x) or is_inf(x) or absf(x) > _MAX_SAFE_INT or x != floorf(x):
+			ok = false
+			return 0
+		return int(x)
+	ok = false
+	return 0
