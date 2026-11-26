@@ -486,7 +486,7 @@ Slice events (game-mechanics §7.4):
 | AC-12.12 | Sheet transitions | Captured | No regression over 20% (Mac and simulator estimates, §7). | capture |
 | AC-12.13 | UX wireframes | MAN-12 | ux-designer and art-director tick every item. | review |
 | AC-12.14 | Strings | LINT-04, LINT-06, LINT-08, LINT-11, LINT-12 | Pass. | auto |
-| AC-12.15 | Every phone in the §9 matrix, text at 100% and 150% | Layout under the harness's fixed-size root | The jar region is ≥ 55% of the screen height on every iPhone at every text size, and ≥ 51% on 360 × 640 at every text size (T3 measured 52% at 100%, 51% at 150%, iPhones 61 to 66%). Other Android profiles: TBD-UX. The bar plate is exactly 72 on every phone (no compact-height mode). The StatusPill is ≥ 44 tall. T3's layout test is the check. Source: ux-designer, 2026-11-26, after D-043. **Pending:** committed D-043 still says 45% at 360 × 640 and a 64 pt compact bar under 700 pt, so the director needs to update it. | auto |
+| AC-12.15 | Every phone in the §9 matrix, text at 100% and 150% | Layout under the harness's fixed-size root | The jar region is ≥ 55% of the screen height on every iPhone at every text size, and ≥ 51% on 360 × 640 at every text size (T3 measured 52% at 100%, 51% at 150%, iPhones 61 to 66%). The larger Android profiles in §9 (Medium Phone, about 411 × 914, and the Pixel Pro XL class) are ≥ 55% at every text size (ux estimate for 411 × 914: 64 to 67%, not yet measured, so T3's layout test must add that profile). The bar plate is exactly 72 on every phone (no compact-height mode). The StatusPill is ≥ 44 tall. T3's layout test is the check. Source: D-043 and ux-design §1, §2, §4, §17 (7ef8608). | auto |
 
 ---
 
