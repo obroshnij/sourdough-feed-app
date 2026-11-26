@@ -50,10 +50,6 @@ dev_overlay={
 
 pointing/emulate_touch_from_mouse=true
 
-[internationalization]
-
-locale/translations=PackedStringArray("res://src/i18n/en.en.translation")
-
 [rendering]
 
 renderer/rendering_method="mobile"

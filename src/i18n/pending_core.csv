@@ -1,1 +1,14 @@
 keys,en
+REASON_MOLDY_LOCKED,"This can't change now. The starter has mold, so it needs to be discarded."
+REASON_KEEP_RANGE,Keep between 1 g and what's in the jar.
+REASON_FLOUR,Pick a flour to feed with.
+REASON_WATER,That much water won't make a workable starter.
+REASON_MASS,That feed doesn't fit the jar.
+REASON_HOOCH_CHOICE,Choose to pour off or stir in the liquid on top.
+REASON_ENVIRONMENT,That spot isn't available.
+REASON_INSPECT_KIND,That can't be inspected.
+REASON_NAME,Names need 1 to 24 characters.
+REASON_EVENT,That note is already gone.
+REASON_NOT_MOLDY,Only a moldy starter needs to be discarded.
+REASON_SAVE_FAILED,Couldn't save just now. We'll try again in a moment.
+REASON_NOT_READY,"One moment, still getting ready."
