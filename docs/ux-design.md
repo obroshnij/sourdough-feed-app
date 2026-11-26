@@ -18,7 +18,7 @@ All sizes are in **pt**: 1 UI unit = 1 iOS point = 1 Android dp (see §19).
 
 ## 1. Principles
 
-1. **The jar is the screen.** The 3D jar gets at least 55% of the screen height at 100% text on every supported phone, and at 150% text on every iPhone. The one exception is a 16:9 Android phone (360 × 640) at 150% text, where the floor is 45%. Screens under 700 pt tall use compact-height mode (§4). UI floats on plates around it. Nothing sits on top of the starter.
+1. **The jar is the screen.** The 3D jar gets at least 55% of the screen height on every iPhone, at every text size. On the 360 × 640 Android profile the floor is 51% (D-043). UI floats on plates around it. Nothing sits on top of the starter.
 2. **Read the jar, not a meter.** The main screen shows one status word with an icon and one plain hint. It never shows digits, bars, charts or percentages. Numbers live in the feed sheet, environment sheet and journal details.
 3. **One thumb, two taps.** Frequent actions sit in the bottom thumb zone. Checking the starter takes 0 taps, and feeding like last time takes 2 (§7).
 4. **One thing at a time.** At most one sheet, one card and one toast are visible. An open sheet owns the screen: the 3D view ignores touches, and events wait.
@@ -70,18 +70,16 @@ Minimum bottom inset for the action bar:
 
 **Stage budget at 100% text** (jar region = space between the HUD plate and the action bar):
 
-The HUD plate is about 144 pt tall with the 44 pt pill (T3 measured it), or 128 in compact-height mode. The bar plate is 72, or 64 in compact mode.
+The HUD plate is about 144 pt tall with the 44 pt pill, and the bar plate is exactly 72. These are T3's measured jar regions (commit 5ef89e9, test-asserted against the principle 1 floors):
 
-| Device | Mode | HUD ends at | Bar top at | Jar region |
-|---|---|---|---|---|
-| iPhone SE 375 × 667 | compact | 28 + 128 = 156 | 667 − 8 − 64 = 595 | 439 pt (66%) |
-| Android 360 × 640 (status bar 24 dp, assumed) | compact | 32 + 128 = 160 | 640 − 56 − 64 = 520 | 360 pt (56%) |
-| iPhone 17e 390 × 844 | standard | 55 + 144 = 199 | 844 − 42 − 72 = 730 | 531 pt (63%) |
-| iPhone 17 Pro Max 440 × 956 | standard | 70 + 144 = 214 | 956 − 42 − 72 = 842 | 628 pt (66%) |
+| Device | Jar region at 100% text | At 150% text |
+|---|---|---|
+| Android 360 × 640 | 336 pt (52%) | 327 pt (51%) |
+| iPhone SE 375 × 667 | 415 pt (62%) | 406 pt (61%) |
+| iPhone 17e 390 × 844 | 531 pt (63%) | 522 pt (62%) |
+| iPhone 17 Pro Max 440 × 956 | 628 pt (66%) | 619 pt (65%) |
 
-At 150% text the HUD grows by about 47 pt: the pill gains 4, and the hint goes to 2 lines (+43). That gives an estimated 313 pt (49%) on 360 × 640 and 392 pt (59%) on the SE. T3's layout test asserts the principle 1 floors on every profile.
-
-T3's first build measured 324 pt (51%) on 360 × 640 for two reasons. The bar plate grew to 84 pt, because the button content was taller than its 72 pt slot. And compact mode didn't exist yet.
+A compact-height layout for short screens (a 64 pt bar and a tighter HUD) was considered and dropped. It would have added about 24 pt on 360 × 640, but D-043 accepts 51% there, so a second layout mode isn't worth its test cost.
 
 The camera frames the jar to the jar region, not to the full screen. It shifts the frustum so the jar is centered between the HUD and the bar.
 
@@ -145,20 +143,15 @@ Shown on a 375 × 667 iPhone SE at 100% text. On larger phones the same structur
 - **Top (read-mostly).** Name, status and hint, plus settings. The plate hugs the full width so the hint gets 296 pt of line. There's no profile button: the game has no accounts.
 - **Center.** The jar, and nothing else. The idle camera shows the jar at a slight 3/4 angle with the fed-mark band visible. The rubber band at the fed mark (§11) is decided (D-023).
 - **Bottom.** Five actions in canonical order: `feed`, `smell`, `inspect`, `environment`, `journal`. The `environment` label is "Place" (narrative-designer), because "Environment" measures 82 pt and a slot holds 64. Its sheet is titled "Where it lives".
-- **Bar slot layout.** The bar plate is exactly 72 tall, and the buttons fill it: 10 top, icon 28, gap 4, label line (≤ 19 pt at the 16 pt label cap), and the remainder at the bottom (≥ 10). Content never grows the plate.
-- **Compact-height mode** (screen height under 700 pt: the iPhone SE and 16:9 Android).
-  - The bar plate is 64: 8 top, icon 24, gap 4, label, and at least 8 at the bottom.
-  - The HUD plate's vertical padding drops from 12 to 8, its row gaps from 4 to 2, and the settings button from 48 to 44. The plate goes from about 144 to 128.
-  - Targets stay at least 44, and bar slots stay at least 64 × 64.
+- **Bar slot layout.** The bar plate is exactly 72 tall, and the buttons fill it: 10 top, icon 28, gap 4, label line (≤ 19 pt at the 16 pt label cap), and the remainder at the bottom (≥ 10). Content never grows the plate. The button draws its own icon and label, because Godot's icon-over-text layout grew the bar to 84 (T3, 5ef89e9).
 - **Feed emphasis.** When the state is `hungry` or `collapsing`, the Feed button gets a soft halo ring plus a 10 pt dot badge (a shape, not just color), and the hint says why. No other button ever gets a badge.
-- **`moldy`** (game-mechanics §1, AC-08.5).
-  - Only Inspect, Journal and Discard work.
+- **`moldy`** (game-mechanics §1, AC-08.5, D-043; T3 builds it in Phase 3).
+  - Only Inspect, Journal and the discard flow work.
   - Feed, Smell and Place are locked: the icon dims to the disabled color and gets a 12 pt lock badge (a shape, not just color). A tap opens no sheet and shows the reason, using existing copy only (narrative.md §9.2):
     - Feed shows a toast, `MOLD_FEED_BLOCKED`.
-    - Smell shows the "Best not" card (`SMELL_MOLDY_*`). The smell moment doesn't play, because the scientist asked that players aren't shown sniffing mold.
+    - Smell shows the "Best not" card (`SMELL_MOLDY_*`). The smell moment doesn't play: not sniffing mold matches real-world advice (D-043).
     - Place shows a toast, `REASON_MOLDY_LOCKED`.
-  - A discard card sits above the bar and can't be dismissed while the state is `moldy`. It shows the `moldy` hint ("Mold. Please discard it.") and a "Discard it" button (`MOLD_BTN_DISCARD`), so it needs no new copy (§12).
-  - The `surface` inspection and the status explainer both say to discard.
+  - After "Not yet", a discard card sits above the bar and can't be dismissed while the state is `moldy`. It shows the `moldy` hint ("Mold. Please discard it.") and a "Discard it" button (`MOLD_BTN_DISCARD`), so it needs no new copy (§12).
 - **No digits rule.** The main screen and its toasts and cards show no digits, except in a name the player typed. Times are fuzzy words ("in a few hours", "around lunchtime"). QA can test this by scanning visible strings.
 
 ---
@@ -658,9 +651,9 @@ Every component is a themed Control. Default Godot styles never ship. Sizes are 
 | SecondaryButton | height ≥ 52 | 1.5 pt outline, ink label | same |
 | TextButton ("Later", "Got it") | height ≥ 44, width ≥ 64 | ink_muted label, no fill | normal, pressed (surface_alt fill), focused |
 | IconButton (⚙, ✕, ‹) | 48 circle | surface plate at 88%, icon 24 ink | normal, pressed, focused |
-| ActionBarButton | ≥ 64 × 64. Fills the 72 plate (67 × 72 on 375), or 64 in compact mode | icon 28 (24 compact) + label 14 semibold | normal, pressed, open (filled icon + 4 pt accent pill under the label), emphasized (halo + dot badge), locked (disabled color + 12 pt lock badge; a tap shows the reason in a toast) |
-| Plate (HUD, action bar) | HUD about 144 (128 compact), bar 72 (64 compact) | surface (or surface_night) at alpha ≥ 0.88 (0.94 at night), radius 24 / 28. Shadow: ink at 10%, y 4, blur 16 (T3's proposal, accepted) | day, night |
-| StatusPill | height ≥ 44 (it's a touch target; T3's layout test failed at 40) | surface_alt fill, tone border 2 pt, tone icon 24, ink word 17 semibold | normal, pressed, new (10 pt dot), peak glow, care (3 pt border, filled icon, #F4E4BE fill), stop (stop fill, cream word and icon) |
+| ActionBarButton | ≥ 64 × 64. Fills the 72 plate (67 × 72 on 375) | icon 28 + label 14 semibold, drawn by the button itself | normal, pressed, open (filled icon + 4 pt accent pill under the label), emphasized (halo + dot badge), locked (disabled color + 12 pt lock badge; a tap shows the reason, Phase 3) |
+| Plate (HUD, action bar) | HUD about 144, bar 72 | surface (or surface_night) at alpha ≥ 0.88 (0.94 at night), radius 24 / 28. Phase 4 (D-043): a soft shadow, ink at 10%, y 4, blur 16 (T3's proposal) | day, night |
+| StatusPill | height ≥ 44 (it's a touch target, D-043). Accessibility name: the status word; description: `STATUS_A11Y` | surface_alt fill, tone border 2 pt, tone icon 24, ink word 17 semibold | normal, pressed, new (10 pt dot), peak glow, care (3 pt border, filled icon, #F4E4BE fill), stop (stop fill, cream word and icon) |
 | Chip | height ≥ 48 | surface_alt fill, outline 1.5 pt, ink 16 semibold | rest, pressed, selected (accent fill, on_accent label, ✓ icon), disabled |
 | OptionRow (ratio) | ≥ 64, full width | radio ring 22 + title 17 semibold + sub 16 ink_muted | rest, selected (filled ring + ✓ + "last time" tag), pressed |
 | OptionCard (location) | ≥ 104 × 112 | illustration + label + sub | rest, selected (3 pt accent border + ✓ badge), pressed |
@@ -767,6 +760,7 @@ These are hard maximums in characters, spaces included. They were computed on a 
 | No mold tint | Decided, D-026 |
 | 4-tap warning route | Decided, D-027 |
 | Fraunces | Measured by T3 (§17), D-029 |
+| Pill 44, moldy locks (Phase 3), 51% jar floor on 360 × 640, plate shadows (Phase 4) | Decided, D-043 |
 | Still unverified: the Android navigation-bar inset, iOS haptic amplitude, and `screen_get_scale()` values on real phones | Phase 2 simulator and device checks (D-016) |
 
 ## Sources
