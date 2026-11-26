@@ -122,6 +122,9 @@ The pill shows an icon plus the word, never color alone. The hint is always show
 | `STATUS_MOLDY_HINT` | Mold. Please discard it | 34 |
 | `STATUS_MOLDY_TAP` | Mold can't be fixed. Discard all of it and wash the jar. | 90 |
 | `STATUS_A11Y` | Status: {word}. {hint} | 120 |
+| `STATUS_SHOW_ME_BTN` | Show me | 18 |
+
+The status pill's `accessibility_name` is the status word itself (12, within 40). `STATUS_A11Y` is its description. `STATUS_SHOW_ME_BTN` is the button in the status explainer.
 
 ## 3. Action bar and main screen
 
@@ -163,6 +166,23 @@ The pill shows an icon plus the word, never color alone. The hint is always show
 | `REASON_NOT_READY` | One moment. Still getting ready. | 60 |
 
 `REASON_NAME` states the 16-character name slot (ux-design §18, the `{name}` worst case in §1.3). `REASON_SAVE_FAILED` is shown once per failing streak. The next action, state change or 10-minute autosave tries again.
+
+### 3.2 Shared controls and settings
+
+Used by the UI component inventory (ux-design §14 and §17). Settings rows so far: text size and reduce motion.
+
+| Key | Text | Max |
+|---|---|---|
+| `UI_DONE_BTN` | Done | 18 |
+| `UI_CLOSE_A11Y` | Close | 40 |
+| `UI_DECREASE_A11Y` | Decrease | 40 |
+| `UI_INCREASE_A11Y` | Increase | 40 |
+| `SETTINGS_TITLE` | Settings | 26 |
+| `SETTINGS_TEXT_SIZE` | Text size | 24 |
+| `SETTINGS_TEXT_STANDARD` | Standard | 12 |
+| `SETTINGS_TEXT_LARGE` | Large | 12 |
+| `SETTINGS_TEXT_LARGEST` | Largest | 12 |
+| `SETTINGS_REDUCE_MOTION` | Reduce motion | 24 |
 
 ## 4. Forecast
 
@@ -331,6 +351,7 @@ P0 kinds: `height`, `bubbles`, `surface`. P1: `consistency`, `development` (game
 
 | Key | Text | Max |
 |---|---|---|
+| `INSPECT_SHEET_TITLE` | Inspect | 26 |
 | `INSPECT_CHIP_BUBBLES` | Bubbles | 11 |
 | `INSPECT_CHIP_HEIGHT` | Height | 11 |
 | `INSPECT_CHIP_SURFACE` | Surface | 11 |
@@ -819,4 +840,4 @@ Local only, opt-in, outside quiet hours (D-007, game-design OD-1). No guilt, no 
 
 It also runs `qa-engineer`'s LINT-06 word lists, mapped to the real key prefixes (safety: `STATUS_MOLDY`, `STATUS_UNHEALTHY`, `SMELL_MUSTY`, `SMELL_MOLDY`, `INSPECT_*_MOLDY*`, `INSPECT_*_UNHEALTHY*`, `INSPECT_SURFACE_HOOCH_DARK`, `EVENT_WARNING_SIGNS`, `EVENT_MOLD_FOUND`, `MOLD_`, `MEMORIAL_`, `NOTIF_WARNING`, `REASON_MOLDY`, `REASON_NOT_MOLDY`; hunger: `STATUS_HUNGRY`, `STATUS_DORMANT_STARVED`, `SMELL_ACETONE`, `SMELL_ALCOHOL`, `SMELL_STRONGLY_ACIDIC`, `EVENT_HOOCH_FORMING`, `EVENT_HUNGRY_AGAIN`, `EVENT_FIRST_ACETONE`, `INSPECT_SURFACE_HOOCH`, `INSPECT_*_HUNGRY*`, `FEED_HOOCH`, `GLOSS_HOOCH`). Every moldy *message* (`STATUS_MOLDY_HINT` and `_TAP`, `SMELL_MOLDY_BODY`, `INSPECT_*MOLDY*_MEAN`, `MOLD_SHEET_BODY*`, `MOLD_FEED_BLOCKED`, `REASON_MOLDY_LOCKED`) must contain "discard". Titles, status words, observations and buttons are exempt because they always appear beside one of those.
 
-**Last run, 2026-11-26:** `python3 -I tools/i18n/check_copy.py .` over 614 strings (narrative 123, events 69, game copy 422). First run found 3 over-length strings, all fixed. Second run: 0 problems. After the scientist's wave B review (21 fixes, 3 strings removed, 6 added, net 612 strings), the run still finds 0 problems. It also confirmed the smell rule shows all 3 variants within 300 feeds and never repeats a line on consecutive cycles. Phase 2, 2026-11-26: after adding `AWAY_CAPPED`, the checker reports 613 strings (narrative 123, events 68, game copy 422) and 0 problems, and `build_catalog.py` writes all 613 to `en.csv`. The T1 copy pass added the 13 `REASON_*` lines (§3.1), `JOURNAL_LOG_MOVE_FRIDGE` and `JOURNAL_LOG_RENAME`: 628 strings. The checker now also lints `pending_*.csv`.
+**Last run, 2026-11-26:** `python3 -I tools/i18n/check_copy.py .` over 614 strings (narrative 123, events 69, game copy 422). First run found 3 over-length strings, all fixed. Second run: 0 problems. After the scientist's wave B review (21 fixes, 3 strings removed, 6 added, net 612 strings), the run still finds 0 problems. It also confirmed the smell rule shows all 3 variants within 300 feeds and never repeats a line on consecutive cycles. Phase 2, 2026-11-26: after adding `AWAY_CAPPED`, the checker reports 613 strings (narrative 123, events 68, game copy 422) and 0 problems, and `build_catalog.py` writes all 613 to `en.csv`. The T1 copy pass added the 13 `REASON_*` lines (§3.1), `JOURNAL_LOG_MOVE_FRIDGE` and `JOURNAL_LOG_RENAME`: 628 strings. The T3 copy pass added 12 UI keys (§2, §3.2, §6): 640 strings. The checker now also lints `pending_*.csv`.

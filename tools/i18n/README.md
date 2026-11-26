@@ -13,7 +13,7 @@ python3 -I tools/i18n/build_catalog.py .           # check, then write src/i18n/
 python3 -I tools/i18n/build_catalog.py . --check   # check, then exit 1 if en.csv is stale (for CI)
 ```
 
-Last run, 2026-11-26 (after the T1 copy pass and `JOURNAL_LOG_RENAME`): `wrote src/i18n/en.csv: 628 strings, 39721 bytes, sha256 98643899d3a5361f`. A second run printed `unchanged.` with the same hash.
+Last run, 2026-11-26 (after the T1 and T3 copy passes): `wrote src/i18n/en.csv: 640 strings, 40043 bytes, sha256 0a75e14b38b66c84`. A second run printed `unchanged.` with the same hash.
 
 **`en.csv` format.** Header `keys,en`. One row per key, sorted by key. UTF-8 without a BOM, LF line endings. Fields are quoted per RFC 4180 when they hold a comma, a quote or a line break. Straight quotes become curly (U+2018, U+2019, U+201C, U+201D). `{placeholders}` are left as they are for `tr(key).format({...})`. `**(sci)**` review marks are stripped. The same docs always give the same bytes, and the file is only rewritten when its bytes change.
 

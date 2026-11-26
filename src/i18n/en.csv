@@ -250,6 +250,7 @@ INSPECT_HEIGHT_NEAR_PEAK_OBS,"High up the jar, and the climb is slowing."
 INSPECT_HEIGHT_UNHEALTHY_MEAN,"A warning sign. Check the surface, then feed it."
 INSPECT_HEIGHT_UNHEALTHY_OBS,Flat. It has barely risen in a while.
 INSPECT_RECOVERING_MEAN,Weaker than usual for now. Regular feeds rebuild it.
+INSPECT_SHEET_TITLE,Inspect
 INSPECT_SURFACE_ACTIVE_MEAN,"Good, steady activity."
 INSPECT_SURFACE_ACTIVE_OBS,"Bumpy and bubbly, starting to dome."
 INSPECT_SURFACE_AT_PEAK_MEAN,The dome means peak. A great moment to feed.
@@ -479,6 +480,12 @@ RESTART_BTN_LATER,Not today
 RESTART_BTN_YES,Start again
 RESTART_TITLE,Start again?
 SETTINGS_A11Y,Settings
+SETTINGS_REDUCE_MOTION,Reduce motion
+SETTINGS_TEXT_LARGE,Large
+SETTINGS_TEXT_LARGEST,Largest
+SETTINGS_TEXT_SIZE,Text size
+SETTINGS_TEXT_STANDARD,Standard
+SETTINGS_TITLE,Settings
 SMELL_ACETONE_1,"Sharp and solvent, like nail polish remover."
 SMELL_ACETONE_2,"Sharp and chemical. Nail polish remover, clearly."
 SMELL_ACETONE_3,"Like nail polish remover. Odd, from flour and water."
@@ -581,6 +588,7 @@ STATUS_NEAR_PEAK_WORD,Nearly there
 STATUS_RECOVERING_HINT,Getting its strength back
 STATUS_RECOVERING_TAP,Weaker than usual after a hard stretch. Regular feeds rebuild it.
 STATUS_RECOVERING_WORD,Recovering
+STATUS_SHOW_ME_BTN,Show me
 STATUS_UNHEALTHY_HINT,"Warning signs. Look, then feed"
 STATUS_UNHEALTHY_TAP,"Musty, run down. No mold yet. Fuzz or color on top means discard. If none, feed it."
 STATUS_UNHEALTHY_WORD,At risk
@@ -601,6 +609,10 @@ TRAIT_SENSITIVE_JOURNAL_BODY,"It notices things. A new flour, a new spot, a cold
 TRAIT_SENSITIVE_JOURNAL_TITLE,The sensitive type
 TRAIT_SENSITIVE_NAME,Sensitive
 TRAIT_SENSITIVE_REVEAL_TOAST,It’s clear now: {name} is the sensitive type.
+UI_CLOSE_A11Y,Close
+UI_DECREASE_A11Y,Decrease
+UI_DONE_BTN,Done
+UI_INCREASE_A11Y,Increase
 UNLOCK_HYDRATION_BODY,"You can now change how much water goes in. Stiff, standard or loose. Standard is equal weights of flour and water."
 UNLOCK_HYDRATION_TOAST,New: stiffer or looser feeds.
 UNLOCK_INSPECT_BODY,It’s steady enough now to show more. Consistency shows how strong it is. Development shows how far it has come.
