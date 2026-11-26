@@ -1,3 +1,28 @@
-[gd_scene format=3]
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://src/view/world.gd" id="1_world"]
+[ext_resource type="Script" path="res://src/view/jar_view.gd" id="2_jar"]
+[ext_resource type="Script" path="res://src/view/orbit_camera.gd" id="3_rig"]
+[ext_resource type="PackedScene" uid="uid://kfpyj6bc2byv" path="res://assets/3d/jar_v0.glb" id="4_glb"]
 
 [node name="World" type="Node3D"]
+script = ExtResource("1_world")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+
+[node name="KeyLight" type="DirectionalLight3D" parent="."]
+
+[node name="RimLight" type="DirectionalLight3D" parent="."]
+
+[node name="CameraRig" type="Node3D" parent="."]
+script = ExtResource("3_rig")
+
+[node name="Camera3D" type="Camera3D" parent="CameraRig"]
+current = true
+
+[node name="Jar" type="Node3D" parent="."]
+script = ExtResource("2_jar")
+
+[node name="Model" parent="Jar" instance=ExtResource("4_glb")]
+
+[node name="Vfx" type="Node3D" parent="."]
