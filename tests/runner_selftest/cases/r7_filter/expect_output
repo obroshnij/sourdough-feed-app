@@ -1,0 +1,2 @@
+PASS res://tests/test_control.gd::test_control_passes (2 checks)
+RESULT: 1 passed, 0 failed, 0 skipped

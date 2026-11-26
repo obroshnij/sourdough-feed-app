@@ -1,0 +1,2 @@
+PASS res://tests/lint/test_lint_01_sim_purity.gd::test_lint_01_sim_has_no_forbidden_tokens
+PASS res://tests/lint/test_lint_01_sim_purity.gd::test_lint_01_sim_scripts_are_not_nodes

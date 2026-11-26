@@ -1,0 +1,3 @@
+PASS res://tests/test_milestones.gd::test_runs_when_landed (1 checks)
+SKIP res://tests/test_milestones.gd::test_skips_until_landed waits for T1 milestone m4_save
+RESULT: 2 passed, 0 failed, 1 skipped

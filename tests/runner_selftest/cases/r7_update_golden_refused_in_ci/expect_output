@@ -1,0 +1,1 @@
+FAIL <runner>::<args> --update-golden is refused when CI=1

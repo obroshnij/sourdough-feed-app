@@ -1,0 +1,2 @@
+FAIL res://tests/test_null_call.gd::test_null_call_after_a_passing_check logged: SCRIPT ERROR
+on a null value

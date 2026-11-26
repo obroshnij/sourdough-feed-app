@@ -1,6 +1,6 @@
 # Art direction
 
-Owner: art-director. Status: Phase 1 draft, wave A. Look-dev jar v0 is built and verified (see §12).
+Owner: art-director. Status: Phase 2. Look-dev jar v0 is built and verified (§12). New in Phase 2: the real-time starter look for T2, with masks and a reference board (§16, D-037), and the production icons (§11, D-034).
 
 Source of truth for the jar: `art/blender/scripts/build_jar.py`. Change a parameter, re-run, and the .blend, GLB and previews all follow. Never hand-edit `jar_v0.blend` or the GLB.
 
@@ -122,8 +122,8 @@ Every GLB material is a placeholder. Godot assigns shader materials by node and 
 | Material (GLB name) | Look | Blender look-dev build | Godot Tier B (Mobile) | Godot Tier A fallback |
 |---|---|---|---|---|
 | `M_Glass` (surface 0), `M_Glass_Inner` (surface 1) | Clear, thick base, long highlights, faint green at grazing edges, a whisper of smudge | Principled, transmission 1, IOR 1.5, roughness 0.008 to 0.045 from noise. Shadow rays see a transparent BSDF (light shadows). No volume absorption: with two surfaces, Cycles floods the cavity | Two passes on one node: `cull_front` then `cull_back`, `blend_mix`, `depth_draw_never`. Alpha and reflection from fresnel (Schlick, F0 0.04). Cubemap reflection. Screen-texture refraction (`hint_screen_texture`, mip blur 1 to 2) offset by the view-space normal times 0.02. Edge tint `#CFE3D6` weighted by fresnel stands in for thick-edge absorption. `fog` uniform for fridge condensation | Same two passes without the screen texture: fresnel alpha, cubemap reflection, edge tint |
-| `M_Starter` | Creamy, glossy, soft, alive | Principled with subsurface 0.22 (scale 1.8 mm, 0.08 inside bubble pockets), coat by state. Voronoi bubbles (domain-warped, size per cell), crackle for dryness, flecks, hooch band by height, mold colonies | One opaque spatial shader (D-010). Vertex: the formula in §5. Fragment: one packed 256 px RGBA noise texture (R bubble cells, G cell random, B crackle edges, A fine noise), sampled through the UV0 atlas, no 3D noise at runtime. Wrap diffuse (0.3) plus a warm back-scatter term instead of SSS. Sheen into roughness and specular. Hooch band from the vertex height against `u_level` | Same shader with the bubble normal from a precomputed normal channel, no back-scatter |
-| `M_Starter_Liner` | Cream residue ring at `peak_line`, streaks down to the surface; aged streaks dry and break up; mold colonies on the glass for `moldy` | Mix of transparent and Principled by a streak mask from UV v | Alpha scissor (threshold 0.5) with blue-noise dither for soft edges, `cull_disabled`. Stays in the opaque pass, so no sorting with the glass | Same |
+| `M_Starter` | Creamy, glossy, soft, alive | Principled with subsurface 0.22 (scale 1.8 mm, 0.08 inside bubble pockets), coat by state. Voronoi bubbles (domain-warped, size per cell), crackle for dryness, flecks, hooch band by height, mold colonies | One opaque spatial shader (D-010). Vertex: the formula in §5. Fragment: the side-bubble and top-pit masks (§16.3), plus a small noise for tone and crackle. No 3D noise at runtime. Warm `BACKLIGHT` instead of SSS, glossy cap from `sheen` (§16.5). Hooch band from the vertex height against `u_level` | Same masks and math. The cavity shading is baked from two extra mask taps, so Tier A loses nothing but the optional normal tilt |
+| `M_Starter_Liner` | Cream residue ring at `peak_line`, streaks down to the surface; aged streaks dry and break up; mold colonies on the glass for `moldy` | Mix of transparent and Principled by a streak mask from UV v | Residue from the liner mask anchored at the peak line (§16.5g). Alpha scissor (threshold 0.5) with blue-noise dither for soft edges, `cull_disabled`. Stays in the opaque pass, so no sorting with the glass | Same |
 | `M_Lid_Wood` | Oiled oak, horizontal growth rings, cathedral grain on top | Wave bands along Z, noise-warped | 512 px tileable oak albedo + roughness baked from the Blender material, triplanar on object space | Same |
 | `M_Lid_Enamel` | Cream enamel, clearcoat, knurled skirt | Principled + coat, knurl from a radial-angle sine bump | StandardMaterial3D, clearcoat 0.6. Knurl from `sin(atan(z,x) * 120)` in a tiny shader, skirt only | StandardMaterial3D, no knurl |
 | `M_Cloth_Linen`, `M_Twine` | Oatmeal linen with sage tea-towel stripes, fine weave | Stripes from UV, weave from two wave textures, sheen 0.6 | 512 px tileable linen albedo + normal, stripes from UV in shader, rim (sheen) 0.4, `cull_disabled` | Same |
@@ -264,8 +264,25 @@ v0: a kitchen corner. Oak butcher-block counter, sage tile wall, soft focus. The
 - Rounded line icons, 24 pt grid, 2 pt stroke, round caps and joins, 2 pt corner radius. Filled variant for selected.
 - Motifs are drawn from the jar world: jar silhouette, bubbles, wisps, band, wheat ear, spoon.
 - Status icons are distinct shapes, readable in grayscale.
-- No faces or eyes (the starter has none).
-- Production SVGs: see Open decisions.
+- No faces or eyes (the starter has none). Watch dot patterns: two level dots over a third read as a face.
+
+**Production set (D-034): `assets/icons/`, 42 SVGs, plus 5 utility icons for T3** (`ui_settings`, `ui_close`, `ui_back`, `ui_check`, `ui_chevron_right`, one variant each, same grid and stroke). The 10 pt dot badge is drawn by T3. Generated by `python3 -I art/icons/make_icons.py`; add `--check` to re-render the 24 px sheet `art/previews/icons_check_24px.png` (needs `rsvg-convert` and `magick`).
+
+- **Names:** `<group>_<canonical id>_<outline|filled>.svg`. Groups are `status`, `action` and `inspect`. Example: `status_at_peak_filled.svg`.
+- **Color:** pure white `#FFFFFF` on transparent. Godot tints with `modulate` (white x tone = tone), so one file serves ink, tone, on_accent and the cream-on-stop `moldy` pill.
+- **Safe for ThorVG:** no masks, filters, text or `currentColor`. Filled variants cut details out with `fill-rule="evenodd"` only.
+- **Pill states (ux-design §17):** normal uses outline. `unhealthy` (care) and `moldy` (stop) use filled. Action bar "open" uses filled.
+
+| Group | Icon (id: shape) |
+|---|---|
+| status | `freshly_fed`: spoon. `developing`: two bubbles. `active`: three rising bubbles. `near_peak`: dome + up chevron. `at_peak`: dome + sparkle. `collapsing`: sagging dome + down chevron. `hungry`: empty bowl. `dormant`: crescent moon. `recovering`: half sun with rays. `unhealthy`: wilted sprout. `moldy`: octagon with ! |
+| action | `feed`: wheat ear. `smell`: two wisps over a nose in profile. `inspect`: magnifier with a bubble in the lens. `environment`: house ("Place", "Where it lives"). `journal`: book with spine and ribbon |
+| inspect | `height`: double arrow between the band and a top line. `bubbles`: jar with bubbles at the glass. `surface`: the top seen at an angle, scattered pinholes. `consistency`: a strand pulled from the spoon, ending in a drop. `development`: a circular arrow around a small jar (the slow orbit) |
+
+**24 px render check (rsvg-convert, 1x, magnified 4x with nearest-neighbor):**
+- All 11 status shapes stay distinct in grayscale, in outline and filled, and in their real tones on their real pill fills. The closest pairs are `developing` and `active` (2 vs 3 bubbles), and `near_peak`, `at_peak` and `collapsing` (same dome family). They are told apart by count, by chevron direction and by the sag, never by tone.
+- Three icons failed the first pass and were redrawn: `surface` read as a face, `development` read as a top hat, and the `smell` nose read as a hook.
+- Weakest now: `smell` filled. The nose wedge is clear only with its label. It is fine in the action bar, which always shows the label.
 
 ## 12. Mesh contract (`assets/3d/jar_v0.glb`)
 
@@ -314,6 +331,227 @@ All variants: 18,680 tris (budget 30k). **Visible set** (base + one cover, `arch
 
 ## 15. Open items
 
-- Production icon SVGs (11 status, 5 action, 5 inspection, plus filled variants): art-director in Phase 2, unless the director assigns them elsewhere.
+- **Icon import check (T3):** import one filled file with holes (`status_moldy_filled.svg`) through Godot's SVG importer at 2x and 3x, and confirm the evenodd holes survive. rsvg-convert renders them correctly; ThorVG was not run here.
+- **`surface` inspection pitch (ux-designer, T2):** at the 60 degree preset (D-036, ux-design §10), the line of sight to the cap center crosses the shoulder glass whenever the cap is lower than 111 mm above the jar base, which is every state (`at_peak` center is about 85 mm). At 76 degrees it passes through the open mouth at every level. **Agreed with ux-designer: 76 degrees** (ux-design §10). At 76 degrees the cap must sit at least 33.6 mm above the jar base. The lowest cap of any state is about 36 mm (`unhealthy` and `moldy`: 8 mm floor + 0.95 x 30 mm, dome -0.5 mm). `freshly_fed` is 39 mm. 72 degrees would fail below 65 mm. The reference board uses 76 degrees (§16.2).
+- **Mask import (T2):** confirm on first import that a gray + alpha PNG samples as (L, L, L, A) in 4.7.2 on both renderers (§16.3).
 - Pink or orange mold tint: not in v0. sourdough-scientist agrees this is the conservative choice for safety: text already teaches "fuzz, pink or orange means discard". A visual variant can come later as an optional P1 item. Either way, the hard rule stays: never pink, orange or red outside `moldy`.
 - `moldy` from the default pose relies on glass colonies. Consider an automatic `surface` close-up on entering `moldy` (game-designer and ux-designer).
+
+## 16. The real-time starter look (D-037, for T2)
+
+The target is Godot captures that hold up next to `art/previews/reference/`. Those renders apply the **same three masks with the same math as this section**, so they show what the masks can do in a renderer. They are not a separate procedural look. Values below are starting points. The rows in §16.6 are what gets signed off.
+
+### 16.1 What the spike gets wrong, measured
+
+Side close-ups at `at_peak`: spike `spikes/jar-spike/screenshots/*_tierA_at_peak_side_closeup.png` against `art/previews/reference/ref_at_peak_side.png`. "Pockets" are paste pixels more than 10 value points under the 80th-percentile value.
+
+| | Spike Mobile | Spike Compatibility | Reference |
+|---|---|---|---|
+| Paste, lit | `#E3D1B9`, S 19%, V 89% | `#E8E7E4`, S 2%, V 91% | `#DDD3C5`, S 11%, V 87% |
+| Bubble pockets, mean | `#977D63`, S 35%, V 59% | `#8B7055`, S 39%, V 54% | `#B4A48A`, S 23%, V 71% |
+| Darkest 5% | `#75593F`, S 46%, V 46% | `#593F25`, S 58%, V 35% | `#A18E71`, S 30%, V 63% |
+
+- **Swiss cheese.** The holes are round, evenly spread, one size family, brown, and hard-edged. Bubbles pressed against glass are irregular, clustered and varied: many tiny voids, some medium, a few big ones, often taller than wide, with teardrops and merged lobes. Their pockets are only a little darker than the paste.
+- **No translucency.** The shadow side goes flat. Cream should stay warm and a little lifted into its shadow.
+- **Weak dome.** The spike makes the cap rougher as bubbles increase (`mix(0.38, 0.6, bubble_density)`), so at peak no highlight shows the curve. Invert that: the peak is the glossiest moment.
+- **Compatibility washes the paste to 2% saturation.** T2's tonemap fix (D-037). The rows in §16.6 apply in both renderers.
+- **Streaks read as torn paper**: a hard, ragged band. Real residue is a lacy film, a negative print of the bubbles that touched the glass, with a creamy ring at the top and a few soft drips.
+
+### 16.2 Reference board
+
+Rebuild (about 2 minutes on an M4, never touches the GLB, the .blend or the §7 previews):
+`/Applications/Blender.app/Contents/MacOS/Blender -b -P art/blender/scripts/render_starter_reference.py`
+
+| File | What it is |
+|---|---|
+| `art/previews/reference/board_starter.png` | Contact sheet. One row per state: side close-up, then surface close-up |
+| `ref_<state>_side.png` | Bubbles through the glass: the inspect `bubbles` framing. 640 x 800 |
+| `ref_<state>_top.png` | Into the mouth, lid lifted: the inspect `surface` framing. 640 x 800 |
+| `ref_at_peak_pose.png`, `ref_collapsing_pose.png` | The §7 preview pose, 720 x 1280, to compare with spike captures |
+
+States: `freshly_fed`, `active`, `at_peak`, `collapsing`, `hungry`, with the §6 VisualParams.
+
+| State | Side, through the glass | Surface from above |
+|---|---|---|
+| `freshly_fed` | Smooth satin paste, a light scatter of tiny pinholes | Smooth, a handful of pinholes |
+| `active` | Many small and medium bubbles in clusters, some taller than wide, clouds of tiny voids | An even sprinkle of small pits |
+| `at_peak` | Big irregular bubbles with teardrops and merged lobes, bigger higher up, plus many small ones | Many pits, a few open craters |
+| `collapsing` | Big bubbles, fewer small ones. Above the surface: a creamy ring at the peak line, a lacy film with bubble-shaped gaps, short drips | Sunken and pocked with craters, the ring visible on the glass |
+| `hungry` | Few, big, loose holes. A gray-brown hooch band on top. Old residue dried into flecks | Hooch pooled over the top: a flat, glossy gray-brown disc |
+
+**Close-up cameras in Godot terms** (meters, jar base at the origin, `level = rise x 0.030`), so T2 captures the same frames:
+
+| View | Camera position | Looks at | FOV |
+|---|---|---|---|
+| side | (-0.0737, y + 0.012, 0.1386), with y = 0.008 + 0.55 x level | (0, y, 0) | vertical 33.4 degrees, 640 x 800 |
+| top | (0, y + 0.194, 0.0484), with y = 0.008 + level + 0.6 x max(dome x 0.010, 0) | (0, y, -0.004) | same |
+
+The top view is pitched 76 degrees, not 60: see the open item in §15.
+
+### 16.3 Runtime masks and UV mapping
+
+Generator: `python3 -I art/textures/make_starter_masks.py` (numpy only, about 1.5 s, seeded; reruns are byte-identical, checked with md5).
+
+| File | Size | Channels | Tiles | Texel | Covers |
+|---|---|---|---|---|---|
+| `assets/textures/starter_side_bubbles.png` | 512 x 512 | L = F, A = P | u and v | 0.117 mm | 59.7 mm square, 4 tiles around the starter |
+| `assets/textures/starter_top_pits.png` | 512 x 512 | L = F, A = P | u and v | 0.094 mm | 48 mm square, planar on the cap |
+| `assets/textures/starter_liner_streaks.png` | 512 x 256 | L = E, A = D | u only | 0.235 mm | 120.5 x 60.2 mm, 2 tiles around the liner |
+
+- **F, feature field:** 1 - rho inside a bubble or pit (rho is 0 at its center and 1 at its full-size outline), 0 outside. Thresholding F at 1 - s shows every feature scaled by s about its own center, so irregular outlines stay irregular at every size.
+- **P, presence rank:** the rank of the nearest feature (Voronoi cells, so mip blending only happens in the gaps between features). 0.02 to 0.90; 1.0 means far from any feature. Big and clustered features rank low, so they appear first. That is what makes `hungry` (density 0.2, size 0.85) a few big holes and `freshly_fed` (0.1, 0.1) a few pinholes.
+- **E, residue onset:** residue shows where E > 1 - `streak_amount`. The ring at the peak line appears first, then the film and drips, then a faint haze. How far E is above the threshold is the film's thickness.
+- **D, drying breakup:** dried residue is removed where D < 0.55 x age. Fine cells (about 2 x 3 mm) crack at their edges first, so old film breaks into flecks, never strips.
+- **Why two channels:** `bubble_density` and `bubble_size` are separate VisualParams. One channel can't give both "few and big" and "many and small".
+
+**Import:** these are data, not color. Sampler uniforms without `source_color`, with `filter_linear_mipmap, repeat_enable` (the liner too: its first and last rows are zero, and v is clamped in code). VRAM Compressed should hold, because two-channel formats keep smooth fields. Switch to VRAM Uncompressed if bubble edges speckle. Memory is about 0.34 MB per 512 x 512 mask compressed with mips, 0.7 MB uncompressed (1.75 MB for all three, inside the 8 MB scene budget). A gray + alpha PNG should sample as (L, L, L, A): read `.r` and `.a`, and confirm it on first import (§15). The committed `assets/textures/*.png.import` files set `compress/mode=2` (VRAM Compressed) and `mipmaps/generate=true`, edited by hand: Godot's first import defaulted to Lossless with no mipmaps.
+
+**Mapping.** `v_pos` is the object-space `VERTEX` after displacement. Both meshes have their origin on the inner floor, so `v_pos.y` is the height above the floor. Side and liner use UV0.x, the lathe angle, which has no derivative seam. Godot v grows down the image, so the minus signs keep image-up = world-up, as in the reference renders.
+
+```glsl
+// Mirror art/textures/make_starter_masks.py.
+const float SIDE_REPEATS  = 4.0;
+const float SIDE_TILE_M   = 0.059690;   // 2 pi 0.038 / 4, square texels
+const float TOP_TILE_M    = 0.048;
+const float TOP_ROT       = 0.6;        // radians, hides the axis-aligned repeat on the cap
+const float LINER_REPEATS = 2.0;
+const float LINER_SPAN_M  = 0.060240;
+const float LINER_EDGE_V  = 0.10;       // the peak line in the liner mask
+const float GROW_RAMP     = 0.08;       // a feature grows in over this much density
+const float SIZE_MIN      = 0.12;       // bubble_size 0 still shows features at 12% scale
+const float STRETCH_K     = 0.35;       // vertical stretch at full `stretch` (web strands, §5)
+const float TAP           = 1.5 / 512.0;
+const vec2  LIGHT_UV      = vec2(-0.35, 0.94);   // key light in mask space: left and image-up
+
+// Starter_Body, side and rim. stretch = bubble_size * smoothstep(1.5, 2.3, rise) (§5).
+vec2 uv_side = vec2(UV.x * SIDE_REPEATS,
+                    -v_pos.y / (SIDE_TILE_M * (1.0 + STRETCH_K * stretch)));
+// Starter_Body, cap: planar on object XZ, rotated.
+float c = cos(TOP_ROT), s = sin(TOP_ROT);
+vec2 uv_top = vec2(v_pos.x * c + v_pos.z * s, v_pos.z * c - v_pos.x * s) / TOP_TILE_M;
+// Starter_Liner: anchored to the peak line, not to UV.y.
+float peak_h = peak_line * level_m;
+vec2 uv_liner = vec2(UV.x * LINER_REPEATS + 0.5,
+                     clamp(LINER_EDGE_V + (peak_h - v_pos.y) / LINER_SPAN_M, 0.004, 0.996));
+// Side vs cap blend: n_obj = object-space normal of the displaced surface.
+float top_w = smoothstep(0.55, 0.85, n_obj.y);
+```
+
+The cap's UV0 is the disc atlas, so `uv_side` is garbage there, but `top_w` is 1 on the cap, so it never shows.
+
+### 16.4 The feature function and bubble depth
+
+```glsl
+// m.r = F, m.a = P. Returns (air, depth 0 at the outline to 1 at the center, lip).
+vec3 feature(vec4 m, float density, float size) {
+	float grow  = smoothstep(m.a, m.a + GROW_RAMP, density);
+	float frac  = (SIZE_MIN + (1.0 - SIZE_MIN) * size) * grow;
+	if (frac < 0.002) return vec3(0.0);
+	float thr   = 1.0 - frac;
+	float aa    = min(max(fwidth(m.r), 0.01), frac * 0.5);
+	float air   = smoothstep(thr - aa, thr + aa, m.r);
+	float depth = clamp((m.r - thr) / frac, 0.0, 1.0);
+	float lip   = smoothstep(thr - 0.35 * frac, thr, m.r) * (1.0 - air);
+	return vec3(air, depth, lip);
+}
+
+// Side: bigger bubbles higher up, then the cavity light from two extra taps.
+vec4  ms    = texture(side_mask, uv_side);
+float hfrac = clamp(v_pos.y / max(u_level, 0.001), 0.0, 1.0);
+vec3  fs    = feature(ms, bubble_density, clamp(bubble_size * (0.85 + 0.3 * hfrac), 0.0, 1.0));
+float gx    = texture(side_mask, uv_side + vec2(TAP, 0.0)).r - ms.r;
+float gy    = texture(side_mask, uv_side - vec2(0.0, TAP)).r - ms.r;   // toward image-up
+float facing = dot(vec2(gx, gy), LIGHT_UV) / max(length(vec2(gx, gy)), 1e-4);
+float cav_s = (0.82 + 0.22 * facing * (1.0 - fs.y * fs.y))   // dark under the top lip, lit lower wall
+            * (1.0 - 0.72 * fs.x * (1.0 - fs.x));             // thin contact line at the outline
+
+// Cap: fewer, smaller open pits than at the glass; pinholes darkest at the center.
+vec4  mt    = texture(top_mask, uv_top);
+vec3  ft    = feature(mt, bubble_density * 0.9, bubble_size * 0.8);
+float cav_t = 0.86 - 0.28 * ft.y;
+
+float air = mix(fs.x, ft.x, top_w) * (1.0 - in_hooch);
+float dep = mix(fs.y, ft.y, top_w);
+float cav = mix(cav_s, cav_t, top_w);
+```
+
+**How bubble depth reads through the glass.** Depth comes from four cues, all in the reference:
+1. **Pocket albedo:** `albedo = mix(albedo, pocket_color, air * (0.55 + 0.35 * dep))` with pocket `#D3BF9E`. A little darker and warmer, never brown. For whole wheat and rye, scale the pocket by the flour tint ratio.
+2. **Cavity light:** `albedo *= mix(1.0, cav, air)`. The top inner wall sits in the shadow of the paste above it, and the lower wall catches the key. This is what makes a hole read as a hole and not a stain. It is baked, so it works on Tier A.
+3. **Wet glint:** pocket `ROUGHNESS` 0.18, so the key leaves a small highlight on the lower wall. Optional on Tier B: tilt the normal toward the pocket center, `n += (tan_u * g.x + up * g.y) * 0.6 * air * (1.0 - dep)` with `g = normalize(vec2(gx, gy))`, so the glint lands in the right place when the camera orbits.
+4. **No translucency inside a pocket:** it is air. Multiply the backlight and rim terms by `1.0 - 0.75 * air`.
+
+**Craters on the cap:** add `0.25 * ft.z` (the lip) to the cap height for a soft raised rim, Tier B only. Optional blisters: features with P just above density (`density < P < density + 0.15`) can show as faint raised domes before they open. That is a nice tell for the rise, but not required for sign-off.
+
+**Motion (Phase 3):** `grow` already fades features in as density rises, so new bubbles grow from a point instead of popping. For the §8 bubble life, breathe each one with `size *= 0.92 + 0.08 * sin(TIME * 0.9 + m.a * 40.0)`, since P is constant per bubble.
+
+### 16.5 The look in Godot terms
+
+**a. Albedo per state.** The paste never changes hue by state. State shows through bubbles, cap texture, hooch and residue. Flour tint per §2.1, times a tone of 0.96 to 1.02 from fine noise and a low-frequency mottle (any noise T2 already has).
+
+| State | Paste and pockets | Cap extras | Liner residue | Cap `ROUGHNESS` |
+|---|---|---|---|---|
+| `freshly_fed` | Flour tint; few tiny pockets | Lumps, satin | none | 0.44 |
+| `developing` | Small pockets | | none | 0.41 |
+| `active` | Many small and medium | | none | 0.38 |
+| `near_peak` | Bigger toward the top | | none | 0.36 |
+| `at_peak` | Big, stretched | | none | 0.35 |
+| `collapsing` | Big, fewer | Sunken, more open craters | Fresh cream ring, film and drips (age about 0.15) | 0.33 |
+| `hungry` | Few, big | Hooch `#8A7860` band | Dried flecks (age about 0.55) | 0.33 |
+| `dormant` | Very few | Hooch `#8A7860` | As stored | 0.40 |
+| `recovering` | Like `developing` | | As stored | 0.41 |
+| `unhealthy` | Almost none | Crust `#CDBB98` at 0.85 dryness, crackle, dark hooch `#5A5045` | Aged (1.0), crust color | 0.76 (dry) |
+| `moldy` | None | As `unhealthy`, plus §6 colonies | Aged, plus glass colonies | 0.76 |
+
+`ROUGHNESS` on the cap = `mix(0.55, 0.24, sheen)`, then `mix(r, 0.18, air)`, `mix(r, 0.8, dryness)` and `mix(r, 0.04, in_hooch)`.
+
+**b. Fake translucency.** Keep the built-in lighting and add Godot's `BACKLIGHT`. It adds light where N·L is low, which is the cream-glow-into-shadow look.
+- `BACKLIGHT = scatter_color * backlight_k * (1.0 - 0.75 * air) * (1.0 - in_hooch) * (1.0 - dryness)`.
+- `scatter_color` = `#E3BF8F` (hue 34, warm cream). Start `backlight_k` at 0.35 and tune it until the shadow-side row passes (§16.6). If it is too weak, the shadow goes gray and flat. If it is too strong, the jar looks lit from inside.
+- `RIM` 0.10 with `RIM_TINT` 0.5, times the same `(1.0 - 0.75 * air)`. It reads as thin-edge translucency where the paste meets the glass.
+- Fallback, only if `BACKLIGHT` can't reach the row on one renderer: a custom `light()` with wrap 0.35, `max(0, (N·L + 0.35) / 1.35)`, plus `scatter_color` x 0.15 in the terminator band (N·L from -0.35 to 0.6). It replaces Godot's specular, so add GGX back. Check whether 4.7.2 multiplies `DIFFUSE_LIGHT` by `ALBEDO` after `light()`: the 4.x docs example leaves `ALBEDO` out.
+- **Not allowed:** a per-renderer change to the palette hexes. **Allowed:** a per-renderer grade (starter color, `backlight_k`) set by the quality-tier switch, as long as both renderers hit the same rows.
+
+**c. Glossy domed skin.**
+- Cap: the `ROUGHNESS` above, `SPECULAR` 0.5, and `CLEARCOAT = sheen * mix(0.25, 0.6, top_w) * (1.0 - dryness)` with `CLEARCOAT_ROUGHNESS` 0.08. Where a renderer has no clearcoat, drop it and lower the cap `ROUGHNESS` by 0.06.
+- Per-pixel cap normal from the displaced height (the spike's central differences are right), including lumps.
+- The dome reads when, at the preview pose, `at_peak` shows a soft key highlight on the front-left of the cap, the far edge of the cap at least 6 value points darker than its center, and a convex silhouette. All three come from gloss and normals, not from more displacement. Keep `DOME_MAX_M` (§5).
+- The side behind the glass touches the glass, so it gets little specular of its own. Its gloss lives in the pockets.
+
+**d. Hooch:** as in §5. Its `ROUGHNESS` is 0.04, with no backlight.
+
+**e. Liner residue** (`M_Starter_Liner`, the mapping in §16.3):
+
+```glsl
+vec4  ml    = texture(liner_mask, uv_liner);
+float age   = clamp(max(surface_dryness, 1.4 * (peak_line - rise) / max(peak_line, 0.01) - 0.1), 0.0, 1.0);
+float thr   = 1.0 - streak_amount;
+float vis   = smoothstep(thr - 0.02, thr + 0.02, ml.r)
+            * smoothstep(0.55 * age, 0.55 * age + 0.04, ml.a);
+float above = smoothstep(u_level + 0.0003, u_level + 0.0018, v_pos.y);   // never over the paste
+float thick = clamp((ml.r - thr) / 0.5, 0.0, 1.0);
+ALPHA     = vis * above * (0.30 + 0.62 * thick) * (1.0 - 0.25 * age) * step(0.001, streak_amount);
+ALBEDO    = mix(starter_color, crust_color, age);    // #CDBB98
+ROUGHNESS = mix(0.22, 0.8, age);
+```
+
+`age` is derived, with no new field (§5 "residue aging"). It gives about 0.15 for `collapsing`, 0.55 for `hungry` and 0.85 for `unhealthy`. Keep the §4 alpha scissor with dither. The liner sits 0.35 mm outside the paste, so `above` is what keeps residue off the paste.
+
+**f. Tier A vs Tier B:** the same masks, albedo, cavity light, `BACKLIGHT` and gloss. Tier B adds only the optional pocket normal tilt and the crater lip. Cost: 5 texture fetches on the starter (side 3, cap 2), 1 on the liner.
+
+### 16.6 Sign-off: the rows each part must hit, in both renderers
+
+Measure as in §3: 31 px patch means, sRGB 8-bit, HSV. Captures at the §7 pose and the §16.2 close-ups, for Mobile Tier B, Mobile Tier A and Compatibility Tier A. "Pockets" use the §16.1 split. Reference values are in brackets.
+
+| Part | Capture | Row | Target [reference] |
+|---|---|---|---|
+| Paste, lit | Pose (290, 850), every state | §3 rows 1 and 3 | V 81 to 93%, S 8 to 16%, hue 30 to 40, max channel 0.92 or less [`#DACFBF`, V 85%, S 12%] |
+| Paste, shadow side | Pose (450, 830) | §3 row 2 | V 50 to 62%, S 45% or less [`#816B4C`, V 51%, S 41%] |
+| Bubble pockets | Side close-up, `active` and `at_peak` | R7 (new) | Pocket mean V 66 to 76%, S 18 to 30%, hue 30 to 40. Darkest 5% V 58% or more [V 71 to 73%, S 20 to 24%; darkest V 63%] |
+| Pocket share | Side close-up | R8 (new) | `active` 8 to 16% of paste pixels, `at_peak` 12 to 22% [12%, 17%]. Bubbles irregular and clustered, not a grid of round holes |
+| Cap | Top close-up, cap center | R9 (new) | V 84 to 92%, S 7 to 14% [`#E9E1D5`, V 91%, S 9%] |
+| Hooch from above | Top close-up, `hungry` | R10 (new) | V 55 to 70%, S 25 to 40%, hue 30 to 40 [`#A28B69`, V 64%, S 35%] |
+| Residue | Side close-up, `collapsing`, glass above the surface | R11 (new) | Cream to near-white, S 15% or less [20th to 80th percentile `#D4CAB9` to `#EAE5DE`]. A lacy film with a ring at the top, not a hard ragged band |
+| Everywhere | Every capture | §2.3 | Nothing under hue 25 at S over 50% (orange is reserved for mold) |
+
+I sign off when every row passes in all three captures and the board's tells (§16.2) read side by side. The director then shows the user, as D-037 requires.

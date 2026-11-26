@@ -1,0 +1,1 @@
+FAIL res://tests/lint/test_lint_03_typing.gd::test_typing_warnings_are_errors debug/gdscript/warnings/untyped_declaration (2 = error): expected 2, got 1
