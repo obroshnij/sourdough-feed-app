@@ -27,6 +27,8 @@ uniform float cap_value = 1.0;
 // Hooch is mostly sky reflection, which Compatibility draws weaker.
 uniform float hooch_value = 1.0;
 uniform float hooch_desat = 0.0;
+// Extra lift for the dark old hooch only (weighted by dullness), so R12 moves and R10 doesn't.
+uniform float hooch_dark_lift = 1.0;
 
 const float TAP = 1.5 / 512.0;
 const vec2 LIGHT_UV = vec2(-0.35, 0.94);
@@ -180,7 +182,7 @@ void fragment() {
 	albedo *= mix(1.0, cav, air * pocket_k);
 
 	vec3 hooch_col = mix(HOOCH_COLOR, HOOCH_OLD_COLOR, 0.6 * dullness) * mix(vec3(1.0), flour_ratio, 0.5);
-	hooch_col = mix(hooch_col, vec3(dot(hooch_col, vec3(0.2126, 0.7152, 0.0722))), hooch_desat) * hooch_value;
+	hooch_col = mix(hooch_col, vec3(dot(hooch_col, vec3(0.2126, 0.7152, 0.0722))), hooch_desat) * mix(hooch_value, hooch_value * hooch_dark_lift, dullness);
 	albedo = mix(albedo, hooch_col, in_hooch * hooch_mix);
 
 	vec4 colony = mold_colony(p.xz) * top_w;

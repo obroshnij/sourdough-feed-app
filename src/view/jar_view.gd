@@ -184,6 +184,7 @@ func apply_look(look: ViewLook, key_dir: Vector3, rim_dir: Vector3) -> void:
 	starter_mat.set_shader_parameter(&"cap_value", look.cap_value)
 	starter_mat.set_shader_parameter(&"hooch_value", look.hooch_value)
 	starter_mat.set_shader_parameter(&"hooch_desat", look.hooch_desat)
+	starter_mat.set_shader_parameter(&"hooch_dark_lift", look.hooch_dark_lift)
 	if backdrop_mat != null:
 		backdrop_mat.set_shader_parameter(&"energy", look.backdrop_energy)
 	if counter_mat != null:
@@ -195,6 +196,7 @@ func apply_look(look: ViewLook, key_dir: Vector3, rim_dir: Vector3) -> void:
 	if quality != null:
 		quality.set_shared(&"reflection_strength", look.glass_reflection)
 		quality.set_shared(&"spec_strength", look.glass_spec)
+		quality.set_shared(&"edge_absorb", look.glass_edge_absorb)
 		quality.set_shared(&"key_dir", key_dir)
 		quality.set_shared(&"rim_dir", rim_dir)
 
