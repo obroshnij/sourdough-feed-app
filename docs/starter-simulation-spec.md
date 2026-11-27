@@ -7,7 +7,7 @@ Owner: `sourdough-scientist`. This is the authority for every starter number. Sc
 **v1.1 changes (2026-11-27).** No change to any stored variable, rate or state rule, so the golden traces (DIFF-01) are unchanged.
 - §13: the `pleasantly_tangy` curve now falls to 0 at acid 0.80 (was 0.72).
 - §13.1 (new): the smell check, a computable rule for "Try inspecting the surface".
-- §14: the `surface` readout is a warning from the watch stage on. The old "ambiguous pairs" line is replaced by the inspect-to-smell rule.
+- §14: the `surface` readout is a warning from the watch stage on. The old "ambiguous pairs" line is replaced by the inspect-to-smell rule. Rye `consistency` reads `airy_pasty`. Rye cracks stay through the collapse, with rye surface text. A risen starter in the fridge is described as risen.
 - §14.2 (new): trait inputs.
 - §15: rows for `window_sill` and `proofing_box`.
 - §18: vector V21.
@@ -345,13 +345,27 @@ Readout keys are proposals; narrative-designer may key copy by state instead, as
 
 | Kind | Reveals | Keys in first-match order |
 |---|---|---|
-| `bubbles` | gas, rise_phase | 1 `none`: gas_n < 0.05 and state is hungry, dormant or unhealthy. 2 `popped_craters`: rise_phase is collapsing or hungry. 3 `large_at_top`: rise_phase is near_peak or at_peak. 4 `few_tiny`: rise < 1.15. 5 `many_small`: otherwise. |
+| `bubbles` | gas, rise_phase | 1 `none`: gas_n < 0.05 and state is hungry, dormant or unhealthy, and rise < 1.1 (v1.1: a risen starter keeps its bubbles even when cold). 2 `popped_craters`: rise_phase is collapsing or hungry. 3 `large_at_top`: rise_phase is near_peak or at_peak. 4 `few_tiny`: rise < 1.15. 5 `many_small`: otherwise. |
 | `consistency` | h_eff, acid, phase | 1 `stiff_dough`: h_eff < 75. 2 `slack_soupy`: rise_phase is collapsing or hungry, or state is dormant (starved) or unhealthy, with acid ≥ 0.66. 3 `airy_webby`: rise_phase is active, near_peak or at_peak. 4 `loose_batter`: h_eff ≥ 110. 5 `thick_batter`: otherwise. Cold dormant: `firm_cold` replaces 3 to 5. **Rye (v1.1):** when the rye share is ≥ 0.5 (the `surface` `cracked` test), `airy_pasty` replaces `airy_webby`, and copy for near_peak, at_peak and collapsing must not mention strands, stretch or a web. Rye has little functional gluten, so a rye starter rises as a bubbly paste, not a stretchy web (SCI §5). |
 | `height` | rise, rise_rate, peak_rise | level: `at_mark` < 1.1, `a_little` < 1.5, `nearly_doubled` < 1.85, `doubled` < 2.4, `more_than_doubled` ≥ 2.4. trend: `rising`, `falling`, else `steady`. `streak_line` when peak_rise - rise ≥ 0.2. |
-| `surface` | rise_phase, hooch, dryness, mold_risk, flour_mix | shape: 1 `fuzzy_spots` if moldy. 2 `sunken`: rise_phase collapsing. 3 `cracked`: rye share ≥ 0.5 and rise ≥ 1.3. 4 `flat_bubbly`: at_peak. 5 `domed`: rising and rise ≥ 1.3. 6 `smooth_flat`. hooch (separate line): `hooch_dark` if hooch ≥ 0.8, or hooch ≥ 0.1 with mold_risk ≥ 0.3; `hooch_layer` ≥ 0.4; `hooch_thin` ≥ 0.1. skin (separate line): `crust` ≥ 0.7, `skin` ≥ 0.3. |
+| `surface` | rise_phase, hooch, dryness, mold_risk, flour_mix | shape: 1 `fuzzy_spots` if moldy. 2 rye cracks (v1.1): rye share ≥ 0.5, rise ≥ 1.3 and state not `unhealthy`: `sunken_cracked` if rise_phase is collapsing or hungry, else `cracked`. 3 `sunken`: rise_phase collapsing. 4 `flat_bubbly`: at_peak. 5 `domed`: rising and rise ≥ 1.3. 6 `smooth_flat`. hooch (separate line): `hooch_dark` if hooch ≥ 0.8, or hooch ≥ 0.1 with mold_risk ≥ 0.3; `hooch_layer` ≥ 0.4; `hooch_thin` ≥ 0.1. skin (separate line): `crust` ≥ 0.7, `skin` ≥ 0.3. |
 | `development` | maturity, vigor, vigor_at_feed | stage: young, steady, mature, seasoned (§9). strength: `strong` vigor ≥ 0.85, `steady` ≥ 0.6, `weakened` below. **Only these.** The sim keeps no record of past rises, so development can't report "how reliable recent rises were". |
 
 **`surface` from the watch stage on (v1.1).** When `mold_risk` ≥ 0.3 and the starter is not moldy, the `surface` readout is a warning (`is_warning` true), whatever the state. Its meaning line states the check rule: fuzz, or pink or orange color, means discard, and none means feed (`INSPECT_SURFACE_UNHEALTHY_MEAN` already says this). The observation lines stay as they are. Before v1.1, `surface` was a warning only at `unhealthy` or with `hooch_dark`. A stiff (60%) whole wheat or rye starter makes almost no hooch, so at the watch stage it read "Flat and still. Run down after a long wait." right after a musty smell (script: 75.5 h unfed, surface `smooth_flat` and `skin`, not a warning).
+
+**Rye cracks (v1.1).** The jar shows cracks exactly when the `surface` shape is `cracked` or `sunken_cracked`: rye share ≥ 0.5, rise ≥ 1.3, and not `moldy` or `unhealthy`, so a warning always reads on its own. Cracks stay through the collapse. Before v1.1, `sunken` came first, so a rye starter lost its cracks for the whole collapse (4.6 to 4.8 h after a 1:1:1 or 1:5:5 feed) and got them back once `hungry` while rise was still ≥ 1.3 (for up to 3.6 h). Cracks that vanish and come back are not physical.
+- **Science.** Bakers agree that a rye starter's top cracks as it expands and that cracks mark ripeness, and that past its peak a starter sinks to a concave top ([RYE] forum and blog reports, low authority, consistent). No source says whether the cracks close when it starts to fall. Rye has little functional gluten (SCI §5), so the cracks are splits in a paste that has no elastic web to pull them shut. They should stay as it sinks, getting shallower as the paste slumps. That is my reasoning, **low** confidence. The jar may soften the cracks as rise falls toward 1.3 (art and T2's call), but they appear and disappear only at this rule.
+- **Text,** whenever the shape is `cracked` or `sunken_cracked`, chosen by `rise_phase`:
+
+  | rise_phase | Observation key | Status | Suggested words (narrative's call) |
+  |---|---|---|---|
+  | active, near_peak | `INSPECT_SURFACE_RISING_RYE_OBS` | new | "No dome. The top is opening into cracks as it rises." |
+  | at_peak | `INSPECT_SURFACE_AT_PEAK_RYE_OBS` | exists | "A low top, cracked and pitted with bubbles." |
+  | collapsing, hungry | `INSPECT_SURFACE_SUNKEN_RYE_OBS` | new | "The cracked top has sunk a little, and the cracks are softening." |
+
+  Meaning lines stay as they are, by state. Today a rising rye starter reads "Domed, with bubbles stretching the top" while the jar shows cracks. A collapsing one reads "The dome has sunk in the middle", but rye never domed.
+
+**Risen, then into the fridge (v1.1).** Feeding, leaving it out for 2 to 4 h, then moving it to the fridge is a common routine. The starter is `dormant` (cold) within about 2 h but stays at 1.3x to 1.9x for 12 h or more: for white flour after 4 h out, it is 1.90x at 2 h and 1.45x at 12 h in the fridge (script). The `dormant` keys say "Barely above the band, and not moving", "Flat and still", and "The cold keeps it low". Rule: while `dormant` with rise ≥ 1.1, observation keys follow `rise_phase` (like `recovering`), and the meaning line is one shared new key, `INSPECT_ANY_DORMANT_RISEN_MEAN`, for example "The cold has paused it partway. It will sink slowly while it rests." At rise < 1.1 the `dormant` keys stay. A starved `dormant` is always near 1.0x, so it is unaffected.
 
 `recovering` overlaps every rise phase (§12.2). Recovering readouts must follow `rise_phase` (flat when freshly fed, domed when rising), with a "weaker than usual" note. A fixed "modest rise" line would be wrong right after a feed.
 

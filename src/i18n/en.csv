@@ -168,6 +168,7 @@ HYDRATION_STANDARD,Standard
 HYDRATION_STANDARD_NOTE,Equal weights of flour and water. The usual.
 HYDRATION_STIFF,Stiff
 HYDRATION_STIFF_NOTE,Water at 60% of the flour. Thick and firm.
+INSPECT_ANY_DORMANT_RISEN_MEAN,The cold has paused it partway. It will sink slowly while it rests.
 INSPECT_ANY_MOLDY_MEAN,Please discard all of it and wash the jar.
 INSPECT_ANY_MOLDY_OBS,There’s mold on the surface. No need to look closer.
 INSPECT_BUBBLES_ACTIVE_MEAN,It’s making gas steadily. That gas is what raises bread.
@@ -198,7 +199,7 @@ INSPECT_CONSISTENCY_ACTIVE_MEAN,Good activity. It’s on track.
 INSPECT_CONSISTENCY_ACTIVE_OBS,Softer and airier as it fills with gas.
 INSPECT_CONSISTENCY_AT_PEAK_MEAN,This texture means it’s strong and ready.
 INSPECT_CONSISTENCY_AT_PEAK_OBS,"Light, stretchy and webby, like marshmallow fluff."
-INSPECT_CONSISTENCY_AT_PEAK_RYE_OBS,"Airy, bubbly and pasty, like wet clay. No strands."
+INSPECT_CONSISTENCY_AT_PEAK_RYE_OBS,"Bubbly and pasty, like wet clay full of bubbles. No strands."
 INSPECT_CONSISTENCY_AT_PEAK_STIFF_OBS,"Puffy and spongy, like a well-risen dough."
 INSPECT_CONSISTENCY_COLLAPSING_MEAN,Acid and time soften it as the food runs out. Feed soon.
 INSPECT_CONSISTENCY_COLLAPSING_OBS,Looser now. The web is breaking down.
@@ -285,6 +286,8 @@ INSPECT_SURFACE_MOLDY_MEAN,"It can’t be saved. Discard all of it, even parts t
 INSPECT_SURFACE_MOLDY_TINT_OBS,"Fuzzy spots of mold, and pink or orange spoilage."
 INSPECT_SURFACE_NEAR_PEAK_MEAN,Nearly at its peak.
 INSPECT_SURFACE_NEAR_PEAK_OBS,"Domed, with bubbles stretching the top."
+INSPECT_SURFACE_RISING_RYE_OBS,No dome. The top is opening into cracks as it rises.
+INSPECT_SURFACE_SUNKEN_RYE_OBS,"The cracked top has sunk a little, and the cracks are softening."
 INSPECT_SURFACE_UNHEALTHY_MEAN,"Warning sign. Fuzz, or pink or orange color, means discard. If none, feed it now."
 INSPECT_SURFACE_UNHEALTHY_OBS,"A dull, dry skin across the top, maybe with dark liquid."
 JAR_A11Y_DESC,Drag to turn the jar. Pinch to look closer.
@@ -534,9 +537,9 @@ SMELL_CHEESY_TITLE,Cheesy
 SMELL_FAINT_1,Barely anything. The cold keeps its smells to itself.
 SMELL_FAINT_2,"Faint and cool. A ghost of tang, not much more."
 SMELL_FAINT_MEANING,"It’s cold, so everything slows down, smells included."
-SMELL_FAINT_MILD_1,"Mild and mixed. Mostly flour, with a little yeast."
+SMELL_FAINT_MILD_1,"Mild and mixed. A little flour, a little yeast."
 SMELL_FAINT_MILD_2,Soft and quiet. Flour and a touch of yeast.
-SMELL_FAINT_MILD_MEANING,Early in a rise the smell is still mild. It builds as the starter works.
+SMELL_FAINT_MILD_MEANING,A mild smell is normal. It grows as the starter works.
 SMELL_FAINT_TITLE,Very faint
 SMELL_FRESH_YEASTY_1,"Fresh and bready, like a bakery door opening."
 SMELL_FRESH_YEASTY_2,"Warm and yeasty, like bread dough left to rise."

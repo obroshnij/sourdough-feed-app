@@ -74,6 +74,8 @@ Never present a starter with fuzz or pink, orange or red color as safe or fixabl
 - Rye raises acetic acid. **medium** [PL]
 - Different flours select for different mature communities. **medium**, via summary [SUC]
 - Rye has little functional gluten, so rye starters rise less and crack or pit instead of forming a smooth dome. A slight pinkish-gray tinge from rye is not the same as pink streaks. **medium** (baking references; [SUC] summary notes rye pink tinge from blog sources, low)
+- A rye starter's top cracks as it rises, and bakers read the cracks as a sign of ripeness. Past its peak a starter sinks to a concave top. **low to medium** (consistent baker reports, low authority) [RYE]
+- Whether rye cracks close as it falls: no source found. The game keeps them while it sinks, because a paste with little gluten has no elastic web to pull the splits shut. **low** (my reasoning)
 - Exact speed and sourness multipliers per flour have no clean source. The sim marks them as tuned.
 
 ## 6. Activity: rise, peak, fall, bubbles, smell, texture, acidity
@@ -188,6 +190,7 @@ Truly ending a mature starter takes heat (near 60 °C), mold, or spoilage. Hunge
 | [SJa] | The Sourdough Journey. My sourdough starter smells like acetone. https://thesourdoughjourney.com/my-sourdough-starter-smells-like-acetone/ Via summary. |
 | [SJb] | The Sourdough Journey. The first 10 days of a new sourdough starter (PDF). https://thesourdoughjourney.com/wp-content/uploads/2023/11/TSJ-The-First-10-Days-of-a-New-Sourdough-Starter.pdf Via summary. |
 | [TFL] | The Fresh Loaf forum threads on acetone smell, e.g. https://www.thefreshloaf.com/comment/481927. Community consensus, low authority. |
+| [RYE] | Rye starter surface reports, read 2026-11-27: The Fresh Loaf thread on dusting a rye sour with flour to gauge ripeness ("as the starter expands, cracks will appear"), https://www.thefreshloaf.com/comment/157469 ; Kate Downham, Floury Friday, "Starter ripeness: when it matters, when it doesn't, and how to tell" (cracks at peak, slightly collapsed after), https://katedownham.kit.com/posts/ripe-starter . Community and blog sources, low authority. |
 | [C25] | Chen J, Pu D, Cao B, Sun B, Zhang Y (2025). Effect of temperature and water addition ratio on the aroma release of yeast proteins. *Foods* 14(6):1037. https://doi.org/10.3390/foods14061037 (read 2026-11-27: tested at 25, 35, 45 and 55 °C; in the water model, 22 volatiles rose with temperature and 3 fell) |
 | [EPAH] | US EPA. Estimated Henry's law constants: background (soil-gas partitioning and its temperature dependence). https://www3.epa.gov/ceampubl/learn2model/part-two/onsite/esthenry-background.html Via summary. |
 | [KAHM] | Kahm yeast guidance: Brød & Taylor starter FAQ https://brodandtaylor.com/blogs/recipes/starter-creation-faq ; Cultures for Health https://www.culturesforhealth.com/white-film-cultured-vegetables-mold. Via summary, low authority. |

@@ -379,9 +379,9 @@ The ribbon marks a smell the player hasn't met before. `SMELL_TRY_INSPECT` and i
 | `SMELL_FAINT_1` | Barely anything. The cold keeps its smells to itself. | 60 |
 | `SMELL_FAINT_2` | Faint and cool. A ghost of tang, not much more. | 60 |
 | `SMELL_FAINT_MEANING` | It's cold, so everything slows down, smells included. | 90 |
-| `SMELL_FAINT_MILD_1` | Mild and mixed. Mostly flour, with a little yeast. | 60 |
+| `SMELL_FAINT_MILD_1` | Mild and mixed. A little flour, a little yeast. | 60 |
 | `SMELL_FAINT_MILD_2` | Soft and quiet. Flour and a touch of yeast. | 60 |
-| `SMELL_FAINT_MILD_MEANING` | Early in a rise the smell is still mild. It builds as the starter works. | 90 |
+| `SMELL_FAINT_MILD_MEANING` | A mild smell is normal. It grows as the starter works. | 90 |
 | `SMELL_MOLDY_TITLE` | Best not | 20 |
 | `SMELL_MOLDY_BODY` | No need to sniff a moldy jar. The surface says enough. Please discard it. | 90 |
 
@@ -408,6 +408,7 @@ P0 kinds: `height`, `bubbles`, `surface`. P1: `consistency`, `development` (game
 | `INSPECT_CHIP_DEVELOPMENT` | Development | 11 |
 | `INSPECT_ANY_MOLDY_OBS` | There's mold on the surface. No need to look closer. | 90 |
 | `INSPECT_ANY_MOLDY_MEAN` | Please discard all of it and wash the jar. | 90 |
+| `INSPECT_ANY_DORMANT_RISEN_MEAN` | The cold has paused it partway. It will sink slowly while it rests. | 90 |
 | `INSPECT_RECOVERING_MEAN` | Weaker than usual for now. Regular feeds rebuild it. | 90 |
 
 ### 6.1 Bubbles (P0)
@@ -481,6 +482,8 @@ The surface is where the player learns the real discard rule, so its warning and
 | `INSPECT_SURFACE_AT_PEAK_WHOLE_WHEAT_OBS` | A rounded dome, tan and flecked, freckled with bubbles. | 90 |
 | `INSPECT_SURFACE_AT_PEAK_RYE_OBS` | A low top, cracked and pitted with bubbles. | 90 |
 | `INSPECT_SURFACE_AT_PEAK_SPELT_OBS` | A low, soft dome, freckled with bubbles. | 90 |
+| `INSPECT_SURFACE_RISING_RYE_OBS` | No dome. The top is opening into cracks as it rises. | 90 |
+| `INSPECT_SURFACE_SUNKEN_RYE_OBS` | The cracked top has sunk a little, and the cracks are softening. | 90 |
 | `INSPECT_SURFACE_AT_PEAK_MEAN` | The dome means peak. A great moment to feed. | 90 |
 | `INSPECT_SURFACE_COLLAPSING_OBS` | The dome has sunk in the middle, wrinkled and pocked. | 90 |
 | `INSPECT_SURFACE_COLLAPSING_MEAN` | Past peak. It's falling back. | 90 |
@@ -530,7 +533,7 @@ The surface is where the player learns the real discard rule, so its warning and
 | `INSPECT_CONSISTENCY_FRESHLY_FED_STIFF_OBS` | Firm, like a soft bread dough. | 90 |
 | `INSPECT_CONSISTENCY_NEAR_PEAK_RYE_OBS` | Airy and bubbly, a little pasty, like a thick mousse. | 90 |
 | `INSPECT_CONSISTENCY_NEAR_PEAK_RYE_MEAN` | Rye makes a bubbly paste, not strands. Bubbles are the sign. | 90 |
-| `INSPECT_CONSISTENCY_AT_PEAK_RYE_OBS` | Airy, bubbly and pasty, like wet clay. No strands. | 90 |
+| `INSPECT_CONSISTENCY_AT_PEAK_RYE_OBS` | Bubbly and pasty, like wet clay full of bubbles. No strands. | 90 |
 | `INSPECT_CONSISTENCY_COLLAPSING_RYE_OBS` | Looser now. The bubbly paste is settling. | 90 |
 | `INSPECT_CONSISTENCY_AT_PEAK_STIFF_OBS` | Puffy and spongy, like a well-risen dough. | 90 |
 | `INSPECT_CONSISTENCY_HUNGRY_STIFF_OBS` | Softer and sticky, but it still holds its shape. | 90 |
