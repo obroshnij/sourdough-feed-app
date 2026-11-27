@@ -107,7 +107,8 @@ Owner: director. Phases 2 to 5, built from [`mvp-scope.md`](mvp-scope.md), [`arc
 - The "warning signs" notification behind the `Notifier` wrapper (D-007, D-025).
 - Audio, the iOS haptics plugin, VFX and transitions.
 - Battery work: a lower frame cap when idle, and low-processor mode where it fits.
-- The upgrade to Godot 4.8 stable, then a screen-reader pass with VoiceOver and TalkBack.
+- ~~The upgrade to Godot 4.8 stable, then a screen-reader pass with VoiceOver and TalkBack.~~ Dropped for now (D-055): we stay on Godot 4.7.2 and skip screen readers. iOS first (D-054), with device builds on the user's iPhone (D-058).
+- The richer journal (P1): data in T1, UI in T3 (D-059, QA's OD-32).
 
 ## Phase 5: Mobile validation
 
