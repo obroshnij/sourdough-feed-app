@@ -12,8 +12,8 @@ Writes:
                                        material M_Kitchen_Wall. UV0 is the atlas below.
     assets/textures/kitchen_wall.png   1024 x 512 RGB atlas: the day look. The sage zellige wall
                                        and the base-cabinet front under the afternoon lights, stored
-                                       like kitchen_backdrop.png (§17): scene-linear radiance with the
-                                       sRGB curve, no tonemap, pre-blurred by the preview lens.
+                                       like the old flat card's texture (§17): scene-linear radiance
+                                       with the sRGB curve, no tonemap, pre-blurred by the preview lens.
                                        Rows 0..447 wall (row 0 = wall top), 448..451 padding,
                                        452..511 cabinet front (row 452 = just under the counter).
     assets/textures/kitchen_wall_night.png  512 x 256 gray, same atlas layout at half size: the
@@ -262,8 +262,9 @@ def build_wall_mesh(name, coll, mats, uv_mode):
 # Materials for the bake
 # =============================================================================
 def mat_wall_tiles():
-    """bj.mat_backdrop() on unrolled coordinates: at the back of the arc it is the same pattern
-    the flat card had (Object coords there were (x, 0.45, height))."""
+    """The look-dev zellige tiles on unrolled coordinates: at the back of the arc it is the same
+    pattern the old flat card had (Object coords there were (x, 0.45, height)). build_jar.py's
+    previews use it too (build_wall_preview)."""
     m, t = bj.new_mat("M_Wall_bake")
     uvn = t.n("ShaderNodeUVMap")
     uvn.uv_map = "Unrolled"
@@ -467,30 +468,6 @@ def bake_atlas(samples):
     return srgb
 
 
-def compare_with_card(rgba):
-    """The back of the arc against the signed-off card (kitchen_backdrop.png) over the part the
-    yaw 0 pose sees: x -0.3..0.3 m, height 0.05..0.65 m. sRGB 8-bit means."""
-    card_path = os.path.join(TEX, "kitchen_backdrop.png")
-    if not os.path.exists(card_path):
-        return
-    img = bpy.data.images.load(card_path)
-    w, h = img.size
-    px = np.empty(w * h * img.channels, dtype=np.float32)
-    img.pixels.foreach_get(px)
-    card = px.reshape(h, w, img.channels)[::-1, :, :3]
-    xs = np.linspace(-0.3, 0.3, 61)
-    ys = np.linspace(0.05, 0.65, 61)
-    cx = np.clip(((xs + bj.BACKDROP_W / 2) / bj.BACKDROP_W * w).astype(int), 0, w - 1)
-    cy = np.clip(((bj.BACKDROP_H - ys) / bj.BACKDROP_H * h).astype(int), 0, h - 1)
-    a = card[cy][:, cx]
-    nx = np.clip(((xs / WALL_R + END) / (2 * END) * ATLAS_W).astype(int), 0, ATLAS_W - 1)
-    ny = np.clip(((WALL_TOP - ys) / (WALL_TOP - WALL_BOT) * WALL_ROWS).astype(int), 0, WALL_ROWS - 1)
-    b = rgba[ny][:, nx]
-    print("CARD vs ARC (yaw 0 view, sRGB 0..255): card mean %s, arc mean %s, mean abs diff %.1f"
-          % (np.round(a.reshape(-1, 3).mean(0) * 255, 1), np.round(b.reshape(-1, 3).mean(0) * 255, 1),
-             float(np.abs(a - b).mean() * 255)))
-
-
 # =============================================================================
 # GLB
 # =============================================================================
@@ -659,8 +636,7 @@ def main():
     misses = coverage_check(bj.COUNTER_X / 2)
     if "--coverage-only" in argv:
         sys.exit(1 if misses else 0)
-    rgba = bake_atlas(samples)
-    compare_with_card(rgba)
+    bake_atlas(samples)
     export_glb()
     if "--no-preview" not in argv:
         previews(psamples)

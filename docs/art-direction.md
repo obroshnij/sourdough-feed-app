@@ -131,8 +131,7 @@ Every GLB material is a placeholder. Godot assigns shader materials by node and 
 | `M_Cloth_Linen`, `M_Twine` | Oatmeal linen with sage tea-towel stripes, fine weave | Stripes from UV, weave from two wave textures, sheen 0.6 | 512 px tileable linen albedo + normal, stripes from UV in shader, rim (sheen) 0.4, `cull_disabled` | Same |
 | `M_Rubber_Band` | Deep sage rubber, soft matte | Principled, roughness 0.55 | StandardMaterial3D | Same |
 | `M_Counter_Wood` | Pale oak butcher block, fine grain | Brick-strip planks multiplied by wave grain | `counter_oak_detail.png` (512 px, gray, tiles) on world XZ, mixing T2's oak colors (§17) | Same |
-| `M_Backdrop` | Sage zellige, out of focus | Brick texture tiles, glossy glaze bump, real DOF | `kitchen_backdrop.png` (1024 x 512): the lit wall, pre-blurred, unshaded, with a time-of-day tint (§17). Replaced by `M_Kitchen_Wall` | Same |
-| `M_Kitchen_Wall` (`kitchen_wall.glb`) | The same wall, curved around the orbit, plus the base-cabinet front | Baked in Cycles, see §18 | `kitchen_wall.png` (1024 x 512) plus `kitchen_wall_night.png` (512 x 256): unshaded, with the time-of-day tint and the night path (§18.3) | Same |
+| `M_Kitchen_Wall` (`kitchen_wall.glb`) | Sage zellige, out of focus, curved around the orbit, plus the base-cabinet front | Brick texture tiles, glossy glaze bump, real DOF (render-only `Kitchen_Wall_preview`). Baked in Cycles for Godot, see §18 | `kitchen_wall.png` (1024 x 512) plus `kitchen_wall_night.png` (512 x 256): unshaded, with the time-of-day tint and the night path (§18.3) | Same |
 | `M_Mold_Fuzz_preview` | Render-only hair, not in the GLB | GN curves | See §6, `moldy` | |
 
 ## 5. Starter shader contract
@@ -259,7 +258,7 @@ Budget: at most 64 particles on screen, 2 systems at once, 2 overdraw layers. Ev
 
 v0: a kitchen corner. Oak butcher-block counter, sage tile wall, soft focus. The window is off-screen left as the key light.
 
-- Godot: the Counter (2.20 m wide since Phase 3) plus `Kitchen_Wall`, a curved wall that wraps the jar from the back to the counter's front corners, with a base-cabinet front under the counter edge (§18). The wall shows the baked, pre-blurred tiles (§17, §18). No real DOF needed on mobile. It fills every frame over the whole orbit: yaw ±70 degrees, pitch -5 to +35 degrees, zoom 1 to 2.2x, and the focus presets. The old card, `Backdrop_placeholder`, covered only about ±15 degrees of yaw and goes away once T2 switches (§18.5).
+- Godot: the Counter (2.20 m wide since Phase 3) plus `Kitchen_Wall`, a curved wall that wraps the jar from the back to the counter's front corners, with a base-cabinet front under the counter edge (§18). The wall shows the baked, pre-blurred tiles (§17, §18). No real DOF needed on mobile. It fills every frame over the whole orbit: yaw ±70 degrees, pitch -5 to +35 degrees, zoom 1 to 2.2x, and the focus presets. The old card, `Backdrop_placeholder`, covered only about ±15 degrees of yaw and was removed in Phase 3 (§18.5).
 - Props (P1, soft-focus only, never competing with the jar): a flour canister, a folded linen towel, a small herb pot.
 
 ## 11. Icons (style for ux-designer's set)
@@ -308,11 +307,10 @@ Agreed with tech-architect and godot-developer. **The node names are an interfac
 | `Cloth_Cover` | (0, 0.170, 0) | Draped 150 mm square linen with folds, short skirt that never hides the starter, plus twine (surface 1) | 3576 | Cover `cloth`. Single-sided, render double-sided |
 | `Rubber_Band` | (0, 0.038, 0) its center | Flat band on the body | 1152 | y = floor + `level_m` |
 | `Counter` | (0, 0, 0) top surface | Slab 2.20 m wide (x ±1.10), z from -0.45 to +0.24 m, 35 mm thick, rounded front edge | 32 | Widened from 0.90 m in Phase 3 so it runs under the kitchen wall's ends (§18). At the preview pose this moved the `at_peak` preview by 0.21/255 on average, so the previews were not re-rendered |
-| `Backdrop_placeholder` | (0, 0, 0) | Wall card at z = -0.45 m, UV 0..1 | 96 | Placeholder. Replaced by `Kitchen_Wall` in `kitchen_wall.glb` (§18); removed from this GLB after T2 switches |
 | `StarterFloor` | (0, 0.008, 0) | Empty | | Fallback for extras |
 | `StarterRim` | (0.0385, 0.133, 0) | Empty | | Inner radius, liner top |
 
-All variants: 18,680 tris (budget 30k). **Visible set** (base + one cover, `architecture.md` §11 budget 16k): loose lid 13,568, tight lid 12,512, cloth 14,552. With `Kitchen_Wall` (144 tris) in place of the card, the heaviest visible set is 14,600. Verify after every export: `python3 -I art/blender/scripts/verify_glb.py assets/3d/jar_v0.glb` (asserts both budgets, exits 1 on any break). The same script checks `kitchen_wall.glb` against §18.2. Last run (2026-11-27, after widening the Counter): PASS for both.
+All variants: 18,584 tris (budget 30k). **Visible set** (base + one cover, `architecture.md` §11 budget 16k): loose lid 13,472, tight lid 12,416, cloth 14,456. With `Kitchen_Wall` (144 tris), the heaviest visible set is 14,600. The previews draw a render-only copy of the curved wall (`Kitchen_Wall_preview`, `Kitchen_Cabinet_preview`, not exported). Verify after every export: `python3 -I art/blender/scripts/verify_glb.py assets/3d/jar_v0.glb` (asserts both budgets, exits 1 on any break). The same script checks `kitchen_wall.glb` against §18.2. Last run (2026-11-27, after removing `Backdrop_placeholder`): PASS for both.
 
 ## 13. Asset conventions and budgets
 
@@ -322,14 +320,13 @@ All variants: 18,680 tris (budget 30k). **Visible set** (base + one cover, `arch
   The full run takes about 2 minutes (build, export, .blend, 8 renders). The .blend keeps a live Geometry Nodes modifier, `StarterShape` (Level, Dome, Lumps, Mold), that mirrors §5.
 - **Polycount:** glass 5k or less, starter 4k or less. The rendered scene (base plus one cover) is 16k or less. All variants in the GLB are 30k or less. Lathed parts share 48 segments.
 - **Textures:** 1024 px max, ASTC or ETC2, 8 MB VRAM for the whole scene. Prefer procedural shader detail over big maps.
-- **Draw calls:** the jar is under 10 draw surfaces (`architecture.md` §11): glass 4 (2 surfaces x 2 passes), starter, liner, band, cover 1 or 2. Counter and backdrop are 2 more. The kitchen wall is one surface, so it keeps that count.
-- **Kitchen set textures:** `kitchen_wall.png` about 0.5 MB (ASTC 4x4), `kitchen_wall_night.png` 0.13 MB or less, counter 0.35 MB, lid 0.09 MB. About 1.1 MB once `kitchen_backdrop.png` is deleted (§18.5).
+- **Draw calls:** the jar is under 10 draw surfaces (`architecture.md` §11): glass 4 (2 surfaces x 2 passes), starter, liner, band, cover 1 or 2. The counter and the kitchen wall (one surface) are 2 more.
+- **Kitchen set textures:** `kitchen_wall.png` about 0.5 MB (ASTC 4x4), `kitchen_wall_night.png` 0.13 MB or less, counter 0.35 MB, lid 0.09 MB. About 1.1 MB in all.
 
 ## 14. Placeholders
 
 | Asset | Why it's a placeholder | Replaced by |
 |---|---|---|
-| `Backdrop_placeholder` | A flat card that covers only about ±15 degrees of yaw | `Kitchen_Wall` (§18). Removed from `jar_v0.glb` once T2 has switched (§18.5) |
 | All GLB materials | By design | Godot shaders (§4) |
 | `M_Mold_Fuzz_preview` | Blender-only hair | Godot shells (§6) |
 
@@ -625,11 +622,13 @@ I sign off when every row passes in all three captures and the board's tells (§
 
 ## 17. Kitchen set textures (for T2)
 
-Generator: `/Applications/Blender.app/Contents/MacOS/Blender -b -P art/blender/scripts/bake_kitchen_set.py` (about 30 s on an M4, seeded). It also writes `art/previews/kitchen_set_check.png`: the §7 pose at `at_peak` with these textures, the wall unshaded, no depth of field, which is how Godot draws it on a phone.
+Generator: `/Applications/Blender.app/Contents/MacOS/Blender -b -P art/blender/scripts/bake_kitchen_set.py` (seeded). It also writes `art/previews/kitchen_set_check.png`: the §7 pose at `at_peak` with these textures, the kitchen wall (§18) unshaded, no depth of field, which is how Godot draws it on a phone.
+
+The card texture below was deleted with `Backdrop_placeholder` in Phase 3 (§18.5). Its row and item 1 stay as the record of the Phase 2 switch.
 
 | File | Size | Format | What it is | Import |
 |---|---|---|---|---|
-| `assets/textures/kitchen_backdrop.png` | 1024 x 512 | RGB, color (`source_color`) | The sage zellige wall under the afternoon lights. It is stored as scene-linear radiance with the sRGB curve and no tonemap, blurred by the §7 lens (sigma 8 mm on the wall, from a 21 mm circle of confusion) | VRAM Compressed, mipmaps off (it is always magnified). About 0.5 MB |
+| `assets/textures/kitchen_backdrop.png` (deleted) | 1024 x 512 | RGB, color (`source_color`) | The sage zellige wall under the afternoon lights. It is stored as scene-linear radiance with the sRGB curve and no tonemap, blurred by the §7 lens (sigma 8 mm on the wall, from a 21 mm circle of confusion) | VRAM Compressed, mipmaps off (it is always magnified). About 0.5 MB |
 | `assets/textures/counter_oak_detail.png` | 512 x 512 | Gray, data | Butcher-block strips (9 per tile, about 40 mm), latewood lines, pores, glue lines, a few end joints. Tiles; strips run along u. Tile = 0.36 m | Mipmaps on. 0.35 MB |
 | `assets/textures/lid_oak_detail.png` | 256 x 256 | Gray, data | Oak growth rings (26 per tile) with one cathedral arch, plus pores. Tiles; grain runs along u. Tile = 64 mm | Mipmaps on. 0.09 MB |
 
@@ -677,7 +676,7 @@ Generator: `/Applications/Blender.app/Contents/MacOS/Blender -b -P art/blender/s
 
 Total texture memory for the set is about 0.95 MB, inside the §13 budget. Time of day stays a tint on the wall (§3): the bake is the afternoon preset.
 
-**Phase 3:** the wall moves to `Kitchen_Wall` and `kitchen_wall.png` (§18). Same encoding, same blur at the back, same shader body plus a night path. `kitchen_backdrop.png` and `bake_backdrop()` stay until T2 has switched, then go (§18.5). The counter and lid maps don't change.
+**Phase 3:** the wall moves to `Kitchen_Wall` and `kitchen_wall.png` (§18). Same encoding, same blur at the back, same shader body plus a night path. `kitchen_backdrop.png` and `bake_backdrop()` were removed after T2's switch (§18.5). The counter and lid maps don't change.
 
 ## 18. Kitchen wall (Phase 3, for T2)
 
@@ -716,7 +715,7 @@ Preview: `art/previews/kitchen_wall_check.png`, six in-game frames with an unsha
 
 | Texture | Size | What it is | Import (T2) |
 |---|---|---|---|
-| `assets/textures/kitchen_wall.png` | 1024 x 512 RGB, 268 KB | The day wall and cabinet front: scene-linear radiance with the sRGB curve, no tonemap, pre-blurred. Same encoding as the card (§17) | Copy `kitchen_backdrop.png.import`: VRAM Compressed, mipmaps off. About 0.5 MB with ASTC 4x4, 0.25 MB with ETC2 |
+| `assets/textures/kitchen_wall.png` | 1024 x 512 RGB, 268 KB | The day wall and cabinet front: scene-linear radiance with the sRGB curve, no tonemap, pre-blurred. Same encoding as the card (§17) | VRAM Compressed, mipmaps off, as the card had. About 0.5 MB with ASTC 4x4, 0.25 MB with ETC2 |
 | `assets/textures/kitchen_wall_night.png` | 512 x 256 gray, 30 KB | Data, not color. The night lamp's light alone, in the same atlas layout, normalized to 1 at the brightest wall texel and stored as its square root | VRAM Compressed or Lossless, mipmaps off. 0.13 MB or less |
 
 - **Why 1024 x 512 is enough for a wall 2.6 times wider.** The texels are 2.5 mm along the arc and 1.8 mm up the wall. The bake is blurred with sigma 8 mm at the back, growing to 17.9 mm at the ends, so nothing finer than about 20 mm survives. 2.5 mm texels hold that about 3x over.
@@ -786,48 +785,61 @@ All of these pass §2.3.
 
 ### 18.5 What to delete
 
-| When | Who | What |
-|---|---|---|
-| Now | T2 | Reimport `jar_v0.glb` (wider Counter). Load `kitchen_wall.glb`, bind `Kitchen_Wall` and put the backdrop material on it. Hide `Backdrop_placeholder` (`visible = false`): it sits on the same back plane and would z-fight. Keep it in `JarGeometry.REQUIRED_NODES` for now, so the contract check stays green |
-| After T2's switch lands | art-director | Remove `Backdrop_placeholder` from `build_jar.py`, `jar_v0.glb` and `verify_glb.py`. Delete `kitchen_backdrop.png` and `bake_backdrop()` in `bake_kitchen_set.py` |
-| In the same change | T2 | Drop `NODE_BACKDROP` and `Backdrop_placeholder` from `jar_geometry.gd`, delete `kitchen_backdrop.png.import`, and point `WALL_TEX` at `kitchen_wall.png` |
+| When | Who | What | Status |
+|---|---|---|---|
+| First | T2 | Reimport `jar_v0.glb` (wider Counter). Load `kitchen_wall.glb`, bind `Kitchen_Wall` and put the backdrop material on it. Hide `Backdrop_placeholder` (`visible = false`): it sits on the same back plane and would z-fight | Done |
+| After T2's switch lands | art-director | Remove `Backdrop_placeholder` from `build_jar.py`, `jar_v0.glb` and `verify_glb.py`. Delete `kitchen_backdrop.png` and `bake_backdrop()` in `bake_kitchen_set.py`. Blender previews now show the curved wall (`Kitchen_Wall_preview`, render-only) | Done, lands in one merge with T2's row |
+| In the same change | T2 | Drop `NODE_BACKDROP` and `Backdrop_placeholder` from `jar_geometry.gd`, delete `kitchen_backdrop.png.import`, and point `WALL_TEX` at `kitchen_wall.png` | Code done in dc5fb52. The `.import` file goes in the merge. Optional: the null-safe hide of the old card in `jar_view.gd` is then dead code |
 
 `kitchen_sky` stays: it still drives ambient light and reflections. It just no longer shows behind the jar within the orbit limits.
 
-### 18.6 Night look: recommendation for T2's presets
+### 18.6 Night look (signed off 2026-11-27)
 
-Two looks on the one shared night factor n (D-043): day (the signed-off afternoon) at n = 0, and night at n = 1. Lerp every row by n.
+Two looks on the one shared night factor n (D-043): day (the signed-off afternoon) at n = 0, and night at n = 1. Lerp every row by n. Exposure and tonemap never change: the darkness comes from the lights.
 
-| Item | Day (n = 0) | Night (n = 1) |
-|---|---|---|
-| Key (DirectionalLight3D) | 60 degrees left, 50 degrees up, `#FFF6EE`, `key_energy` | Fades to 15% |
-| Lamp | Off | OmniLight3D at (-0.10, 0.44, -0.26), just under the baked LED bar. Color `#FFE6CC`, range 1.2 m, attenuation 1.0, no shadow. Tune its energy to rows N1 and N2 |
-| Rim | `rim_energy` | 35% of day: the glass edge still reads |
-| Sky (ambient and reflections) | `sky_energy` | 30% of day. `window_energy` goes to 0, because the window is dark |
-| Glass reflection | `glass_reflection` | 50% of day |
-| Counter drop shadow (`key_dir`) | Key direction | Toward the lamp from mid-jar: (-0.23, 0.77, -0.59) |
-| Wall | Day texture x `tod_tint` | The §18.3 night path |
-| HUD plate | `surface` | `surface_night` (T3, same n) |
-| Exposure and tonemap | As day | Unchanged. The darkness comes from the lights, never from the exposure |
+**Why the key stays on.** The lamp hangs behind the jar (z -0.26). It lights the paste's top and back and the counter around it, but hardly the face the player sees. The first plan faded the key to 15%, so T2 had to push the lamp to 3.5 to hold N1. That made the counter as bright as by day and clipped about 31% of the Compatibility frame at `at_peak`. It also backlit the bubble pockets, so they went dark. So the key now carries the jar, warmed to `#FFE6CC`, and the lamp adds only the warm pool and some top light. It reads as a lamp on in a dim kitchen.
+
+Settings: the ruling started at key 45%, lamp about 1.0 and sky 30%. T2 tuned them per renderer to the rows below (`ViewLook`, T2's dc5fb52).
+
+| Item | Day (n = 0) | Night, Mobile | Night, Compatibility |
+|---|---|---|---|
+| Key (DirectionalLight3D) | 60 degrees left, 50 degrees up, `#FFF6EE`, `key_energy` | Same direction, `#FFE6CC`, 55% of day | Same, 62% of day |
+| Lamp (OmniLight3D) | Off | At (-0.10, 0.44, -0.26), just under the baked LED bar. `#FFE6CC`, range 1.2 m, attenuation 1.0, no shadow. Energy 1.0 | Same, energy 0.5 |
+| Rim | `rim_energy` | 35% of day: the glass edge still reads | Same |
+| Sky (ambient and reflections) | `sky_energy`, window on | 60% of day, `window_energy` 0 (the window is dark) | 80% of day, window 0 |
+| Glass reflection | `glass_reflection` | 50% of day | Same |
+| Night grades | None | Counter value x 0.75, pocket contrast (`pocket_k`, `pocket_tilt`) x 0.6, paste desaturation 0.3 | Counter x 0.9, pockets x 0.2, desaturation 0.5 |
+| Counter drop shadow (`key_dir`) | Key direction | Toward the lamp from mid-jar: (-0.23, 0.77, -0.59). The lamp is the nearest light to the counter | Same |
+| Wall | Day texture x `tod_tint` | The §18.3 night path | Same |
+| HUD plate | `surface` | `surface_night` (T3, same n) | Same |
 
 - **Why an omni light.** The lamp is only about 0.44 m from the middle of the jar. A point light gives the warm pool on the counter that matches the baked pool on the wall, with no counter shader work.
-- **Fallback.** If one omni light costs too much on Compatibility, keep the key at night instead: turn it toward the lamp at `#FFE6CC`, and darken the counter away from the lamp in `counter.gdshader`:
+- **Fallback.** If the omni light costs too much on a phone, drop it and keep the key. Darken the counter away from the lamp in `counter.gdshader`:
   ```glsl
   vec2 d = v_world.xz - vec2(-0.10, -0.26);           // under the lamp
   float pool = 1.0 / pow(1.0 + dot(d, d) / (0.35 * 0.35), 2.0);
   ALBEDO *= mix(1.0, 0.25 + 1.5 * pool, night);      // about 0.8 at the jar, 0.27 at 1 m
   ```
-- **Why the lamp is paler on the jar than on the wall.** `#FFD7A8` multiplied by the cream paste comes out at about 45% saturation, which drifts toward the reserved orange (§2.3). So the light that reaches the starter is `#FFE6CC`, and the wall and counter carry the warmth.
+- **Why `#FFE6CC` on the jar and `#FFD7A8` on the wall.** `#FFD7A8` times the cream paste comes out near 45% saturation, which drifts toward the reserved orange (§2.3). So the light that reaches the starter is `#FFE6CC`, and the wall and counter carry the warmth.
+- **Why N1 allows S 27%.** Cream under a warm lamp reads warmer than by day. At hue 30 to 40, 27% is still cream-tan, far from the §2.3 line (hue under 25 at S over 50%).
 
-**Night rows.** Measure at n = 1 in the §7 pose capture, with 31 px patches as in §3:
+**Night rows.** Measure at n = 1, `at_peak`, in the §7 pose capture, with 31 px patches as in §3 unless the row says otherwise. Measured values are from T2's dc5fb52:
 
-| Row | Target |
-|---|---|
-| N1 paste, lit (290, 850) | V 72 to 88%, S 22% or less, hue 30 to 40, max channel 0.92 or less |
-| N2 paste, shadow side (450, 830) | V 40% or more: night never hides the starter |
-| N3 wall behind the jar (360, 150) | V 25 to 45%, hue 30 to 60, S 45% or less |
-| N4 darkest wall in the yaw ±70 captures | V 8% or more, never pure black (about `#1A1310`) |
-| N5 everywhere | §2.3: nothing under hue 25 at S over 50% |
+| Row | Target | Mobile Tier B | Compatibility Tier A |
+|---|---|---|---|
+| N1 paste, lit (290, 850) | V 72 to 88%, S 27% or less, hue 30 to 40, max channel 0.92 or less | `#BCA991`, V 74%, S 23% | `#BEAD95`, V 75%, S 21% |
+| N2 paste, shadow side (450, 830) | V 40% or more: night never hides the starter | V 55% | V 49% |
+| N3 wall behind the jar (360, 150) | V 25 to 45%, hue 30 to 60, S 45% or less | V 42% | V 42% |
+| N4 darkest wall in the yaw ±70 captures | V 8% or more, never pure black (about `#1A1310`). Wall pixels only, above the counter line | V 11% | V 10% |
+| N5 everywhere | §2.3: nothing under hue 25 at S over 50% | Pass | Pass |
+| N6 counter (600, 1150) and the whole frame | Counter V 55 to 75%, darker than the same renderer by day. Under 0.5% of the frame clipped | V 72% (day 86%), 0% clipped | V 61% (day 94%), 0.01% clipped |
+| N7 bubble pockets, patch x 240 to 480, y 800 to 990 | Pocket mean V at least 0.68 x the paste's V (the patch's 80th percentile). Darkest 5% of pockets at V 35% or more. Skip the rubber band's pixels | 0.76, darkest V 42% | 0.71, darkest V 36% |
+
+**Probe notes (fixed in dc5fb52).**
+- N4 first scanned row y 260. At pitch 35 that row is all counter, so the "darkest wall" read the counter (`#F8EAD4`, V 97%) and passed without testing the wall. It now samples near the top of the frame, above the counter line at every pitch.
+- N7 skips the sage rubber band where it crosses the patch, so the band never counts as a pocket.
+
+**Sign-off.** Signed off 2026-11-27 on Mobile Tier B and Compatibility Tier A, at T2's dc5fb52 (merged in c214ac4). Still to come, not blocking: the Mobile Tier A night capture.
 
 ### 18.7 The `bubbles` inspection camera (the §16.6 follow-up)
 

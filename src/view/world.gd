@@ -106,23 +106,31 @@ func apply_look(p_look: ViewLook) -> void:
 ## the lamp on, and the drop shadow turned toward the lamp. The jar stays lit.
 func set_night(n: float) -> void:
 	night = clampf(n, 0.0, 1.0)
-	key_light.light_energy = look.key_energy * lerpf(1.0, 0.15, night)
+	# Art's night ruling: the key stays front-left at 45% and warms to #FFE6CC, so the camera-facing
+	# paste is lit from the front; the lamp behind the jar only adds the warm pool and the cap glow.
+	key_light.light_energy = look.key_energy * lerpf(1.0, look.night_key, night)
+	key_light.light_color = look.key_color.lerp(look.night_key_color, night)
 	rim_light.light_energy = look.rim_energy * lerpf(1.0, 0.35, night)
 	night_lamp.visible = night > 0.001
 	night_lamp.light_energy = look.lamp_energy * night
 	night_lamp.light_color = look.lamp_color
 	if _sky_mat != null:
-		_sky_mat.set_shader_parameter(&"energy", look.sky_energy * lerpf(1.0, 0.3, night))
+		_sky_mat.set_shader_parameter(&"energy", look.sky_energy * lerpf(1.0, look.night_sky, night))
 		_sky_mat.set_shader_parameter(&"window_energy", 0.6 * (1.0 - night))
 	if jar.quality != null:
 		jar.quality.set_shared(&"reflection_strength", look.glass_reflection * lerpf(1.0, 0.5, night))
 	if jar.counter_mat != null:
+		jar.counter_mat.set_shader_parameter(&"grade_value", look.dressing_value * lerpf(1.0, look.night_counter, night))
 		jar.counter_mat.set_shader_parameter(&"key_dir", KEY_DIR.normalized().lerp(NIGHT_SHADOW_DIR.normalized(), night).normalized())
 	jar.set_wall_night(night)
 	# Under the warm lamp the tonemapper lifts the cream's saturation in the darker range (N1, §18.6).
 	for m: ShaderMaterial in jar.starter_materials():
 		if m != null:
 			m.set_shader_parameter(&"grade_saturation", look.starter_saturation * (1.0 - look.night_desat * night))
+	# Night pockets stay cream cavities, not a dark sponge (N7): less cavity contrast at night.
+	if jar.starter_mat != null:
+		jar.starter_mat.set_shader_parameter(&"pocket_k", look.pocket_k * lerpf(1.0, look.night_pocket, night))
+		jar.starter_mat.set_shader_parameter(&"pocket_tilt", look.pocket_tilt * lerpf(1.0, look.night_pocket, night))
 
 
 func set_reduce_effects(on: bool) -> void:

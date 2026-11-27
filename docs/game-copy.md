@@ -57,6 +57,7 @@ Lengths are checked with each placeholder at its worst case.
 | `{hours}`, `{days}` | "47", "14" | 2 | sim |
 | `{start_date}`, `{end_date}` | "Nov 26, 2026" | 12 | device locale |
 | `{grams}` | "150" | 3 | mechanics §2.3 |
+| `{temp}` | "40" (whole °C) | 2 | sim, place sheet |
 | `{ratio}` | "1:5:5" | 5 | mechanics §2.1 |
 | `{flour}` | "Whole wheat" | 11 | §7 |
 | `{smell}` | "Nail polish remover" | 19 | §5 |
@@ -165,6 +166,7 @@ The status pill's `accessibility_name` is the status word itself (12, within 40)
 | `JAR_A11Y_NAME` | Starter jar | 40 |
 | `JAR_A11Y_DESC` | Drag to turn the jar. Pinch to look closer. | 120 |
 | `TOAST_A11Y_MORE` | Opens the journal entry | 40 |
+| `STATUS_NEW_A11Y` | New state | 40 |
 
 ### 3.1 Why an action didn't run
 
@@ -196,6 +198,7 @@ Used by the UI component inventory (ux-design §14 and §17). Settings rows so f
 | Key | Text | Max |
 |---|---|---|
 | `UI_DONE_BTN` | Done | 18 |
+| `UI_BACK_A11Y` | Back | 40 |
 | `UI_CLOSE_A11Y` | Close | 40 |
 | `UI_DECREASE_A11Y` | Decrease | 40 |
 | `UI_INCREASE_A11Y` | Increase | 40 |
@@ -205,7 +208,19 @@ Used by the UI component inventory (ux-design §14 and §17). Settings rows so f
 | `SETTINGS_TEXT_LARGE` | Large | 12 |
 | `SETTINGS_TEXT_LARGEST` | Largest | 12 |
 | `SETTINGS_REDUCE_MOTION` | Reduce motion | 24 |
+| `SETTINGS_HAPTICS` | Vibration | 24 |
+| `SETTINGS_KEEP_MESSAGES` | Keep messages on screen | 24 |
 
+`SETTINGS_HAPTICS` says "Vibration" because "haptics" is jargon. The key keeps its name. `SETTINGS_KEEP_MESSAGES` is 23 characters, so it fits one line at 100% and wraps to two at 150%.
+
+### 3.3 Save recovery notice
+
+Shown once, as a calm confirmation, when every save file failed to load and a new starter was made. The old files are moved to quarantine, not deleted (D-024). The game keeps only the newest 5 sets, so the text says "set aside" and promises nothing more.
+
+| Key | Text | Max |
+|---|---|---|
+| `RECOVERED_TITLE` | Your save couldn't be read | 26 |
+| `RECOVERED_BODY` | Your saved starter couldn't be read, so a new one is here. The old file is set aside, not deleted. | 120 |
 ## 4. Forecast
 
 Shown on the feed result card and on a status tap during a rise phase. Not shown for `hungry`, `dormant`, `unhealthy` or `moldy` (mechanics §6).
@@ -227,6 +242,14 @@ Shown on the feed result card and on a status tap during a rise phase. Not shown
 | Faint rule | If every descriptor is below 0.3 (cold `dormant`) **and `musty` is absent**, use the `SMELL_FAINT_*` lines and note the top descriptor. At the watch stage `musty` sits at 0.2 to 0.3, so the faint rule must never hide it (scientist). |
 | `moldy` | Use `SMELL_MOLDY_*` only. No sniffing (scientist). |
 | Third descriptor | Not shown in text. The scientist suggests the top two or three; the slot fits two. |
+
+The ribbon marks a smell the player hasn't met before. `SMELL_TRY_INSPECT` and its button show under the card when the sim marks the smell ambiguous (ux-design §9). The button opens the surface inspection.
+
+| Key | Text | Max |
+|---|---|---|
+| `SMELL_NEW_RIBBON` | New smell | 20 |
+| `SMELL_TRY_INSPECT` | Hard to say. Try inspecting the surface. | 60 |
+| `SMELL_TRY_INSPECT_BTN` | Inspect | 18 |
 
 ### 5.2 Notes
 
@@ -542,6 +565,7 @@ Flow (ux §8, mechanics §2): the sheet opens with last time's choices preselect
 | `FEED_FIT_TOO_WARM` | Even 1:5:5 will peak early here. A cooler spot fits better. | 60 |
 | `FEED_FIT_TOO_COOL` | Even 1:1:1 will peak late here. A warmer spot fits better. | 60 |
 | `FEED_FIT_FRIDGE` | It'll barely rise in the fridge. Feed it when it comes out. | 60 |
+| `FEED_DISCARD_LINE` | Take out {grams} g first. | 60 |
 | `FEED_EARLY_NOTE` | Still rising. Fine to feed, but the next peak comes later. | 60 |
 | `FEED_RESCUE_NOTE` | Good call. Fresh food gives it a clean start. | 60 |
 | `FEED_ROUTINE_HINT` | Feeding once a day? "Tomorrow morning" fits that rhythm. | 60 |
@@ -724,6 +748,7 @@ Locations follow mechanics §3.1. Containers are P2, so their names are listed w
 |---|---|---|
 | `PLACE_TITLE` | Where it lives | 26 |
 | `PLACE_TEMP_LABEL` | Temperature | 24 |
+| `PLACE_TEMP_C` | {temp} °C | 12 |
 | `PLACE_DIAL_LABEL` | Warmth | 24 |
 | `LOC_COUNTER` | Counter | 14 |
 | `LOC_COUNTER_SUB` | Usual pace | 14 |

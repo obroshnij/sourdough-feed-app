@@ -25,14 +25,13 @@ MESH_NODES = {
     "Cloth_Cover": (2, False),
     "Rubber_Band": (1, False),
     "Counter": (1, False),
-    "Backdrop_placeholder": (1, False),
 }
 EMPTY_NODES = ("StarterFloor", "StarterRim")
 TRI_BUDGET = {"Jar_Glass": 5000, "Starter_Body": 4000, "_total": 30000}
 # architecture.md section 11: the rendered scene is 16k tris or fewer. Only one cover
-# shows at a time, so check the base set plus the heaviest cover.
-VISIBLE_BASE = ("Jar_Glass", "Starter_Body", "Starter_Liner", "Rubber_Band", "Counter",
-                "Backdrop_placeholder")
+# shows at a time, so check the base set plus the heaviest cover. The kitchen wall lives in
+# kitchen_wall.glb; its check adds the wall to this set.
+VISIBLE_BASE = ("Jar_Glass", "Starter_Body", "Starter_Liner", "Rubber_Band", "Counter")
 COVERS = ("Jar_Lid_Loose", "Jar_Lid_Tight", "Cloth_Cover")
 VISIBLE_BUDGET = 16000
 
@@ -162,9 +161,9 @@ def verify_wall(path, g, binary):
             if name not in jn:
                 return 0
             return sum(jg["accessors"][pr["indices"]]["count"] // 3 for pr in jg["meshes"][jn[name]["mesh"]]["primitives"])
-        base = sum(node_tris(nm) for nm in VISIBLE_BASE if nm != "Backdrop_placeholder")
+        base = sum(node_tris(nm) for nm in VISIBLE_BASE)
         worst = base + max(node_tris(c) for c in COVERS) + tris
-        print("visible scene with this wall instead of Backdrop_placeholder, heaviest cover: %d tris (budget %d)"
+        print("visible scene with this wall, heaviest cover: %d tris (budget %d)"
               % (worst, VISIBLE_BUDGET))
         if worst > VISIBLE_BUDGET:
             errors.append("visible scene with the wall is %d tris, over %d" % (worst, VISIBLE_BUDGET))

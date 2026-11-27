@@ -9,7 +9,6 @@ const NODE_STARTER: StringName = &"Starter_Body"
 const NODE_LINER: StringName = &"Starter_Liner"
 const NODE_BAND: StringName = &"Rubber_Band"
 const NODE_COUNTER: StringName = &"Counter"
-const NODE_BACKDROP: StringName = &"Backdrop_placeholder"
 const NODE_FLOOR: StringName = &"StarterFloor"
 const NODE_RIM: StringName = &"StarterRim"
 ## VisualParams.cover to the lid node that shows it.
@@ -20,7 +19,7 @@ const COVER_NODES: Dictionary[StringName, StringName] = {
 }
 const REQUIRED_NODES: Array[StringName] = [
 	&"Jar_Glass", &"Starter_Body", &"Starter_Liner", &"Jar_Lid_Loose", &"Jar_Lid_Tight",
-	&"Cloth_Cover", &"Rubber_Band", &"Counter", &"Backdrop_placeholder", &"StarterFloor", &"StarterRim",
+	&"Cloth_Cover", &"Rubber_Band", &"Counter", &"StarterFloor", &"StarterRim",
 ]
 
 const INNER_RADIUS_M: float = 0.0385

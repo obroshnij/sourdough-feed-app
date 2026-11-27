@@ -167,6 +167,7 @@ The gloss strings are the `GLOSS_*` keys in [`game-copy.md`](game-copy.md) §12.
 | `NAME_BODY` | Plenty of bakers name their starter. It's easier to care about a name than a jar. | 120 |
 | `NAME_FIELD_A11Y` | Starter name | 40 |
 | `NAME_BTN_SUGGEST` | Suggest another | 18 |
+| `NAME_BTN_PICK` | Pick for me | 18 |
 | `NAME_BTN_CONFIRM` | That's its name | 18 |
 | `NAME_DONE_TOAST` | {name} it is. | 60 |
 
@@ -377,6 +378,7 @@ Slots: attention sheet title 26 and body 280; confirmation title 26 and body 120
 | `MEMORIAL_EPITAPH_SENSITIVE` | It noticed everything, including you. | 90 |
 | `MEMORIAL_EPITAPH_RESILIENT` | It weathered plenty before this. | 90 |
 | `MEMORIAL_CAUSE_UNFED` | It went about {days} days without a feed at room temperature. That's long enough for mold to take hold. | 120 |
+| `MEMORIAL_BTN_NEXT` | Continue | 18 |
 | `MEMORIAL_TIP` | Worth knowing: in the fridge, a starter can wait weeks between feeds. | 90 |
 | `RESTART_TITLE` | Start again? | 26 |
 | `RESTART_BODY_FIRST` | In the fridge, a small jar with M.'s writing on the lid: "Spare. Just in case." | 120 |

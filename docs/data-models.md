@@ -1,6 +1,6 @@
 # Data models
 
-Owner: `tech-architect`. Status: **v1, synced to the T1 code** on `phase-2-foundation` (2026-11-26, D-039 to D-042). The class files in `src/sim/` and `src/core/` are the source of truth for field names; this doc gives units, ranges and rules.
+Owner: `tech-architect`. Status: **v1, synced to the code** on `phase-3-slice` at e94b644 (2026-11-27, D-040 to D-050). The class files in `src/sim/` and `src/core/` are the source of truth for field names; this doc gives units, ranges and rules.
 Sources: `starter-simulation-spec.md` v1 (§1, §2, §4, §12, §13, §14, §16, §17), `game-designer` event and history needs (by message), `art-director` mesh contract (by message).
 
 ## 1. Conventions
@@ -15,7 +15,8 @@ Sources: `starter-simulation-spec.md` v1 (§1, §2, §4, §12, §13, §14, §16,
 | Serialization | Each class has `to_dict() -> Dictionary` and `static from_dict(d: Dictionary) -> <Class>`. `from_dict` converts numbers explicitly (`int(d.x)`), because JSON gives back every number as a float **[ran]**. It checks `typeof()` before every read and returns null on a missing key or wrong type. Assigning a wrong-typed Variant to a typed variable logs a script error **[ran]**, which the test runner's Logger counts as a failure, so a corrupt file must fail silently |
 | 64-bit ints | RNG seeds and states are saved as **decimal strings**. As JSON numbers they lose precision above 2^53 **[ran]** |
 | Floats | Every `float` in the save payload is saved as a **16-character hex string of its IEEE-754 bits**: the 8 bytes from `PackedByteArray.encode_double(0, x)`, then `hex_encode()` (little-endian byte order). Examples: 0.25 is `"000000000000d03f"`, 150.0 is `"0000000000c06240"`. Reason: Godot 4.7.2's JSON number parser isn't correctly rounded (for example, 1.9469610637576158 reads back as 1.946961063757616), so about a third of doubles come back 1 ulp off (33,968 of 100,000 between 1e-6 and 1e3), even with `full_precision` **[ran]**, found by `qa-engineer`. The bit pattern round-trips exactly (0 of 100,000 off) **[ran]**. The decoder also accepts a plain JSON number for a float field (lossy), so hand-written dev fixtures stay writable. The writer always writes hex (`SaveCodec.pack_floats`, D-040) |
-| Free-form dictionaries | `JournalEntry.args` and `.data` and `SimEvent.payload` go through `DictReader.canonical()` on save and load: a whole number becomes an int, so `50.0` saves as `50`. Any other float is a hex string in the file **and stays a hex string after a load**, because nothing knows its type. So a value read from these dictionaries can be a float (in memory, before any reload), an int, or a hex string. **Always read numbers from them with `DictReader.float_of(v)`**, which accepts all three (NaN for anything else). `args` are formatted straight into text (`Keys.format()`, §6), so they hold only ints, Strings and bools. A decimal in `args` would print as 16 hex characters after a reload; format it into a String first |
+| Free-form dictionaries | `JournalEntry.args` and `.data` and `SimEvent.payload` go through `DictReader.canonical()` on save and load: a whole number becomes an int, so `50.0` saves as `50`. Any other float is a hex string in the file **and stays a hex string after a load**, because nothing knows its type. Journal `args` and `data` are stored in this saved form from the moment `Session` appends the entry (`DictReader.saved_form()`), so an entry is identical before and after a save (QA's PROP-02). A `SimEvent.payload` value can still be a raw float until the first reload. **Always read numbers from them with `DictReader.float_of(v)`**, which accepts all three (NaN for anything else). `args` are formatted straight into text (`Keys.format()`, §6), so they hold only ints, Strings and bools. A decimal in `args` would print as 16 hex characters after a reload; format it into a String first |
+| Optional fields | Fields added after Phase 2 (`PlayerHistory`, `Memorial`, §5 and §6) are read with the `DictReader.*_or` readers: a missing key gives the default and keeps the read ok; a present key of the wrong type still fails. So every v1 save written by Phase 2 still loads, and the version stays 1 (§9.5). Tested for both classes in `tests/unit/sim/test_phase3_sim.gd` |
 | Text | No player-facing text in data. Keys only (`architecture.md` §10). The player's starter name is the one exception |
 
 ## 2. `StarterState` (stored)
@@ -63,7 +64,11 @@ Sim variables follow `starter-simulation-spec.md` §1 **v1** exactly (names, uni
 | `first_restart` | First new starter after mold | `dormant`, `temp_c` 4, `counter` |
 | `restart` | Later new starters | `at_peak` |
 
-`StarterState.rebase_to(now_unix)` sets `sim_time_unix = grid(now_unix)` and `born_unix = now_unix`. Relative fields (`since_feed_s`, `starved_h`) are unchanged. The caller, `Session.adopt_starter(state, name)`, also clears `PlayerHistory.recent_feed_unix` entries from the demo. Used after the tutorial demo (`architecture.md` §5.5). Every preset starts at the `counter` (`StarterPresets.environment_for()`).
+`StarterState.rebase_to(now_unix)` sets `sim_time_unix = grid(now_unix)` and `born_unix = now_unix`. Relative fields (`since_feed_s`, `starved_h`) are unchanged. Every preset starts at the `counter` (`StarterPresets.environment_for()`).
+
+**Adoption in the slice.** A new game boots a gifted, **unnamed** `new_game` starter, and `Session.is_first_run()` means "the starter has no name". `AdoptStarterAction` (§4) then builds a fresh `new_game` preset, rebased to now, keeps the gifted starter's `id`, sets the name, and calls `PlayerHistory.reset_for_new_starter()`. `Session.adopt_starter(state, name)` stays for the Phase 4 tutorial demo (`architecture.md` §5.5).
+
+Other `StarterState` helpers: `seed_of(id)` (the `starter_seed` of `game-copy.md` §1.4: name suggestions and the epitaph) and `copy_from(other)` (catch-up reuses one buffer for the previous step).
 
 **State derivation** (spec §12, first match wins): `moldy`, `unhealthy`, `dormant`, `hungry`, `recovering`, then the rise phases (`freshly_fed`, `developing`, `active`, `near_peak`, `at_peak`, `collapsing`). `recovering` overlaps a rise phase, so `StateDeriver.derive()` returns both:
 
@@ -108,23 +113,37 @@ Cover id to GLB node (art-director contract): `loose_lid` = `Jar_Lid_Loose`, `ti
 
 ## 4. Actions
 
-Base `GameAction` (`RefCounted`): `kind: StringName`, `at_unix: int` (set by `Session` to the real time, never by UI), `validate(state, env, catalog) -> StringName` (`&""` means ok, otherwise a reason key). Reason keys are tr keys in the `architecture.md` §10 format, constants on `GameAction` (`REASON_KEEP_RANGE`, `REASON_MASS` and so on) with rows in `src/i18n/pending_core.csv`. A feed on a moldy starter returns narrative's `MOLD_FEED_BLOCKED`.
+Base `GameAction` (`RefCounted`): `kind: StringName`, `at_unix: int` (set by `Session` to the real time, never by UI), `validate(state, env, catalog) -> StringName` (`&""` means ok, otherwise a reason key). Reason keys are tr keys in the `architecture.md` §10 format, constants on `GameAction` (`REASON_KEEP_RANGE`, `REASON_MASS` and so on) with rows in `src/i18n/pending_core.csv` (now all in `en.csv`). A feed on a moldy starter returns narrative's `MOLD_FEED_BLOCKED`. Smell and place return `REASON_MOLDY_LOCKED` (D-043). `Session.apply()` itself returns `REASON_NOT_READY` before boot and while a worker-thread catch-up runs (D-050), and `REASON_EVENT` for an ack of an event that isn't pending.
 
 | Class | `kind` | Fields | Validation, in order |
 |---|---|---|---|
 | `FeedAction` | `feed` | `kept_g: float`, `flour_g: Dictionary[StringName, float]`, `water_g: float`, `hooch_choice: StringName` (`pour_off` default, or `stir_in`; spec §2.1) | Not moldy. `1 <= kept_g <= state.mass_g`. Flour ids canonical, each >= 0, total > 0. `water_g >= 0`. Hydration 40..200%. `abs(mass_after_g - 150) <= 5` (below). `hooch_choice` canonical |
 | `SetEnvironmentAction` | `environment` | `env: EnvironmentState` (full replacement). Build with `SetEnvironmentAction.to_location(id, temperature_c = NAN)` | Not moldy (`REASON_MOLDY_LOCKED`). Ids canonical, temperature inside the preset's min..max |
-| `SmellAction` | `smell` | none | Always ok |
+| `SmellAction` | `smell` | none | Not moldy (`REASON_MOLDY_LOCKED`, D-043). The UI shows the "Best not" card instead, so the sim never reads a moldy starter's smell |
 | `InspectAction` | `inspect` | `inspect_kind: StringName` (`bubbles`, `consistency`, `height`, `surface`, `development`) | Canonical kind |
 | `RenameAction` | `rename` | `new_name: String` | 1 to 16 chars after trim (`GameAction.NAME_MAX_CHARS`) |
 | `AckEventAction` | `ack_event` | `event_uid: int`, `choice: StringName` (may be empty) | `event_uid > 0`. `Session` also checks the ledger, because `validate` can't see it |
-| `DiscardStarterAction` | `discard_starter` | `new_name: String` (the new starter's) | Only when moldy, and a valid name |
+| `DiscardStarterAction` | `discard_starter` | `new_name: String` (the new starter's) | Only when moldy (`REASON_NOT_MOLDY`), and a valid name. Memorial plus new starter in one save (D-047). `Session.restart_preset()` says which preset comes next (`first_restart`, then `restart`) |
+| `AdoptStarterAction` | `adopt` | `starter_name: String`, `path: StringName` (`skip` default, or `tour` in Phase 4) | Only while the starter has no name (`REASON_ADOPT`), `path` in `PlayerHistory.ONBOARDING_PATHS`, and a valid name (`REASON_NAME`). Writes no journal line; the first feed after it writes the Day one page (§6) |
 
 **Hooch choice.** Both choices end with `hooch = 0`. `stir_in` adds `5 × hooch` hydration points to the kept culture. `pour_off` has no other sim effect (spec §2.1, §6, V20). The journal's feed `data` records it.
 
 **Feed mass (D-042).** The UI builds a feed with `FeedAction.from_ratio(f, w, flour_id, hydration_pct = 100)`, the `game-mechanics.md` §2.3 formula: total after feeding near `TARGET_TOTAL_G` = 150 g, keep derived, and flour and water rounded to 5 g when `f >= 5`. The 1:5:5 preset therefore gives keep 14, flour 70, water 70, which is **154 g**. Validation allows `MASS_TOLERANCE_G` = **±5 g** around 150 (v0 said ±1 g, which rejected that preset). The action still carries grams, so the sim and the journal never depend on UI math.
 
-`FeedAction` derived values: `flour_total_g()`, `ratio() -> Vector2` (x = `flour_total_g/kept_g`, y = `water_g/kept_g`, read as `1 : x : y`), `hydration_pct() = water_g / flour_total_g * 100`, `mass_after_g()`.
+`FeedAction` derived values: `flour_total_g()`, `ratio() -> Vector2` (x = `flour_total_g/kept_g`, y = `water_g/kept_g`, read as `1 : x : y`), `hydration_pct() = water_g / flour_total_g * 100`, `mass_after_g()`, `ratio_text()` (`"1:5:5"`, the `{ratio}` arg), `main_flour()` (most grams, the `{flour}` arg), `copy()`, and `from_dict()` (rebuilds `PlayerHistory.last_feed`; numbers may be hex strings). `Session.last_feed_action()` is "feed like last time" (AC-05.3): the last accepted feed field by field, or 1:1:1 `white_bread` before the first feed.
+
+### 4.1 Feed sheet: `FeedPlanner` and `FeedPreview`
+`FeedPlanner` (`src/sim/feed_planner.gd`) is pure. `Session.plan_feed(answer, flour_id, hooch_choice)` and `Session.preview_feed(feed, answer)` wrap it and change nothing. `plan()` runs up to 3 forecasts (about 40 ms, Mac estimate), so the UI calls it when the sheet opens or the answer changes, not every frame.
+
+| Constant | Value | Meaning |
+|---|---|---|
+| `ANSWERS` | `soon`, `later`, `tomorrow` | The schedule question's answers (D-020) |
+| `ANSWER_WINDOW_H` | 4..7, 7..10, 10..16 h | Target window for the forecast `at_peak` start |
+| `ANSWER_RATIO` | 1:1:1, 1:2:2, 1:5:5 | The answer's own preset, used when no preset fits its window |
+| `SLICE_FLOURS` | `white_bread`, `whole_wheat` | D-020. Hydration fixed at 100% |
+| Routine hint | gaps >= 20 h, peak < 10 h, once per 7 days | `game-mechanics.md` §2.2. `PlayerHistory.routine_hint_unix` records the last showing |
+
+`FeedPreview` fields: `action: FeedAction` (apply it as is; the UI may change `hooch_choice` first), `answer`, `discard_g`, `kept_g`, `flour_g`, `water_g` (whole grams), `ratio_text`, `forecast: PeakForecast`, `window_key` (`WINDOW_*` or `&""`), `fits_window: bool`, `fit_key` (`&""` or `FEED_FIT_TOO_WARM`, `_TOO_COOL`, `_FRIDGE`), `timing` (`early`, `on_time`, `late`, `very_late`, `rescue`), `note_key` (`FEED_EARLY_NOTE`, `FEED_RESCUE_NOTE` or `&""`), `hooch_step: bool` (hooch >= 0.10), `routine_hint: bool`, `reason_key` (what `apply()` would return, `&""` when ok). Nothing in the preview blocks a feed; only `apply()` validates.
 
 `ActionResult`: `ok: bool`, `reason_key: StringName`, `action_kind: StringName`, `readout: RefCounted` (a `SmellReadout`, `InspectionReadout` or null), `events: Array[SimEvent]`, `journal_entry: JournalEntry` (null when rejected, or when a smell or inspect was deduped per `game-mechanics.md` §4).
 
@@ -144,23 +163,45 @@ Base `GameAction` (`RefCounted`): `kind: StringName`, `at_unix: int` (set by `Se
 | `not_before_unix` | int | Quiet-hours deferral |
 | `status` | StringName | `pending`, `shown`, `acked`, `expired` |
 
+Methods: `presentation()` gives `toast` (info), `card` (nudge) or `sheet` (attention), and `key_for(part)` builds `EVENT_<ID>_<PART>` (`TOAST`, `TITLE`, `BODY`, `BTN`, `DISMISS`, `AWAY`, `JOURNAL_TITLE`, `JOURNAL_BODY`). Payload conventions agreed with T4: `time_unix` (int, fills `{time}`); `warning_signs` has `began_unix` (the admitted step, D-048); `peaked_while_away` has `peak_rise` (float) and `rise_word` (`SMALL`, `NEAR`, `DOUBLE`, `BIG`).
+
+### `EventRule` (not saved)
+`id`, `tier`, `cooldown_s: int` (0 = none), `one_time: bool` (once per **save**; "once per starter" rules use `RuleFacts.fired_for_starter()` instead), and `evaluate(ctx) -> SimEvent` (null when it doesn't fire). Rules keep **no state**: one shared list serves the main thread and the catch-up worker (`architecture.md` §7).
+
 ### `EventLedger` (saved)
 `next_uid: int`, `last_fired_unix: Dictionary[StringName, int]`, `once_flags: Dictionary[StringName, bool]`, `day_key: String` (local `YYYY-MM-DD`), `day_counts: Dictionary[StringName, int]` (per tier, current local day only), `pending: Array[SimEvent]` (cap 20; the oldest `info` is dropped first).
 
 ### `EventContext` (not saved)
-`prev_state`, `prev_derived: DerivedState` (the derivation of `prev_state`, so `state_enter` rules compare labels without re-deriving), `state: StarterState`, `derived: DerivedState`, `env`, `history: PlayerHistory`, `ledger`, `now_unix`, `local_minute_of_day`, `utc_offset_s: int` (for day keys via `LocalDay.day_key()`), `app_foreground: bool`, `last_action: GameAction` (null on plain steps), `catalog` (for `Forecast` calls such as `warm_and_quick`'s 22 °C run).
+`prev_state`, `prev_derived: DerivedState` (the derivation of `prev_state`, so `state_enter` rules compare labels without re-deriving), `state: StarterState`, `derived: DerivedState`, `env`, `history: PlayerHistory`, `ledger`, `now_unix`, `local_minute_of_day`, `utc_offset_s: int` (for day keys via `LocalDay.day_key()`), `app_foreground: bool`, `last_action: GameAction` (null on plain steps), `catalog` (for `Forecast` calls such as `warm_and_quick`'s 22 °C run), `day_index: int` (cache: the `LocalDay.day_index()` the ledger was last rolled to, -1 = not yet; the day key string is built only when it changes).
 - On a step that follows an action, `prev_state` is the state **before** the action (`comeback` reads its `starved_h`). On a plain step, it is the state one step earlier.
 - No RNG. Rules are deterministic functions of the context. Phase triggers read `derived.rise_phase`, not `derived.state`.
 
 ### `PlayerHistory` (saved; counters requested by `game-designer`)
+Every `*_unix` field is grid-aligned sim time (0 = never) unless it says "real time". Rows marked "per starter" reset in `reset_for_new_starter()` (adoption and discard); earned knowledge (smells, seen counts) and `last_feed` stay.
+
 | Field | Type | Used by |
 |---|---|---|
 | `consecutive_early_feeds` | int | `fed_before_peak` |
-| `last_strong_peak_rise` | float | `back_to_strength`: the last `peak_rise` from a cycle with `vigor_at_feed >= 0.75` |
+| `last_strong_peak_rise` | float | `back_to_strength`: the last `peak_rise` from a cycle with `vigor_at_feed >= 0.75` **that reached `at_peak`** (D-048), so a cut-short or fridge cycle never becomes the reference |
+| `cycle_reached_peak` | bool | Per starter. This cycle's `rise_phase` entered `at_peak`. Cleared by a feed |
 | `smelled_descriptors` | `Dictionary[StringName, bool]` | `nose_for_it` milestone |
 | `seen_counts` | `Dictionary[StringName, int]` | Meaning-line fade after 3. Keys `smell.<id>`, `inspect.<kind>.level_<n>` |
 | `recent_feed_unix` | `Array[int]` (newest last, cap 3) | Feed-sheet routine hint (gaps between the last 3 feeds) |
 | `daily` | `Array[DailyBucket]` (P1) | Traits. Ring of 14: `day_key`, `hours_warm` (>= 24 °C), `hours_cool` (<= 18 °C), `feeds`, `ratio_sum`, `changes`, `comebacks` |
+| `real_feeds` | int | Per starter. Accepted feeds. `first_rise`, memorial feed count |
+| `last_feed_unix`, `last_feed_timing` | int, StringName | Per starter. Grid time and timing class of the last feed |
+| `last_very_late_feed_unix` | int | Per starter. Last `very_late` or `rescue` feed. Arms `back_to_strength` and survives the next feed |
+| `fridge_left_unix` | int | Per starter. A cold-dormant jar left the fridge (a fridge wake) |
+| `unhealthy_left_unix` | int | Per starter. A feed ended `unhealthy`. `warning_signs` re-arms 24 h later |
+| `peak_seen_foreground` | bool | Per starter. Any foreground step or action during this `at_peak`. `peaked_while_away` fires only if false |
+| `cycle_peak_unix` | int | Per starter. Latest step with `rise >= peak_rise`: the `{time}` of the peak lines |
+| `peaks`, `best_rise` | int, float (ratio) | Per starter. Memorial stats |
+| `warm_unfed_s` | int (s) | Per starter. Seconds since the last feed at `temp_c >= 11` °C, before mold. Memorial `unfed_days` |
+| `last_feed` | Dictionary | `FeedAction.to_dict()` of the last accepted feed (canonical, so numbers may be hex strings). Kept across starters |
+| `onboarding_path` | StringName | `tour` or `skip` from adoption until the first feed writes the Day one page, then `&""` |
+| `routine_hint_unix` | int | **Real time** the feed sheet last showed `FEED_ROUTINE_HINT` |
+
+`cycle_reached_peak` and every row from `real_feeds` down are Phase 3 additions and optional on load (§1).
 
 ## 6. Journal
 
@@ -169,17 +210,31 @@ Base `GameAction` (`RefCounted`): `kind: StringName`, `at_unix: int` (set by `Se
 |---|---|---|
 | `uid` | int | |
 | `starter_id` | String | Which starter. The journal outlives a starter (memorial, then a new one) |
-| `at_unix` | int | Real time of the act (not grid time). `state_change` and `event` entries use the sim time they happened |
-| `kind` | StringName | `feed`, `environment`, `smell`, `inspect`, `event`, `state_change`, `milestone`, `rename`, `memorial` |
+| `at_unix` | int | Real time of the act (not grid time). `state_change` and `event` entries use the sim time they happened. It can run backwards across a clock hold or re-anchor, so the journal is shown in `uid` order, never sorted by time |
+| `kind` | StringName | `feed`, `hooch`, `environment`, `smell`, `inspect`, `event`, `state_change`, `milestone`, `rename`, `memorial` (`JournalEntry.KINDS`) |
 | `state_id` | StringName | State at that moment |
-| `text_key` | StringName | A tr key: `JOURNAL_LOG_FEED` (or `_AT_PEAK`, `_RESCUE`), `JOURNAL_LOG_MOVE_<LOCATION>`, `JOURNAL_LOG_SMELL`, the readout's `INSPECT_..._OBS`, `EVENT_<ID>_JOURNAL_TITLE`, `STATUS_<STATE>_WORD`, `MEMORIAL_TITLE` |
-| `args` | Dictionary | ints, Strings and bools only. No decimals (§1). A feed sends `{"ratio": "1:5:5", "flour_g": 70}`. UI renders with `Keys.format(text_key, args)`, which first translates any arg that is itself a key (`FLOUR_RYE`), so the save stores keys, never text in one language |
-| `data` | Dictionary | Facts. A feed stores `FeedAction.to_dict()` (`kept_g`, `flour_g`, `water_g`, `hooch_choice`, `ratio_flour`, `ratio_water`, `hydration_pct`) plus `timing`, `had_hooch` and `feed_u`. Read numbers with `DictReader.float_of()` (§1) |
+| `text_key` | StringName | A tr key: `JOURNAL_LOG_FEED` (or `_AT_PEAK`, `_RESCUE`), `JOURNAL_LOG_HOOCH_POURED` or `_STIRRED`, `JOURNAL_LOG_MOVE_<LOCATION>`, `JOURNAL_LOG_SMELL`, the readout's `INSPECT_..._OBS`, `JOURNAL_LOG_RENAME`, `EVENT_<ID>_JOURNAL_TITLE` (or `EVENT_PEAKED_WHILE_AWAY_AWAY_<WORD>`), `STATUS_<STATE>_WORD`, `JOURNAL_DAY_ONE_TITLE`, `MEMORIAL_TITLE` |
+| `args` | Dictionary | ints, Strings and bools for every placeholder. No decimals (§1). A feed sends `{"ratio": "1:5:5", "flour": "FLOUR_WHITE_BREAD", "grams": 14}`. UI renders with `Session.format_text(text_key, args)`, which is `Keys.format(text_key, args, utc_offset_s)`: an arg that is itself a key is translated first, `time_unix` becomes a local `{time}`, and `start_unix` and `end_unix` become `{start_date}` and `{end_date}`. So the save stores keys and times, never text in one language. An `event` entry copies the whole event payload into `args`, so it can also hold floats no placeholder uses (`peak_rise`, stored as a hex string). Never put such a value in copy |
+| `data` | Dictionary | Facts. A feed stores `FeedAction.to_dict()` (`kept_g`, `flour_g`, `water_g`, `hooch_choice`, `ratio_flour`, `ratio_water`, `hydration_pct`) plus `timing`, `had_hooch` and `feed_u`. A `hooch` entry stores `hooch_choice` and the `hooch` level before the feed. A Day one `milestone` stores `milestone`, `path` and `body_key`. Read numbers with `DictReader.float_of()` (§1) |
 
-Cap: 400 entries. On overflow, drop the oldest `state_change` entries first, then `inspect` and `smell`, then the oldest of any other kind. Never drop `memorial` or `milestone`. Smell and inspect entries also follow the dedupe rule in `game-mechanics.md` §4 (once per descriptor per rise cycle).
+`body_key()` gives the expanded text: `data.body_key` when set, `EVENT_<ID>_JOURNAL_BODY` for an `event`, else `&""` (one line only).
 
-### `Memorial` (saved list)
-`starter_id`, `name`, `born_unix`, `ended_unix`, `feeds_count: int`, `cause: StringName` (`mold`).
+What the slice writes (the class comment in `journal_entry.gd` is the full list): a feed line, preceded by a `hooch` line when hooch was visible (>= 0.10) at the feed; one line per admitted event; the Day one `milestone` after the first feed following adoption; `MEMORIAL_TITLE` at a discard; and one line each for move, smell, inspect, rename and state change.
+
+Cap: 400 entries. On overflow, drop the oldest `state_change` entries first, then `inspect` and `smell`, then the oldest `feed`, `hooch`, `environment`, `event` or `rename`. Never drop `memorial` or `milestone`. Smell and inspect entries also follow the dedupe rule in `game-mechanics.md` §4 (once per descriptor per rise cycle).
+
+### `Memorial` (saved list, never trimmed)
+| Field | Type | Notes |
+|---|---|---|
+| `starter_id`, `name` | String | |
+| `born_unix`, `ended_unix` | int | Adoption and discard. `days_together()` and `dates_args()` (`{start_date}`, `{end_date}`) read them |
+| `feeds_count` | int | `max(PlayerHistory.real_feeds, feed entries in the journal)`, so a Phase 2 save still counts |
+| `cause` | StringName | `mold`, the only cause. `cause_key()` is `MEMORIAL_CAUSE_UNFED` with `cause_args()` `{days}` |
+| `peaks_count` | int | Phase 3, optional on load (0). From `PlayerHistory.peaks` |
+| `best_rise` | float (ratio) | Phase 3, optional on load (0.0). Shown as "2.3×" |
+| `unfed_days` | int | Phase 3, optional on load (0). Whole days of `warm_unfed_s`; fridge days don't count (`narrative.md` §9.3) |
+
+`epitaph_key()` is `MEMORIAL_EPITAPH_<1 + seed % 3>` from `StarterState.seed_of(starter_id)`. `Session.preview_memorial()` builds the same record before the discard is committed (null unless moldy).
 
 ## 7. `VisualParams` (`VisualMapper.from_state(state, env) -> VisualParams`)
 
@@ -237,7 +292,32 @@ Descriptor ids: `SimConstants.DESCRIPTORS`, the spec §13 order, which also brea
 `name`, `state: StringName`, `rise_phase: StringName`, `dormant_cause: StringName` (`cold`, `starved` or `&""`; copy picks the `_COLD` or `_STARVED` line), `since_feed_s: float`, `is_warning: bool` (`unhealthy` or `moldy`), `can_feed: bool` (false when `moldy`), `maturity_stage: StringName` (`young`, `steady`, `mature`, `seasoned` from maturity 0, 0.33, 0.50, 0.83; `SimConstants.maturity_stage()`), `location: StringName`. The HUD shows the state as an icon plus a word (`Keys.status_word(state, dormant_cause)`, for example `STATUS_DORMANT_COLD_WORD`), never color alone.
 
 ### `CatchUpResult`
-`from_unix`, `to_unix`, `simulated_s: int`, `capped: bool`, `reanchored: bool`, `steps: int`, `transitions: Array[Dictionary]` (`at_unix`, `from`, `to`), `events: Array[SimEvent]`, `snapshots: Array[VisualParams]` (at most 30, evenly spaced, for the time-lapse), `notable: Dictionary` (for example `peak_unix`, `peak_rise`, `hooch_first_unix`).
+`from_unix`, `to_unix`, `simulated_s: int`, `capped: bool`, `reanchored: bool`, `steps: int`, `transitions: Array[Dictionary]` (`at_unix`, `from`, `to`, `cause`; `cause` is the `dormant_cause`), `events: Array[SimEvent]`, `snapshots: Array[VisualParams]` (at most 30, evenly spaced; the Phase 2 field, kept), `keyframes: Array[TimeLapseKeyframe]` (the time-lapse feed, below), `play_time_lapse: bool`, `notable: Dictionary` (for example `peak_unix`, `peak_rise`, `hooch_first_unix`).
+
+- **`keyframes`:** at most 30 (`MAX_KEYFRAMES`), oldest first, one per sim time. Always kept: the first frame (the state before the first step), every transition (at most 16, `MAX_TRANSITION_FRAMES`) and the last frame. The rest are evenly spaced samples; when over the cap, the sample with the shortest gap to the frame before it goes first. Empty when nothing was stepped.
+- **`play_time_lapse`:** set by `Session` on launch and resume. True when the return summary shows, `keyframes` isn't empty, and the `show_time_lapse` setting is on (§9.1).
+- **`time_lapse_duration_s()`:** 3 s at the 1 h return threshold, rising linearly to 6 s at 24 h and beyond (`game-mechanics.md` §8).
+
+### `TimeLapseKeyframe`
+`at_unix: int` (sim time), `visuals: VisualParams` (the `VisualMapper` output at that step), `state: StringName`, `dormant_cause: StringName`, `transition: bool` (the state changed on this step; never thinned away). Everything in it came from the sim, so the replay shows only what happened (hard rule 2). The view drives the night factor from `at_unix` (`NightFade.at_unix()`).
+
+### `ReturnSummary` and `ReturnLine` ("while you were away", `src/sim/events/`)
+`ReturnSummary.build(result, final_derived)` is pure; `ReturnSummary.for_first_launch(at)` is the empty first-launch case. `Session` builds one on every launch and resume, before `session_ready` or `resumed` fires (`Session.get_return_summary()`).
+
+| Field | Type | Notes |
+|---|---|---|
+| `show` | bool | `simulated_s >= AWAY_SUMMARY_MIN_S` (3,600 s) and at least one event or transition |
+| `first_launch` | bool | The very first launch: no absence to summarize |
+| `capped` | bool | Past the 14-day cap (D-024) |
+| `title_key` | StringName | `AWAY_TITLE`, or `AWAY_TITLE_LONG` from 3 days or when capped |
+| `lines` | `Array[ReturnLine]` | At most 3, oldest first. The `AWAY_CAPPED` row is always kept and always last. `AWAY_QUIET` when nothing else fits |
+| `prompt` | SimEvent | At most 1: the attention event, else the newest nudge not already stale at `to_unix` |
+| `dropped` | `Array[SimEvent]` | Not shown; already in the journal |
+| `away_s`, `from_unix`, `to_unix` | int | |
+
+Keep priority: attention, milestone, peak, hunger (one merged row; `hungry_again` wins over `hooch_forming`), info, moment, ambient. Moment rows come from transitions (`AWAY_ROSE`, `AWAY_FELL`, `AWAY_FRIDGE`, `AWAY_RAN_DOWN`, `AWAY_RECOVERING`, `AWAY_LONG_REST`). The warning line is never dropped.
+
+`ReturnLine`: `kind` (the keep class, or `capped`), `text_key` (`EVENT_<ID>_AWAY` or a variant, or `AWAY_*`), `args` (rendered with `Keys.format()`, so `time_unix` becomes `{time}`; `hours` and `days` are ints), `at_unix`, `event_id`, `event_uid` (`&""` and 0 for a moment row).
 
 ## 9. Save schema v1
 
@@ -248,7 +328,19 @@ Descriptor ids: `SimConstants.DESCRIPTORS`, the spec §13 order, which also brea
 | `save.tmp` | Write target, renamed over `save.json` |
 | `save.prev` | The previous good save |
 | `quarantine/<unix>_<name>` | Files that failed to load. Never deleted, except to keep the newest 5 sets |
-| `user://settings.cfg` | Player preferences (`ConfigFile`), kept apart so a bad save never resets them, and the reverse |
+| `user://settings.cfg` | Player preferences (`ConfigFile`), kept apart so a bad save never resets them, and the reverse (below) |
+| `user://saves_time_travel/` | Debug builds only: every save after the first debug time travel of a run, so a scaled timestamp never reaches the real save (`architecture.md` §5.2). `--fixture=` runs use `user://fixture_saves/` (and `_time_travel` after a jump) |
+
+**`SettingsStore`** (`src/core/settings_store.gd`, section `prefs`). The UI changes the fields on `Session.get_settings()`, then calls `Session.save_settings()`, which writes the file and emits `Bus.settings_changed`. A missing file or key keeps the default; a wrong-typed value is ignored.
+
+| Field | Type | Default | Meaning |
+|---|---|---|---|
+| `text_scale` | float | 1.0 | 1.0, 1.25 or 1.5. Scales Theme font sizes only |
+| `reduce_effects` | bool | false | Tier A glass and reduced VFX |
+| `reduce_motion` | bool | false | No camera inertia; the time-lapse becomes two stills |
+| `show_time_lapse` | bool | true | "Show time-lapse on return". Off still shows the summary card |
+| `haptics` | bool | true | ux-design §15. Every haptic moment also has a sound (D-043) |
+| `keep_messages` | bool | false | "Keep messages on screen": toasts and cards stay until dismissed (D-043) |
 
 ### 9.2 File layout
 Line 1 is a header. Everything after the first newline is the payload, byte for byte:
@@ -280,13 +372,15 @@ Mechanics (all silent on bad input, so no engine error is logged):
 Try in order: `save.json`, `save.tmp`, `save.prev`. If the winner is `save.tmp`, rename it to `save.json` at once, so the loaded file is the trusted `save.json` before any new write can overwrite `save.tmp`. The first file that passes all of these checks wins: header parses, `format` matches, `version <= CURRENT`, byte length and sha256 match, payload parses, migration succeeds, and `from_dict` succeeds. If none passes, first move every candidate file to `user://saves/quarantine/<unix>_<name>` (keep the newest 5 sets), then start a new starter with `meta.recovered_from = "quarantine"`. A decoder or migration bug in an update then costs nothing permanent, because a later patch can recover the files (`qa-engineer` SAVE-06). A file that fails while others pass is also quarantined, never deleted. A file with `version > CURRENT` is never overwritten: it is moved to quarantine as well.
 
 ### 9.5 Migration
-`SaveMigrations.migrate(payload: Dictionary, from_version: int) -> Dictionary` runs pure steps `_v1_to_v2`, `_v2_to_v3` and so on in order. The next save writes the current version. Every released version keeps a fixture forever in `tests/fixtures/saves/v<N>_*.json`, and a test loads each one. Those are full save files, with header and checksum.
+`SaveMigrations.migrate(payload: Dictionary, from_version: int) -> Dictionary` runs pure steps `_v1_to_v2`, `_v2_to_v3` and so on in order. The next save writes the current version. Every released version keeps a fixture forever in `tests/fixtures/saves/v<N>_*.json`, and a test loads each one. Those are full save files, with header and checksum. No fixture exists yet: the first one is frozen from the build the user plays at the Phase 3 exit (OD-23, QA).
+
+**When the version changes.** Phase 3 added fields to `history` and `memorials` and a journal kind (`hooch`) without a bump: an added field that has a safe default is read as optional (§1), so the version stays 1. Renaming or removing a field, changing a field's meaning or unit, or adding a value that older code rejects needs a new version and a migration step. Older builds are not promised to read newer saves: a Phase 2 build rejects a Phase 3 save that holds a `hooch` entry (unknown journal kind) and quarantines it (§9.4), so nothing is lost. No build has been released, so this costs nothing today. After the first release, an added enum value bumps the version too.
 
 Dev fixtures: `--fixture=<path>` (debug builds only) and `SaveStore.load_from_path(path)` accept either a full save file or a **bare payload** JSON with no header line, so QA and the tracks can hand-write fixtures. A bare payload skips the checksum and still runs migration and `from_dict`.
 
 ### 9.6 Example payload v1 (synthetic values, pretty-printed here; the real file is one compact line)
 
-For readability, floats below are shown as decimals. The real file writes each one as its hex bit pattern (§1), so `"food": 0.18` is stored as `"food": "0ad7a3703d0ac73f"` and `"mass_g": 150.0` as `"mass_g": "0000000000c06240"` (both checked with Python's `struct.pack('<d', x).hex()`). In the journal's free-form `data`, whole numbers are ints (`"kept_g": 50`) and `"feed_u": 0.7` is stored as `"666666666666e63f"`, which is also what it reads back as. `Session.dump_state(path)` writes this readable decimal form for humans. Exact comparisons use the real payload. Every section is required in a save; a dev fixture needs only `starter` and `environment` (§9.5).
+For readability, floats below are shown as decimals. The real file writes each one as its hex bit pattern (§1), so `"food": 0.18` is stored as `"food": "0ad7a3703d0ac73f"` and `"mass_g": 150.0` as `"mass_g": "0000000000c06240"` (both checked with Python's `struct.pack('<d', x).hex()`). In the journal's free-form `data`, whole numbers are ints (`"kept_g": 50`) and `"feed_u": 0.7` is stored as `"666666666666e63f"`, which is also what it reads back as. `Session.dump_state(path)` writes this readable decimal form for humans. Exact comparisons use the real payload. Every section is required in a save; a dev fixture needs only `starter` and `environment` (§9.5). The example is a Phase 2 shaped v1 payload: it omits the Phase 3 history and memorial fields, which load with their defaults (§1, §5, §6).
 
 ```json
 {
