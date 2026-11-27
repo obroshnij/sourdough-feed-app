@@ -99,10 +99,13 @@ func test_sha256_of_text_equals_sha256_of_its_utf8_bytes() -> void:
 
 ## SAVE-20: the loader's read and parse steps must be silent on bad input, or every corrupt-file
 ## test fails under the Logger. Any logged error fails this test.
+## The NUL case is built at run time. A "\u0000" escape in the source made every fresh --import print
+## "Unicode parsing error ... Unexpected NUL character" while the editor scanned this script (Phase 4,
+## found by bisecting the import). The run itself still prints that line once, as a message, not an error.
 func test_missing_file_and_bad_json_load_silently() -> void:
 	var missing: PackedByteArray = FileAccess.get_file_as_bytes(_dir.path_join("nope.json"))
 	check_eq(missing.size(), 0, "get_file_as_bytes on a missing file")
-	for text: String in ["", "{", "not json", "{\"rise\":NaN}", "[1,2", "\u0000\u0001"]:
+	for text: String in ["", "{", "not json", "{\"rise\":NaN}", "[1,2", String.chr(0) + String.chr(1)]:
 		check_ne(JSON.new().parse(text), OK, "JSON.new().parse(%s) should fail" % show(text))
 
 

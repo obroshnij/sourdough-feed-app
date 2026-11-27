@@ -172,6 +172,36 @@ lint_golden_fresh() {
   fi
 }
 
+# AC-22.1 to AC-22.3 (OD-38): sound-designer's offline check of assets/audio (files, peaks, loudness,
+# edges, loops, the 2 MB budget). It needs ffmpeg for the Ogg loops and numpy. A missing tool FAILS this
+# lint, never skips it (director, 2026-11-27). The first python3 on PATH that can import numpy in -I mode
+# runs it: on this Mac /usr/bin/python3 (3.9) has no numpy and /opt/homebrew/bin/python3 does.
+lint_audio() {
+  local script="art/audio/scripts/verify_audio.py" log="$WORK/lint_audio.txt" py="" cand code
+  if [ ! -f "$ROOT/$script" ]; then
+    echo "FAIL lint audio: $script is missing"; LINT_F=$((LINT_F + 1)); return
+  fi
+  if ! command -v ffmpeg >/dev/null 2>&1; then
+    echo "FAIL lint audio: ffmpeg not found on PATH (it decodes the Ogg loops; on macOS: brew install ffmpeg)"
+    LINT_F=$((LINT_F + 1)); return
+  fi
+  for cand in $(which -a python3 2>/dev/null); do
+    if "$cand" -I -c 'import numpy' >/dev/null 2>&1; then py="$cand"; break; fi
+  done
+  if [ -z "$py" ]; then
+    echo "FAIL lint audio: no python3 on PATH can import numpy in -I mode (verify_audio.py needs it)"
+    LINT_F=$((LINT_F + 1)); return
+  fi
+  (cd "$ROOT" && "$py" -I "$script") >"$log" 2>&1
+  code=$?
+  if [ $code -eq 0 ]; then
+    echo "PASS lint audio: $(tail -n 1 "$log") ($py)"; LINT_P=$((LINT_P + 1))
+  else
+    echo "FAIL lint audio: $py -I $script exited $code"; sed 's/^/    /' "$log" | tail -n 40
+    LINT_F=$((LINT_F + 1))
+  fi
+}
+
 # ------------------------------------------------------------------ self-test (R-9)
 #
 # Each tests/runner_selftest/cases/<case>/ holds:
@@ -281,6 +311,7 @@ run_lint sim-vectors tools/sim-reference/sim.py vectors
 # AC-01.1 and D-031: the jar GLB's node contract and triangle budgets (art's checker, about 0.02 s).
 run_lint glb art/blender/scripts/verify_glb.py assets/3d/jar_v0.glb
 lint_golden_fresh
+lint_audio
 
 echo "== godot tests"
 run_suite "$ROOT" 1 0 "$RUN_TIMEOUT_S" ${RUNNER_ARGS[@]+"${RUNNER_ARGS[@]}"}
