@@ -191,7 +191,7 @@ func test_forecast_becomes_the_hint_after_a_feed() -> void:
 	if window == &"":
 		skip("no forecast window right after this feed")
 		return
-	check_eq(ui.hud.hint_label.text, session.format_text(&"FORECAST_LINE", {"window": String(window)}),
+	check_eq(ui.hud.hint_label.text, session.format_text(&"FORECAST_HINT", {"window": String(window)}),
 		"after a feed, the forecast is the hint (ux §8)")
 	check(not RegEx.create_from_string("[0-9]").search(ui.hud.hint_label.text), "with no digits")
 

@@ -499,16 +499,16 @@ func _on_sheet_closed(sheet_id: StringName) -> void:
 
 
 # ------------------------------------------------------------------ status explainer
-## ux §8: after a feed, the forecast becomes the hint ({window} words, no digits). Only while freshly fed,
-## so the rise phases keep narrative's own hints (open decision for ux).
-const FORECAST_HINT_STATES: Array[StringName] = [&"freshly_fed"]
+## D-062: the forecast replaces the status hint while freshly_fed, developing or active, with the short
+## FORECAST_HINT key (34 max, {window} words, no digits).
+const FORECAST_HINT_STATES: Array[StringName] = [&"freshly_fed", &"developing", &"active"]
 
 
 func _forecast_hint(snapshot: StarterSnapshot) -> String:
 	if session == null or not session.is_booted() or not FORECAST_HINT_STATES.has(snapshot.state):
 		return ""
 	var window: StringName = session.get_forecast_window_key()
-	return session.format_text(&"FORECAST_LINE", {"window": String(window)}) if window != &"" else ""
+	return session.format_text(&"FORECAST_HINT", {"window": String(window)}) if window != &"" else ""
 
 
 ## AC-08.7: the pill's "new" dot, the first time a state shows, until tapped, from the Session's saved
