@@ -342,8 +342,9 @@ Keep priority: attention, milestone, peak, hunger (one merged row; `hungry_again
 | `show_time_lapse` | bool | true | "Show time-lapse on return". Off still shows the summary card |
 | `haptics` | bool | true | ux-design §15. Every haptic moment also has a sound (D-043) |
 | `keep_messages` | bool | false | "Keep messages on screen": toasts and cards stay until dismissed (D-043) |
-| `sound_on` | bool | true | **Phase 4, lands with T1** (`ux-design.md` §14.3). Mutes or unmutes the master bus |
-| `volume` | float | sound-designer's pick (80% proposed) | **Phase 4, lands with T1.** 0..1 in 0.1 steps, mapped linearly to dB on the master bus. A missing or out-of-range value loads as the default |
+| `sound` | bool | true | **Phase 4, in T1's worktree, not merged yet** (D-056, `ux-design.md` §14.3). False mutes every sound. Haptics are separate |
+| `master_volume` | float | 1.0 | **Phase 4, same.** 0..1 (the slider moves in 0.1 steps), the master volume T2's audio player applies on top of the mix. The default is 100% because the mix is already quiet, so the phone's volume buttons are the main control (sound-designer). A missing or NaN value loads as 1.0; an out-of-range value is clamped |
+| `notifications` | bool | false | **Phase 4, same** (D-025, D-057). The one opt-in "warning signs" notification, off until the player turns it on |
 
 ### 9.2 File layout
 Line 1 is a header. Everything after the first newline is the payload, byte for byte:
