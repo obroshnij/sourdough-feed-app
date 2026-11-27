@@ -136,3 +136,35 @@ func test_jar_region_shifts_the_frame() -> void:
 	var center: float = (162.0 + 425.0 * 0.5) / 667.0
 	check_close(rig.frame_shift, 0.5 - center, 0.0, 1e-6, "target moves to the region center")
 	check(rig.frame_shift < 0.0, "the iPhone SE region sits below the middle")
+
+
+func test_bubbles_preset_stays_above_the_rim_at_every_rise() -> void:
+	for rise: float in [1.0, 2.3, 3.0]:
+		rig.starter_level_m = 0.030
+		rig.starter_mid_y = JarGeometry.FLOOR_Y_M + 0.55 * 0.030 * rise
+		rig.starter_top_y = JarGeometry.FLOOR_Y_M + 0.030 * rise + 0.008
+		var pose: OrbitCamera.Pose = rig.focus_pose(&"bubbles")
+		check_eq(pose.yaw, OrbitCamera.BUBBLES_YAW, "fixed yaw")
+		check_close(rig.home_dist / pose.zoom, OrbitCamera.BUBBLES_DIST_M, 0.0, 1e-6, "fixed 0.36 m")
+		var cam_y: float = pose.target.y + OrbitCamera.BUBBLES_DIST_M * sin(deg_to_rad(pose.pitch))
+		var rim_y: float = JarGeometry.FLOOR_Y_M + 0.030 * rise
+		check(cam_y >= rim_y, "rise %s: camera %s at or above the rim %s" % [rise, cam_y, rim_y])
+
+
+func test_mold_preset_and_counter_clearance() -> void:
+	rig.focus(&"mold")
+	_step(0.6)
+	check_eq(rig.focus_target, &"mold", "mold close-up exists")
+	check(rig.distance() < 0.2, "a close-up")
+	rig.release_focus()
+	_step(0.6)
+	rig.set_pose(0.0, -40.0, 0.58, OrbitCamera.HOME_TARGET)
+	check(rig.camera.global_position.y >= OrbitCamera.COUNTER_CLEARANCE_M - 1e-6, "D-049: never below 20 mm")
+
+
+func test_sheet_centers_the_target_between_hud_and_sheet() -> void:
+	rig.reduce_motion = true
+	rig.set_jar_region(Rect2(0, 162, 375, 425), 667.0)
+	rig.set_sheet_cover(0.42)
+	var center: float = (162.0 / 667.0 + 0.58) * 0.5
+	check_close(rig.frame_shift, 0.5 - center, 0.0, 1e-6, "target at the middle of the visible band")

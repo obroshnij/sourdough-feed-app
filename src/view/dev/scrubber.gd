@@ -7,6 +7,8 @@ extends Node
 ## Captures (windowed, the headless renderer draws nothing), then quits:
 ##   Godot --path . --resolution 720x1280 res://src/view/dev/scrubber.tscn -- --capture=captures/view
 ##     --states=a,b|all  --views=pose,side,top  --tiers=a,b  --source=art|sim  --prefix=<text>
+## Phase 3: --night=<0..1> (day to night lighting), --views=orbit --orbits=yaw:pitch:zoom,... (art §18.4),
+## --magenta (sky drawn pure magenta, the no-sky check), --bench=<seconds> (orbit benchmark, CSV in user://).
 ## Diagnostics: --stock-starter (StandardMaterial3D starter), --no-glass, --set-<field>=<value>
 ## (VisualParams overrides), --look-<field>=<value>
 ## (ViewLook overrides), --scale3d=<f> (default 1.0 in captures).
@@ -58,7 +60,19 @@ func _ready() -> void:
 	set_state(state_id)
 	if args.has("stock-starter"):
 		world.jar.use_stock_starter(true)
-	if args.has("capture"):
+	if args.has("night"):
+		world.set_night(float(args["night"]))
+	if args.has("magenta"):
+		for c: StringName in [&"top_color", &"horizon_color", &"bottom_color"]:
+			world._sky_mat.set_shader_parameter(c, Color(1.0, 0.0, 1.0))
+		world._sky_mat.set_shader_parameter(&"window_color", Color(1.0, 0.0, 1.0))
+		# Only sky seen directly may count: ambient and reflections must not carry the magenta.
+		var env: Environment = world.world_env.environment
+		env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+		env.reflected_light_source = Environment.REFLECTION_SOURCE_DISABLED
+	if args.has("bench"):
+		_run_bench(float(args["bench"]))
+	elif args.has("capture"):
 		_run_captures()
 	else:
 		_build_ui()
@@ -117,10 +131,77 @@ func _run_captures() -> void:
 			set_state(s)
 			world.jar.set_time_override(CAPTURE_TIME)
 			for v: String in views:
+				if v == "focus":
+					# Inspect framing check: --focus=<target> --region=<top_pt>,<height_pt>,<screen_h_pt> --sheet=<cover>
+					var r: PackedStringArray = _arg("region", "162,425,667").split(",")
+					world.rig.fov_deg = OrbitCamera.FOV_DEG
+					world.rig.reduce_motion = true
+					world.rig.set_jar_region(Rect2(0.0, float(r[0]), 375.0, float(r[1])), float(r[2]))
+					world.rig.set_sheet_cover(float(_arg("sheet", "0.42")))
+					world.rig.focus(StringName(_arg("focus", "bubbles")))
+					await _capture("%s/%s_tier%s_%s_focus_%s.png" % [dir, prefix, t.to_upper(), s, _arg("focus", "bubbles")], false)
+					world.rig.release_focus()
+					world.rig.set_sheet_cover(0.0)
+					world.rig.reduce_motion = false
+					continue
+				if v == "orbit":
+					for o: String in _arg("orbits", "-70:15:1,0:15:1,70:15:1,0:-5:1,-70:35:1,70:-5:2.2").split(","):
+						var f: PackedStringArray = o.split(":")
+						world.rig.fov_deg = OrbitCamera.FOV_DEG
+						world.rig.set_pose(float(f[0]), float(f[1]), world.rig.home_dist / float(f[2]), OrbitCamera.HOME_TARGET)
+						await _capture("%s/%s_tier%s_%s_orbit_y%s_p%s_z%s.png" % [dir, prefix, t.to_upper(), s, f[0], f[1], f[2]], false)
+					continue
 				_pose_for_view(v)
 				var path: String = "%s/%s_tier%s_%s_%s.png" % [dir, prefix, t.to_upper(), s, v]
 				await _capture(path, v != "pose")
 	get_tree().quit()
+
+
+## Orbit benchmark with the sim frozen: a yaw sweep of +-70 degrees at the home pitch. Prints CPU and
+## GPU ms per frame (p50, p95, p99) and writes a CSV to user://. Mac estimate, never a phone number.
+func _run_bench(seconds: float) -> void:
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
+	Engine.max_fps = 0
+	world.jar.set_time_override(10.0)
+	var rid: RID = get_viewport().get_viewport_rid()
+	RenderingServer.viewport_set_measure_render_time(rid, true)
+	var cpu := PackedFloat64Array()
+	var gpu := PackedFloat64Array()
+	var frame := PackedFloat64Array()
+	var t: float = 0.0
+	var last_us: int = Time.get_ticks_usec()
+	for i: int in 30:
+		await get_tree().process_frame
+	while t < seconds:
+		var yaw: float = 70.0 * sin(t / seconds * TAU * 2.0)
+		world.rig.set_pose(yaw, OrbitCamera.HOME_PITCH, world.rig.home_dist, OrbitCamera.HOME_TARGET)
+		await RenderingServer.frame_post_draw
+		var now_us: int = Time.get_ticks_usec()
+		frame.append(float(now_us - last_us) / 1000.0)
+		t += float(now_us - last_us) / 1.0e6
+		last_us = now_us
+		cpu.append(RenderingServer.viewport_get_measured_render_time_cpu(rid))
+		gpu.append(RenderingServer.viewport_get_measured_render_time_gpu(rid))
+	var label: String = "%s_%s_tier%s_%dx%d" % [world.renderer, RenderingServer.get_current_rendering_driver_name(),
+		QualityTier.tier_name(world.tier), get_viewport().get_visible_rect().size.x, get_viewport().get_visible_rect().size.y]
+	var line: String = "BENCH (Mac estimate) %s frames=%d cpu_ms p50/p95/p99 %.3f/%.3f/%.3f gpu_ms %.3f/%.3f/%.3f frame_ms %.3f/%.3f/%.3f" % [
+		label, cpu.size(), _pct(cpu, 0.5), _pct(cpu, 0.95), _pct(cpu, 0.99), _pct(gpu, 0.5), _pct(gpu, 0.95), _pct(gpu, 0.99),
+		_pct(frame, 0.5), _pct(frame, 0.95), _pct(frame, 0.99)]
+	print(line)
+	var f := FileAccess.open("user://bench_%s.csv" % label, FileAccess.WRITE)
+	if f != null:
+		f.store_line("frame,cpu_ms,gpu_ms,frame_ms")
+		for i: int in cpu.size():
+			f.store_line("%d,%.4f,%.4f,%.4f" % [i, cpu[i], gpu[i], frame[i]])
+	get_tree().quit()
+
+
+static func _pct(a: PackedFloat64Array, q: float) -> float:
+	if a.is_empty():
+		return 0.0
+	var s: PackedFloat64Array = a.duplicate()
+	s.sort()
+	return s[clampi(int(q * float(s.size() - 1)), 0, s.size() - 1)]
 
 
 func _names(csv: String) -> Array[StringName]:
