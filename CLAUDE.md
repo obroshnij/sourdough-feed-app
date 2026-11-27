@@ -23,7 +23,8 @@ A cozy 3D virtual pet for iOS and Android. The player keeps a living sourdough s
 | Blender | `/Applications/Blender.app/Contents/MacOS/Blender` | 5.3.0 |
 | Xcode | `/Applications/Xcode.app` | 27.2, iPhone 17 Pro simulators |
 | JDK | `/Applications/Android Studio.app/Contents/jbr/Contents/Home` | OpenJDK 21.0.10 |
-| Android SDK | `~/Library/Android/sdk` | Missing platform 36, build-tools 36.1.0 and the NDK |
+| Android SDK | `~/Library/Android/sdk` | Missing platform 36, build-tools 36.1.0 and the NDK. Deferred to the Android phase (D-054) |
+| ffmpeg | `/opt/homebrew/bin/ffmpeg` | 9.0.2. Needed by the audio lint (`art/audio/scripts/verify_audio.py`) and the Ogg room loops |
 
 Godot 4.7.2 export templates are installed in `~/Library/Application Support/Godot/export_templates/4.7.2.stable/`, checksum-verified against the official SHA512-SUMS (2026-11-26). There is no physical test phone yet: performance numbers from the Mac or simulators are estimates and must be labeled that way.
 

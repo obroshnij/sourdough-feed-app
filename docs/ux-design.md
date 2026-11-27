@@ -733,7 +733,7 @@ The beats, their order and the words are game-designer's and narrative's (game-d
 | HUD | The unnamed variant (§4) until B4. The pill is inert and shows no "new" dots during the tour. The ⚙ stays usable, so text size can be set at any point |
 | Pages | Onboarding pages are fit sheets with no ✕ (they must be answered). The header's right slot holds the ⚙ (48) instead. It swaps the page for Settings and restores the same page when Settings closes (no sheet over a sheet) |
 | Action bar | Visible from B2. Buttons the current beat doesn't use are dimmed to 40% and inert. Tapping one shakes the current coach mark (6 pt, 200 ms; reduce motion: the ring flashes once). From B8's journal coach on, the bar is fully active |
-| Events | Held until the tour ends (treated like an open sheet, §12) |
+| Events | Held until the tour ends (treated like an open sheet, §12). No time-lapse or away summary ever shows while the starter has no name (EC-26) |
 | Coach marks | §17 CoachMark. One at a time. **Do** coaches ("Tap Smell") advance when the player does it. **Read** coaches advance on a tap anywhere, or after 2.5 s + 70 ms per character (at most 7 s). With "Keep messages on screen" on, only on a tap. While a read coach shows, a full-screen `STOP` layer takes that tap, so it never also pokes or orbits (like the time-lapse skip layer, architecture §9) |
 | Placement | Never over the starter. Over the main screen: in the card slot above the bar, or the toast slot under the HUD when a card is up. With a sheet open: in the jar band just above the sheet, with no pointer; the target inside the sheet gets the spotlight ring |
 | Skip tour | A TextButton on every coach mark (`ONBOARD_SKIP_TOUR_BTN`, **new**), and the tertiary button on the B6 page. Not on B1 (it has "I know starters") or B4 (one tap confirms) |
@@ -764,7 +764,7 @@ The beats, their order and the words are game-designer's and narrative's (game-d
 
 | What happens | Result |
 |---|---|
-| Background or kill before B4 | Nothing is saved (`is_first_run()`). The next launch starts at B1 |
+| Background or kill before B4 | Only a **nameless** starter is saved (`is_first_run()` stays true). The next launch starts at B1, with **no time-lapse and no "while you were away"**: a starter with no name never gets a return flow (EC-26). The starter adopted at B4 is fresh at that moment, however long the gap was |
 | After B4, before the first feed | Next launch: if the starter is still `at_peak`, resume at B7 with its coach. Otherwise end the tour, because no coach may say "at its peak" when it isn't. The return flow runs as usual |
 | During or after B7 | The rest of the tour is dropped |
 
