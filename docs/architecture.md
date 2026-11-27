@@ -345,7 +345,7 @@ Phone numbers are targets. Nothing is measured on a phone yet (D-004).
 | Opaque full-screen UI (journal) | Hide `World` (no 3D draw) | |
 | Catch-up, 14 days | 250 ms on the Mac, and never blocking the first jar frame | **229 to 230 ms** median with the 8 slice rules (T1, 2a6d063: Apple M4, headless editor binary, 9 runs in two interleaved rounds, Mac estimate), down from 292 to 296 ms before the cost work in §5.4. 206 ms with no rules (D-042). On a worker thread for 2 h or more (D-050) |
 | Launch to first frame of the jar | 2 s on a phone | |
-| Save | 128 KB or less, write under 10 ms | |
+| Save | 128 KB or less, write under 10 ms | About **104.6 KB** from day 60 to day 365 in T1's long-play probe, held by the journal's 100 KB byte cap (9551f26, SAVE-13, `data-models.md` §6). Write time not measured yet |
 | Scene | 16k tris or fewer, under 10 draw surfaces for the jar (art budget), under 30 draw calls total | `jar_v0.glb`: max 4 draw calls on Mobile, 10 on Compatibility [spike] |
 | Screen | `display/window/energy_saving/keep_screen_on = false` (4.7.2 default is **true [ran]**) | |
 
