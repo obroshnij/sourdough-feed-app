@@ -9,6 +9,8 @@ const CAMERA_TARGETS: Dictionary = {
 	&"development": &"home",
 }
 const RISING_RATE: float = 0.02
+## spec v1.1 §14: at or above this rise a dormant starter is "still risen" and reads by its rise phase.
+const DORMANT_RISEN_MIN: float = 1.1
 
 
 static func read(s: StarterState, env: EnvironmentState, kind: StringName) -> InspectionReadout:
@@ -34,6 +36,11 @@ static func read(s: StarterState, env: EnvironmentState, kind: StringName) -> In
 	var k: PackedStringArray = keys(kind, s, d)
 	out.text_key = StringName(k[0])
 	out.meaning_key = StringName(k[1])
+	# spec v1.1 §14: from the watch stage on, the surface is a warning whatever the state, so a stiff or rye
+	# starter with no dark hooch never reads as merely run down right after a musty smell.
+	if kind == &"surface" and not s.moldy and s.mold_risk >= SimConstants.MOLD_WATCH:
+		out.is_warning = true
+		out.meaning_key = &"INSPECT_SURFACE_UNHEALTHY_MEAN"
 	return out
 
 
@@ -55,7 +62,10 @@ static func keys(kind: StringName, s: StarterState, d: DerivedState) -> PackedSt
 			tag = "WEAKENED" if s.vigor < 0.6 else String(SimConstants.maturity_stage(s.maturity)).to_upper()
 		return ["INSPECT_DEVELOPMENT_%s_OBS" % tag, "INSPECT_DEVELOPMENT_%s_MEAN" % tag]
 	var label: StringName = d.state
-	if label == &"recovering":
+	# spec v1.1 §14: a dormant starter that is still risen (fed, then into the fridge) reads by its rise phase,
+	# like recovering, with one shared meaning line.
+	var risen_dormant: bool = label == &"dormant" and s.rise >= DORMANT_RISEN_MIN
+	if label == &"recovering" or risen_dormant:
 		label = d.rise_phase
 	var l: String = String(label).to_upper()
 	if label == &"dormant":
@@ -65,16 +75,35 @@ static func keys(kind: StringName, s: StarterState, d: DerivedState) -> PackedSt
 			obs = "INSPECT_CONSISTENCY_DORMANT_%sOBS_%s" % ["STIFF_" if _stiff(s) and cause == "STARVED" else "", cause]
 		return [obs, "INSPECT_%s_DORMANT_MEAN_%s" % [k, cause]]
 	var obs_key: String = "INSPECT_%s_%s_OBS" % [k, l]
+	var mean_key: String = "INSPECT_%s_%s_MEAN" % [k, l]
+	var rye: bool = s.flour_mix.get(&"rye", 0.0) >= 0.5
 	if kind == &"height" and label == &"at_peak":
 		obs_key = "INSPECT_HEIGHT_AT_PEAK_%s_OBS" % peak_word(s.peak_rise)
 	elif kind == &"consistency":
 		if _stiff(s) and [&"freshly_fed", &"hungry", &"at_peak"].has(label):
 			obs_key = "INSPECT_CONSISTENCY_%s_STIFF_OBS" % l
-	elif kind == &"surface" and label == &"at_peak":
-		var main: StringName = _main_flour(s)
-		if main != &"white_bread":
-			obs_key = "INSPECT_SURFACE_AT_PEAK_%s_OBS" % String(main).to_upper()
-	return [obs_key, "INSPECT_%s_%s_MEAN" % [k, l]]
+		elif rye and [&"near_peak", &"at_peak", &"collapsing"].has(label):
+			# spec v1.1 §14: rye rises as a bubbly paste, so no strands, stretch or web in its words.
+			obs_key = "INSPECT_CONSISTENCY_%s_RYE_OBS" % l
+			if label == &"near_peak":
+				mean_key = "INSPECT_CONSISTENCY_NEAR_PEAK_RYE_MEAN"
+	elif kind == &"surface":
+		if shows_cracks(s, d):
+			# spec v1.1 §14 "Rye cracks": the text follows the rise phase while the top is cracked.
+			match d.rise_phase:
+				&"at_peak":
+					obs_key = "INSPECT_SURFACE_AT_PEAK_RYE_OBS"
+				&"collapsing", &"hungry":
+					obs_key = "INSPECT_SURFACE_SUNKEN_RYE_OBS"
+				_:
+					obs_key = "INSPECT_SURFACE_RISING_RYE_OBS"
+		elif label == &"at_peak":
+			var main: StringName = _main_flour(s)
+			if main != &"white_bread" and main != &"rye":
+				obs_key = "INSPECT_SURFACE_AT_PEAK_%s_OBS" % String(main).to_upper()
+	if risen_dormant:
+		mean_key = "INSPECT_ANY_DORMANT_RISEN_MEAN"
+	return [obs_key, mean_key]
 
 
 static func _stiff(s: StarterState) -> bool:
@@ -108,7 +137,8 @@ static func peak_word(peak_rise: float) -> StringName:
 static func _bubbles(s: StarterState, d: DerivedState) -> Array[StringName]:
 	var gas_n: float = d.activity
 	var resting: bool = d.state == &"hungry" or d.state == &"dormant" or d.state == &"unhealthy"
-	if s.moldy or (gas_n < 0.05 and resting):
+	# spec v1.1 §14: a risen starter keeps its bubbles even when cold.
+	if s.moldy or (gas_n < 0.05 and resting and s.rise < DORMANT_RISEN_MIN):
 		return [&"none"]
 	if d.rise_phase == &"collapsing" or d.rise_phase == &"hungry":
 		return [&"popped_craters"]
@@ -135,7 +165,9 @@ static func _consistency(s: StarterState, d: DerivedState) -> Array[StringName]:
 	if d.state == &"dormant" and d.dormant_cause == &"cold":
 		return [&"firm_cold"]
 	if d.rise_phase == &"active" or d.rise_phase == &"near_peak" or d.rise_phase == &"at_peak":
-		return [&"airy_webby"]
+		# spec v1.1 §14: rye has little functional gluten, so a mostly-rye starter is airy but pasty, not webby.
+		# Its RYE copy variants wait on narrative; the keys stay the shared ones until they land.
+		return [&"airy_pasty" if s.flour_mix.get(&"rye", 0.0) >= 0.5 else &"airy_webby"]
 	if h_eff >= 110.0:
 		return [&"loose_batter"]
 	return [&"thick_batter"]
@@ -166,13 +198,13 @@ static func _height(s: StarterState, d: DerivedState) -> Array[StringName]:
 
 static func _surface(s: StarterState, d: DerivedState) -> Array[StringName]:
 	var out: Array[StringName] = []
-	var rye: float = s.flour_mix.get(&"rye", 0.0)
 	if s.moldy:
 		out.append(&"fuzzy_spots")
+	elif shows_cracks(s, d):
+		# spec v1.1 §14: a rye top stays cracked through the collapse.
+		out.append(&"sunken_cracked" if d.rise_phase == &"collapsing" or d.rise_phase == &"hungry" else &"cracked")
 	elif d.rise_phase == &"collapsing":
 		out.append(&"sunken")
-	elif rye >= 0.5 and s.rise >= 1.3:
-		out.append(&"cracked")
 	elif d.rise_phase == &"at_peak":
 		out.append(&"flat_bubbly")
 	elif d.rise_rate > RISING_RATE and s.rise >= 1.3:
@@ -190,6 +222,14 @@ static func _surface(s: StarterState, d: DerivedState) -> Array[StringName]:
 	elif s.dryness >= 0.3:
 		out.append(&"skin")
 	return out
+
+
+## spec v1.1 §14: a mostly-rye top cracks once it has risen: rye share >= 0.5, rise >= 1.3, and neither
+## unhealthy nor moldy. The surface shape is then `cracked` or `sunken_cracked`, and VisualMapper's `crack` is
+## above 0 exactly then (hard rule 2).
+static func shows_cracks(s: StarterState, d: DerivedState) -> bool:
+	return not s.moldy and d.state != &"unhealthy" and d.state != &"moldy" \
+		and s.flour_mix.get(&"rye", 0.0) >= 0.5 and s.rise >= 1.3
 
 
 static func _development(s: StarterState) -> Array[StringName]:
@@ -213,4 +253,9 @@ static func _level(kind: StringName, obs: Array[StringName]) -> int:
 		&"development": [&"young", &"steady", &"mature", &"seasoned"],
 	}
 	var list: Array = order.get(kind, [])
-	return clampi(list.find(obs[0]), 0, 4)
+	var first: StringName = obs[0]
+	if first == &"airy_pasty":
+		first = &"airy_webby"
+	elif first == &"sunken_cracked":
+		first = &"sunken"
+	return clampi(list.find(first), 0, 4)

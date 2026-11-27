@@ -21,6 +21,12 @@ var haptics: bool = true
 ## "Keep messages on screen" (ux-design §12, §16): toasts and cards stay until dismissed instead of
 ## auto-hiding. Off by default.
 var keep_messages: bool = false
+## Phase 4 (D-056, ux-design §14 "Sound"). false mutes every sound. Haptics are separate (`haptics`).
+var sound: bool = true
+## Phase 4. 0..1, the master volume T2's audio player applies on top of the mix.
+var master_volume: float = 1.0
+## Phase 4 (D-025, D-057). The one opt-in "warning signs" notification. Off until the player turns it on.
+var notifications: bool = false
 
 
 func _init(file_path: String = "user://settings.cfg") -> void:
@@ -42,6 +48,12 @@ func load_settings() -> void:
 	show_time_lapse = _bool(cfg, "show_time_lapse", true)
 	haptics = _bool(cfg, "haptics", true)
 	keep_messages = _bool(cfg, "keep_messages", false)
+	sound = _bool(cfg, "sound", true)
+	notifications = _bool(cfg, "notifications", false)
+	var vol: Variant = cfg.get_value(SECTION, "master_volume", 1.0)
+	if typeof(vol) == TYPE_FLOAT or typeof(vol) == TYPE_INT:
+		var x: float = vol
+		master_volume = clampf(x, 0.0, 1.0) if not is_nan(x) else 1.0
 
 
 func save_settings() -> Error:
@@ -52,6 +64,9 @@ func save_settings() -> Error:
 	cfg.set_value(SECTION, "show_time_lapse", show_time_lapse)
 	cfg.set_value(SECTION, "haptics", haptics)
 	cfg.set_value(SECTION, "keep_messages", keep_messages)
+	cfg.set_value(SECTION, "sound", sound)
+	cfg.set_value(SECTION, "master_volume", clampf(master_volume, 0.0, 1.0))
+	cfg.set_value(SECTION, "notifications", notifications)
 	return cfg.save(path)
 
 

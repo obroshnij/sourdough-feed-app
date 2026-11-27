@@ -21,8 +21,11 @@ const ANSWER_WINDOW_H: Dictionary[StringName, Vector2] = {
 const RATIOS: Array[Vector2] = [Vector2(1.0, 1.0), Vector2(2.0, 2.0), Vector2(5.0, 5.0)]
 ## Flours offered in the slice (D-020). All four exist in the sim; rye and spelt unlock in P1.
 const SLICE_FLOURS: Array[StringName] = [&"white_bread", &"whole_wheat"]
-## Hydration is fixed at 100% in the slice (presets in P1).
+## Hydration is fixed at 100% in the slice. P1 presets (game-mechanics §2.1, spec §5 and V6), keyed like the
+## catalog's HYDRATION_<ID> and HYDRATION_<ID>_NOTE strings. The `hydration` unlock opens stiff and loose.
 const SLICE_HYDRATION_PCT: float = 100.0
+const HYDRATION_PRESETS: Dictionary[StringName, float] = {&"stiff": 60.0, &"standard": 100.0, &"loose": 125.0}
+const HYDRATION_IDS: Array[StringName] = [&"stiff", &"standard", &"loose"]
 const ROUTINE_GAP_S: int = 20 * 3600
 const ROUTINE_PEAK_S: float = 10.0 * 3600.0
 const ROUTINE_EVERY_S: int = 7 * 86400
@@ -30,9 +33,11 @@ const ROUTINE_EVERY_S: int = 7 * 86400
 
 ## Plans a feed for a schedule answer. `now_unix` and `utc_offset_s` only pick the {window} words.
 ## Runs up to three forecasts (about 40 ms on the Mac, estimate), so call it when the sheet opens or the
-## answer changes, not every frame.
+## answer changes, not every frame. `hydration_pct` is a HYDRATION_PRESETS value; the grams come from
+## FeedAction.from_preset.
 static func plan(state: StarterState, env: EnvironmentState, history: PlayerHistory, answer: StringName,
-		flour_id: StringName, hooch_choice: StringName, now_unix: int, utc_offset_s: int) -> FeedPreview:
+		flour_id: StringName, hooch_choice: StringName, now_unix: int, utc_offset_s: int,
+		hydration_pct: float = SLICE_HYDRATION_PCT) -> FeedPreview:
 	var window_h: Vector2 = ANSWER_WINDOW_H.get(answer, ANSWER_WINDOW_H[&"soon"])
 	var lo: float = window_h.x * 3600.0
 	var hi: float = window_h.y * 3600.0
@@ -42,7 +47,7 @@ static func plan(state: StarterState, env: EnvironmentState, history: PlayerHist
 	var best_dist: float = INF
 	var own_preview: FeedPreview = null
 	for r: Vector2 in RATIOS:
-		var a: FeedAction = FeedAction.from_ratio(r.x, r.y, flour_id, SLICE_HYDRATION_PCT)
+		var a: FeedAction = FeedAction.from_preset(r.x, flour_id, hydration_pct)
 		a.hooch_choice = hooch_choice
 		var p: FeedPreview = preview(state, env, history, a, answer, now_unix, utc_offset_s)
 		if r == own:

@@ -20,6 +20,30 @@ extends Node
 ##   apply(preview.action).
 ## - Mold: the mold_found sheet, confirm, then preview_memorial() and restart_preset() for the memorial and
 ##   restart pages, then naming, then apply(DiscardStarterAction.new(name)): memorial plus new starter at once.
+##
+## Phase 4 call sequences:
+## - Mold (the D-047 follow-up): the mold_found sheet, confirm, then apply(DiscardStarterAction.to_empty_jar())
+##   at "Discard": the memorial is written and saved, and the jar is empty (is_jar_empty(), snapshot.empty_jar).
+##   Then the memorial page (get_memorials().back()), then the restart page (restart_preset() picks the body).
+##   "Start again" goes to naming, then apply(StartAgainAction.new(name)). "Not today" leaves the empty jar;
+##   its screen offers "Start again" later. A kill anywhere after "Discard" relaunches to the empty jar.
+## - Onboarding tour (game-design B1 to B8, ux-design §14.4): on is_first_run(), call begin_demo() before M.'s
+##   note. The jar, the HUD and get_snapshot() then show the tour starter, the just-mixed `demo_start` preset,
+##   and apply(SmellAction) and apply(InspectAction) answer from it with no save, journal or history (B3, B5).
+##   B6: play_demo() runs it to at_peak and emits demo_played(result); T2 plays result.keyframes over
+##   result.time_lapse_duration_s() exactly like the away time-lapse (time_lapse_started, the skip pill,
+##   time_lapse_finished). The HUD then shows the at-peak tour starter. EC-26: the nameless gifted starter
+##   behind it raises no event, writes no journal line and gets no return flow; adoption starts clean.
+##   B4: adopt_starter(state, name) or apply(AdoptStarterAction.new(name, &"tour")), which ends the demo.
+##   "I know starters": apply(AdoptStarterAction.new(name, &"skip")) also opens every unlock (set
+##   open_unlocks false for a mid-tour "Skip tour"). end_demo() leaves the demo without adopting.
+## - Unlocks: is_unlocked(id) for flour chips, places, hydration presets and inspect kinds. Each new unlock
+##   writes one milestone journal line (UNLOCK_<ID>_TOAST, data.body_key), sent with journal_appended.
+## - Feedback: T3 emits Bus.feedback(moment); Session plays the pulse through Haptics when haptics are on.
+## - Notifications: set_notifications_enabled(on) asks for permission, then saves the setting. Session plans
+##   the one warning-signs notification when the app goes to the background and cancels it on return.
+## - Journal: a move within MOVE_MERGE_S of the previous move, with nothing journaled between, updates that
+##   line instead of adding one (OD-22). journal_appended then carries a uid already seen: replace that row.
 
 ## After launch load and catch-up. `summary` may be empty. Read get_return_summary() in the handler.
 signal session_ready(summary: CatchUpResult)
@@ -37,6 +61,9 @@ signal event_withdrawn(uid: int)
 signal journal_appended(entry: JournalEntry)
 ## A save failed; UI shows a calm notice. Fires once per run of failures.
 signal save_failed(reason_key: StringName)
+## Phase 4. play_demo() ran the onboarding demo to at_peak: T2 plays result.keyframes like the away time-lapse,
+## over result.time_lapse_duration_s() (Demo.DURATION_S). state_changed with the at-peak demo state comes first.
+signal demo_played(result: CatchUpResult)
 
 const APP_VERSION: String = "0.2.0"
 const SAVE_DIR: String = "user://saves"
@@ -59,6 +86,11 @@ const PAYLOAD_SECTIONS: Array[String] = [
 ## (estimate, D-050), inside the 250 ms budget, but a phone is slower (unmeasured, D-004), so the first jar
 ## frame never waits for it. Shorter catch-ups take a few milliseconds and stay on the main thread.
 const ASYNC_MIN_STEPS: int = 120
+## OD-22: a move within this many seconds of the previous move's journal line, with nothing journaled in
+## between, updates that line instead of adding one. 5 minutes covers trying places out to compare them; a
+## stay of 5 minutes or more is a real event in the starter's day (QA's AC-06.5 moves every 10 minutes and
+## keeps one line per move).
+const MOVE_MERGE_S: int = 300
 
 
 ## A launch or resume catch-up running on a worker thread. It works on copies of the starter, environment,
@@ -75,10 +107,12 @@ class CatchUpJob:
 	var to_unix: int = 0
 	var utc_offset_s: int = 0
 	var mono_ms: int = 0
+	## Built on the main thread (_step_rules): none for a nameless starter (EC-26).
+	var rules: Array[EventRule] = []
 	var result: CatchUpResult = null
 
 	func run() -> void:
-		result = CatchUp.run(starter, env, history, ledger, catalog, to_unix, utc_offset_s, false)
+		result = CatchUp.run_with_rules(starter, env, history, ledger, catalog, to_unix, utc_offset_s, false, rules)
 
 
 ## The decoded payload, before it is applied.
@@ -134,6 +168,13 @@ var async_catch_up: bool = true
 var _timer: Timer = null
 var _idle_timer: Timer = null
 var _flags: DevFlags = DevFlags.new()
+var _notifier: Notifier = Notifier.new()
+var _haptics: Haptics = Haptics.new()
+## The onboarding demo's sandbox (begin_demo() to adoption or end_demo()). Never saved.
+var _demo: StarterState = null
+var _demo_env: EnvironmentState = null
+var _demo_derived: DerivedState = null
+var _demo_visuals: VisualParams = null
 
 
 func _ready() -> void:
@@ -152,13 +193,17 @@ func _process(_delta: float) -> void:
 
 
 # ------------------------------------------------------------------ lifecycle
-## Injects the seams. Tests call this with a FakeClock and a temp SaveStore.
-func setup(clock: Clock, store: SaveStore, settings: SettingsStore = null) -> void:
+## Injects the seams. Tests call this with a FakeClock and a temp SaveStore, and may pass stand-in backends to
+## spy on notifications and haptics (the defaults are the recording stand-ins).
+func setup(clock: Clock, store: SaveStore, settings: SettingsStore = null,
+		notifier_backend: NotifierBackend = null, haptics_backend: HapticsBackend = null) -> void:
 	_clock = clock
 	_store = store
 	_settings = settings if settings != null else SettingsStore.new()
 	if _store.clock == null:
 		_store.clock = clock
+	_notifier = Notifier.new(notifier_backend)
+	_haptics = Haptics.new(haptics_backend, _settings)
 
 
 ## The game's entry point, called once by Main. Builds the real seams unless setup() already ran.
@@ -175,7 +220,8 @@ func start() -> void:
 		if _flags.fixture == "" and not is_equal_approx(_flags.time_scale, 1.0):
 			dir += TIME_TRAVEL_SUFFIX
 			_time_travel = true
-		setup(clock, SaveStore.new(dir), SettingsStore.new())
+		# The notification backend stays the stand-in until the iOS plugin is checked on the iPhone (D-057).
+		setup(clock, SaveStore.new(dir), SettingsStore.new(), NotifierBackend.new(), DeviceHapticsBackend.new())
 		_settings.load_settings()
 	if _flags.fixture != "":
 		boot_from_fixture(_flags.fixture)
@@ -276,6 +322,7 @@ func on_background() -> void:
 	_record_events(res.events)
 	_foreground = false
 	_save()
+	_update_notification()
 
 
 ## Returning (APPLICATION_RESUMED): clock rules, catch-up, save, resumed(summary). Synchronous: tests and
@@ -291,6 +338,8 @@ func on_resume() -> CatchUpResult:
 
 
 func _finish_resume(summary: CatchUpResult) -> void:
+	# The player is back, so the warning-signs notification has nothing left to say (D-057).
+	_notifier.cancel()
 	_journal_transitions(summary)
 	var entries: Array[JournalEntry] = _record_events(summary.events)
 	_prepare_return(summary, false)
@@ -344,6 +393,9 @@ func shutdown() -> void:
 	_last_summary = CatchUpResult.new()
 	_return = ReturnSummary.new()
 	_journal_uid = 0
+	_drop_demo()
+	_notifier = Notifier.new()
+	_haptics = Haptics.new()
 	_refresh()
 
 
@@ -365,6 +417,12 @@ func apply(action: GameAction) -> ActionResult:
 		var not_ready: ActionResult = ActionResult.rejected(action.kind, NOT_READY_KEY)
 		action_applied.emit(not_ready)
 		return not_ready
+	if _demo != null:
+		if action is AdoptStarterAction:
+			_drop_demo()
+		else:
+			return _apply_sandboxed(action, _demo, _demo_env)
+
 	# 1. sync to grid(now)
 	var sync: CatchUpResult = _live_sync(true)
 	_journal_transitions(sync)
@@ -372,6 +430,9 @@ func apply(action: GameAction) -> ActionResult:
 	action.at_unix = _clock.now_unix()
 	# 2. validate
 	var reason: StringName = action.validate(_starter, _env, _catalog)
+	if _starter.empty and not (action is StartAgainAction or action is DiscardStarterAction
+			or action is AdoptStarterAction):
+		reason = GameAction.REASON_EMPTY_JAR
 	if reason == &"" and action is AckEventAction:
 		var ack_check: AckEventAction = action
 		if _ledger.find_pending(ack_check.event_uid) == null:
@@ -412,6 +473,8 @@ func apply(action: GameAction) -> ActionResult:
 			_env = e
 			main_entry = _make_entry(&"environment", StringName("JOURNAL_LOG_MOVE_%s" % Keys.up(e.location)),
 				move.to_dict())
+			# The first move of a merged run keeps the place it started from (OD-22).
+			main_entry.data["from_location"] = String(env_before.location)
 		&"smell":
 			var smell: SmellReadout = SmellModel.read(_starter, _env)
 			result.readout = smell
@@ -436,13 +499,18 @@ func apply(action: GameAction) -> ActionResult:
 		&"discard_starter":
 			var discard: DiscardStarterAction = action
 			main_entry = _discard_starter(discard)
+		&"start_again":
+			var again: StartAgainAction = action
+			_start_again(again)
 		&"adopt":
 			var adopt: AdoptStarterAction = action
 			_adopt(StarterPresets.make(&"new_game", action.at_unix), adopt.starter_name, adopt.path)
+			if adopt.open_unlocks:
+				_history.open_all_unlocks(_starter.sim_time_unix)
 	# 4. derive
 	_refresh()
 	# 5. history
-	_history.record_action(action, before, derived_before, env_before)
+	_history.record_action(action, before, derived_before, env_before, _starter, _clock.local_utc_offset_s())
 	if result.readout is SmellReadout:
 		var sm: SmellReadout = result.readout
 		for d: StringName in [sm.primary] + sm.secondary:
@@ -455,8 +523,12 @@ func apply(action: GameAction) -> ActionResult:
 		_history.record_seen(StringName("inspect.%s.level_%d" % [ir.inspect_kind, ir.level]))
 	# 6. events
 	var rules: Array[EventRule] = EventRules.registry()
-	if not rules.is_empty():
+	# Rules compare a starter with itself a moment ago. Not across a change of starter (adoption, a discard, a
+	# start again: the "before" is another starter, EC-26) or an empty jar (Phase 4).
+	var same_starter: bool = before.id == _starter.id and not action is AdoptStarterAction
+	if not rules.is_empty() and same_starter and not before.empty and not _starter.empty:
 		var ctx: EventContext = _context(before, derived_before, action)
+		ctx.prev_env = env_before
 		result.events = EventRules.process(ctx, rules)
 	# A fridge move that fires off_to_nap is told by the event's own journal entry (game-copy §11).
 	if main_entry != null and main_entry.kind == &"environment":
@@ -465,6 +537,12 @@ func apply(action: GameAction) -> ActionResult:
 				main_entry = null
 				break
 	# 7. journal
+	var merged: JournalEntry = null
+	if main_entry != null and main_entry.kind == &"environment":
+		merged = _merge_move(main_entry)
+		if merged != null:
+			result.journal_entry = merged
+			main_entry = null
 	if main_entry != null:
 		entries.append(main_entry)
 		result.journal_entry = main_entry
@@ -476,9 +554,14 @@ func apply(action: GameAction) -> ActionResult:
 	_collect_releases()
 	# 8. save
 	_save()
+	# A pending warning-signs notification follows every change to its forecast (D-057).
+	if _notifier.is_pending() and action.kind in [&"feed", &"environment", &"discard_starter", &"start_again"]:
+		_update_notification()
 	# 9. signals
 	action_applied.emit(result)
 	_emit_state()
+	if merged != null:
+		journal_appended.emit(merged)
 	_emit_entries(entries)
 	_emit_entries(sync_entries)
 	_emit_entries(event_entries)
@@ -486,13 +569,85 @@ func apply(action: GameAction) -> ActionResult:
 	return result
 
 
-## After the B6 demo (Phase 4): the real save is made from the demo's state (architecture §5.5). The slice
-## names the gifted starter with apply(AdoptStarterAction) instead.
-func adopt_starter(state: StarterState, starter_name: String) -> void:
-	_adopt(state, starter_name, &"tour")
-	_refresh()
-	_save()
+## After the B6 demo: names the gifted starter on the tour path. The same as
+## apply(AdoptStarterAction.new(starter_name, &"tour")): the demo's at-peak end state equals the new_game
+## preset field for field (Demo, tested), so the adopted starter is the one the player watched. `_state` is
+## kept for the Phase 3 signature and not read.
+func adopt_starter(_state: StarterState, starter_name: String) -> ActionResult:
+	return apply(AdoptStarterAction.new(starter_name, &"tour"))
+
+
+# ------------------------------------------------------------------ onboarding demo (Phase 4, architecture §5.5)
+## Starts the sandboxed tour starter: the just-mixed `demo_start` preset, timestamped now (ux-design §14.4:
+## freshly fed from B1). T3 calls it on is_first_run() before M.'s note. Only on a first run, when booted and
+## not catching up. Emits state_changed with the demo's state. Never saves: a kill
+## during the demo relaunches to M.'s note. Returns false when it can't start.
+func begin_demo() -> bool:
+	if not _booted or _job != null or not is_first_run():
+		return false
+	if _demo != null:
+		return true
+	_demo = Demo.start_state(_clock.now_unix())
+	_demo_env = StarterPresets.environment_for(&"demo_start", _clock.now_unix())
+	_refresh_demo()
 	_emit_state()
+	return true
+
+
+func is_in_demo() -> bool:
+	return _demo != null
+
+
+## B6: runs the demo to at_peak, emits state_changed (the at-peak demo state), then demo_played(result) for T2
+## to play. Calling it again replays the same frames' end state with an empty result. Null without a demo.
+func play_demo() -> CatchUpResult:
+	if _demo == null and not begin_demo():
+		return null
+	var res: CatchUpResult = Demo.playback(_demo, _demo_env)
+	_refresh_demo()
+	_emit_state()
+	demo_played.emit(res)
+	return res
+
+
+## Leaves the demo without adopting (for example the player backs out to M.'s note). Shows the real state.
+func end_demo() -> void:
+	if _demo == null:
+		return
+	_drop_demo()
+	_emit_state()
+
+
+func _drop_demo() -> void:
+	_demo = null
+	_demo_env = null
+	_demo_derived = null
+	_demo_visuals = null
+
+
+func _refresh_demo() -> void:
+	_demo_derived = StateDeriver.derive(_demo, _demo_env)
+	_demo_visuals = VisualMapper.from_derived(_demo, _demo_env, _demo_derived)
+
+
+## In the demo (and on the nameless starter), smell and inspect read `state`: no save, journal, history or
+## events. Anything else but adoption waits (REASON_NOT_READY).
+func _apply_sandboxed(action: GameAction, state: StarterState, env: EnvironmentState) -> ActionResult:
+	action.at_unix = _clock.now_unix()
+	var result: ActionResult = ActionResult.accepted(action.kind)
+	if action is SmellAction:
+		result.readout = SmellModel.read(state, env)
+	elif action is InspectAction:
+		var look: InspectAction = action
+		var reason: StringName = look.validate(state, env, _catalog)
+		if reason == &"":
+			result.readout = Inspection.read(state, env, look.inspect_kind)
+		else:
+			result = ActionResult.rejected(action.kind, reason)
+	else:
+		result = ActionResult.rejected(action.kind, NOT_READY_KEY)
+	action_applied.emit(result)
+	return result
 
 
 # ------------------------------------------------------------------ getters (read-only copies)
@@ -502,20 +657,63 @@ func is_booted() -> bool:
 
 ## The new-game start is still to do: the gifted starter has no name yet (M.'s note, then naming, then
 ## AdoptStarterAction). True on the first launch, and again after a kill before naming finished.
+## An empty jar is not a first run: its start is StartAgainAction, not the new-game note.
 func is_first_run() -> bool:
-	return _starter.name.strip_edges().is_empty()
+	return not _starter.empty and _starter.name.strip_edges().is_empty()
 
 
+## Phase 4: the jar holds no starter (after DiscardStarterAction.to_empty_jar(), until StartAgainAction).
+func is_jar_empty() -> bool:
+	return _starter.empty
+
+
+## What the HUD reads. In the onboarding demo, the demo's starter (no name yet).
 func get_snapshot() -> StarterSnapshot:
-	return StarterSnapshot.make(_starter, _derived, _env)
+	if _demo != null:
+		return StarterSnapshot.make(_demo, _demo_derived, _demo_env)
+	var snap: StarterSnapshot = StarterSnapshot.make(_starter, _derived, _env)
+	snap.trait_id = _history.dominant_trait
+	return snap
 
 
+## The shader uniforms now. In the onboarding demo, the demo's.
 func get_visuals() -> VisualParams:
-	return _visuals.copy()
+	return _demo_visuals.copy() if _demo != null else _visuals.copy()
 
 
+## In the onboarding demo, the demo's derivation.
 func get_derived() -> DerivedState:
-	return _derived
+	return _demo_derived if _demo != null else _derived
+
+
+## Phase 4 unlocks (Unlocks, progression §3): flour ids, place ids, &"hydration" (the 60 and 125% presets)
+## and the inspect kinds. Per player: a lost starter keeps them.
+func is_unlocked(id: StringName) -> bool:
+	return Unlocks.is_open(_history.unlocks, id)
+
+
+## The revealed trait of the current starter (Traits.IDS), &"" before the reveal.
+func get_trait() -> StringName:
+	return _history.dominant_trait
+
+
+func get_notifier() -> Notifier:
+	return _notifier
+
+
+func get_haptics() -> Haptics:
+	return _haptics
+
+
+## The settings sheet's notification switch (D-057). Turning it on asks the OS for permission first; a refusal
+## leaves it off. Saves the settings (Bus.settings_changed) and returns the setting's new value.
+func set_notifications_enabled(on: bool) -> bool:
+	if _settings == null:
+		return false
+	var allowed: bool = on and _notifier.backend.request_permission()
+	_settings.notifications = allowed
+	save_settings()
+	return allowed
 
 
 func get_starter() -> StarterState:
@@ -582,6 +780,8 @@ func save_settings() -> Error:
 	if _settings == null:
 		return ERR_UNCONFIGURED
 	var err: Error = _settings.save_settings()
+	if not _settings.notifications:
+		_notifier.cancel()
 	var bus: Node = get_node_or_null("/root/Bus") if is_inside_tree() else null
 	if bus != null:
 		bus.emit_signal(&"settings_changed")
@@ -615,9 +815,11 @@ func forecast_feed(feed: FeedAction) -> PeakForecast:
 
 ## The feed sheet for a schedule answer (&"soon", &"later", &"tomorrow"): the preset that fits, its grams,
 ## discard, forecast words, notes and hooch step. Changes nothing. Runs up to 3 forecasts (about 40 ms).
-func plan_feed(answer: StringName, flour_id: StringName, hooch_choice: StringName = &"pour_off") -> FeedPreview:
+## Phase 4: `hydration_pct` is one of FeedPlanner.HYDRATION_PRESETS (60, 100, 125; OD-25: FeedAction.from_preset).
+func plan_feed(answer: StringName, flour_id: StringName, hooch_choice: StringName = &"pour_off",
+		hydration_pct: float = FeedPlanner.SLICE_HYDRATION_PCT) -> FeedPreview:
 	return FeedPlanner.plan(_starter, _env, _history, answer, flour_id, hooch_choice, now_unix(),
-		local_utc_offset_s())
+		local_utc_offset_s(), hydration_pct)
 
 
 ## The same preview for a feed the UI already has (an exact preset, or last_feed_action()). Changes nothing.
@@ -642,8 +844,10 @@ func preview_memorial() -> Memorial:
 
 ## Which start the next discard gives: &"first_restart" (M.'s spare, RESTART_BODY_FIRST) or &"restart"
 ## (a friend's spoonful, RESTART_BODY_LATER). Read it before applying DiscardStarterAction.
+## On an empty jar (Phase 4) the discard is already in the memorials, so the first loss is one memorial.
 func restart_preset() -> StringName:
-	return &"first_restart" if _memorials.is_empty() else &"restart"
+	var earlier: int = _memorials.size() - (1 if _starter.empty else 0)
+	return &"first_restart" if earlier <= 0 else &"restart"
 
 
 ## The current starter's `starter_seed` (game-copy §1.4).
@@ -750,6 +954,7 @@ func build_payload() -> Dictionary:
 func _finish_boot(summary: CatchUpResult, first_launch: bool) -> void:
 	_booted = true
 	_foreground = true
+	_notifier.cancel()
 	_journal_transitions(summary)
 	var entries: Array[JournalEntry] = _record_events(summary.events)
 	_prepare_return(summary, first_launch)
@@ -764,6 +969,12 @@ func _finish_boot(summary: CatchUpResult, first_launch: bool) -> void:
 ## Builds the return summary for a launch or resume. When it shows, the events it covers are told there (and
 ## in the journal), so they never come back as toasts or cards: only the prompt is still raised.
 func _prepare_return(summary: CatchUpResult, first_launch: bool) -> void:
+	if _starter.empty or (is_first_run() and not first_launch):
+		# An empty jar (ux-design §14.5) or a nameless starter (EC-26, §14.4) has nothing to summarize: no
+		# time-lapse, no away card.
+		_return = ReturnSummary.new()
+		summary.play_time_lapse = false
+		return
 	if first_launch:
 		_return = ReturnSummary.for_first_launch(summary.to_unix)
 	else:
@@ -804,8 +1015,9 @@ func _start_job(kind: StringName, first_launch: bool) -> bool:
 	var steps: int = (Sim.grid(now) - _starter.sim_time_unix) / SimConstants.GRID_S
 	if decision.action != &"catch_up" or steps < ASYNC_MIN_STEPS:
 		return false
-	# The shared rule list is built here, on the main thread, never lazily on the worker.
+	# The shared rule lists are built here, on the main thread, never lazily on the worker.
 	EventRules.registry()
+	EventRules.step_registry(false)
 	_refresh()
 	_emit_state()
 	var job := CatchUpJob.new()
@@ -819,6 +1031,7 @@ func _start_job(kind: StringName, first_launch: bool) -> bool:
 	job.to_unix = now
 	job.utc_offset_s = _clock.local_utc_offset_s()
 	job.mono_ms = _clock.monotonic_msec()
+	job.rules = _step_rules(false)
 	_job = job
 	_job_id = WorkerThreadPool.add_task(job.run, true, "Sourdough catch-up")
 	set_process(true)
@@ -862,7 +1075,8 @@ func _sync_to_clock() -> CatchUpResult:
 	elif decision.action == &"hold":
 		summary = CatchUpResult.empty(_starter.sim_time_unix)
 	else:
-		summary = CatchUp.run(_starter, _env, _history, _ledger, _catalog, now, _clock.local_utc_offset_s(), false)
+		summary = CatchUp.run_with_rules(_starter, _env, _history, _ledger, _catalog, now,
+			_clock.local_utc_offset_s(), false, _step_rules(false))
 	_reset_session_clock(now)
 	_refresh()
 	_last_summary = summary
@@ -879,10 +1093,20 @@ func _live_sync(foreground: bool) -> CatchUpResult:
 	_session_now += maxi(elapsed, 0)
 	_last_wall = now
 	_last_mono_ms += mono_delta_s * 1000
-	var res: CatchUpResult = CatchUp.run(_starter, _env, _history, _ledger, _catalog, _session_now,
-		_clock.local_utc_offset_s(), foreground)
+	var res: CatchUpResult = CatchUp.run_with_rules(_starter, _env, _history, _ledger, _catalog, _session_now,
+		_clock.local_utc_offset_s(), foreground, _step_rules(foreground))
 	_refresh()
 	return res
+
+
+## The rules a catch-up evaluates (D-061's step registry). None for the nameless gifted starter (EC-26,
+## ux-design §14.4): its time passes and its clock rules apply, but it raises no event, its state changes
+## write no journal line (_journal_transitions) and it gets no return flow. Adoption builds a fresh starter.
+func _step_rules(foreground: bool) -> Array[EventRule]:
+	if is_first_run():
+		var none: Array[EventRule] = []
+		return none
+	return EventRules.step_registry(foreground)
 
 
 func _reset_session_clock(now: int) -> void:
@@ -892,12 +1116,16 @@ func _reset_session_clock(now: int) -> void:
 
 
 func _refresh() -> void:
+	if _starter.empty:
+		_derived = DerivedState.new()
+		_visuals = VisualMapper.empty_jar(_env)
+		return
 	_derived = StateDeriver.derive(_starter, _env)
 	_visuals = VisualMapper.from_derived(_starter, _env, _derived)
 
 
 func _emit_state() -> void:
-	state_changed.emit(get_snapshot(), _visuals.copy())
+	state_changed.emit(get_snapshot(), get_visuals())
 
 
 ## Journals newly admitted events (once, when admitted). Returns the entries; the caller emits
@@ -907,6 +1135,15 @@ func _record_events(events: Array[SimEvent]) -> Array[JournalEntry]:
 	for e: SimEvent in events:
 		var key: StringName = e.key_for("JOURNAL_TITLE")
 		var data: Dictionary = {"event_id": String(e.id), "event_uid": e.uid}
+		if e.id == &"trait_revealed":
+			# narrative §7.3: the trait's own page on a reveal, events-catalog §4.8's drift lines on a drift.
+			var trait_id: String = str(e.payload.get("trait", ""))
+			if bool(e.payload.get("drift", false)) or trait_id.is_empty():
+				data["body_key"] = "EVENT_TRAIT_DRIFT_JOURNAL_BODY"
+				key = &"EVENT_TRAIT_DRIFT_JOURNAL_TITLE"
+			else:
+				data["body_key"] = "TRAIT_%s_JOURNAL_BODY" % trait_id.to_upper()
+				key = StringName("TRAIT_%s_JOURNAL_TITLE" % trait_id.to_upper())
 		if e.id == &"peaked_while_away":
 			# events-catalog §3.2: the _AWAY_ peak lines double as the journal's peak log lines.
 			var word: String = str(e.payload.get("rise_word", ""))
@@ -917,6 +1154,20 @@ func _record_events(events: Array[SimEvent]) -> Array[JournalEntry]:
 		entry.at_unix = e.created_unix
 		# Rules put the copy's placeholder values in the payload (events-catalog.md).
 		entry.args = DictReader.canonical_dict(e.payload)
+		_append_journal(entry)
+		out.append(entry)
+	out.append_array(_journal_unlocks())
+	return out
+
+
+## One milestone line per new unlock (progression §3: "a one-time narrator intro and a journal line"):
+## UNLOCK_<ID>_TOAST, with UNLOCK_<ID>_BODY as data.body_key. T3 may show the line as a toast.
+func _journal_unlocks() -> Array[JournalEntry]:
+	var out: Array[JournalEntry] = []
+	for id: StringName in _history.take_new_unlocks():
+		var entry: JournalEntry = _make_entry(&"milestone", Unlocks.toast_key(id), {
+			"milestone": "unlock", "unlock": String(id), "body_key": String(Unlocks.body_key(id)),
+		})
 		_append_journal(entry)
 		out.append(entry)
 	return out
@@ -1046,6 +1297,12 @@ func _adopt(state: StarterState, starter_name: String, path: StringName) -> void
 	_env = StarterPresets.environment_for(&"new_game", now)
 	_history.reset_for_new_starter()
 	_history.onboarding_path = path
+	# EC-26: nothing from the nameless days carries over. Its catch-ups never stepped, but an older save may
+	# still hold events, so the adopted starter starts with none pending.
+	for e: SimEvent in _ledger.pending.duplicate():
+		_ledger.remove_pending(e.uid)
+		if _released.has(e.uid):
+			_to_withdraw.append(e.uid)
 	_reset_session_clock(now)
 
 
@@ -1066,6 +1323,7 @@ func _build_memorial(now: int) -> Memorial:
 	m.best_rise = _history.best_rise
 	@warning_ignore("integer_division")
 	m.unfed_days = _history.warm_unfed_s / 86400
+	m.trait_id = _history.dominant_trait
 	return m
 
 
@@ -1074,14 +1332,66 @@ func _discard_starter(action: DiscardStarterAction) -> JournalEntry:
 	var m: Memorial = _build_memorial(now)
 	var entry: JournalEntry = _make_entry(&"memorial", &"MEMORIAL_TITLE", m.to_dict())
 	entry.args = {"name": m.name}
+	# The old starter's waiting events (the mold_found sheet, a warning card) go with it, so none comes back on
+	# the next launch. Raised ones are withdrawn (event_withdrawn). Ack them first if the UI needs the ack.
+	for e: SimEvent in _ledger.pending.duplicate():
+		_ledger.remove_pending(e.uid)
+		if _released.has(e.uid):
+			_to_withdraw.append(e.uid)
 	var preset: StringName = restart_preset()
 	_memorials.append(m)
+	if action.keep_empty:
+		# Phase 4: committed at "Discard". The jar is washed and stays empty until StartAgainAction.
+		_starter = StarterState.make_empty(now)
+		_history.reset_for_new_starter()
+		return entry
+	_new_starter_from(preset, action.new_name, now)
+	return entry
+
+
+## "Start again" from the empty jar: a fresh spoonful from restart_preset(), named.
+func _start_again(action: StartAgainAction) -> void:
+	_new_starter_from(restart_preset(), action.starter_name, action.at_unix)
+
+
+func _new_starter_from(preset: StringName, starter_name: String, now: int) -> void:
 	_starter = StarterPresets.make(preset, now)
 	_starter.id = _new_id()
-	_starter.name = action.new_name.strip_edges()
+	_starter.name = starter_name.strip_edges()
 	_env = StarterPresets.environment_for(preset, now)
 	_history.reset_for_new_starter()
-	return entry
+	if preset == &"first_restart":
+		# M.'s spare comes out of the fridge cold: a fridge wake, so waking_up can fire (mechanics §8.2, T4).
+		_history.fridge_left_unix = Sim.grid(_starter.born_unix)
+
+
+## OD-22: folds a move into the previous move's line when that line is the newest journal entry, belongs to
+## this starter and was written less than MOVE_MERGE_S ago. The line then names the latest place and keeps the
+## place the run started from (data.from_location). Returns the updated entry, or null to append normally.
+func _merge_move(entry: JournalEntry) -> JournalEntry:
+	if _journal.is_empty():
+		return null
+	var last: JournalEntry = _journal[_journal.size() - 1]
+	if last.kind != &"environment" or last.starter_id != entry.starter_id:
+		return null
+	if entry.at_unix - last.at_unix > MOVE_MERGE_S or entry.at_unix < last.at_unix:
+		return null
+	var data: Dictionary = entry.data.duplicate()
+	data["from_location"] = str(last.data.get("from_location", entry.data.get("from_location", "")))
+	data["merged_moves"] = roundi(DictReader.float_of(last.data.get("merged_moves", 1))) + 1
+	last.text_key = entry.text_key
+	last.at_unix = entry.at_unix
+	last.state_id = entry.state_id
+	last.data = DictReader.saved_form(data)
+	last.args = DictReader.saved_form(entry.args)
+	last.invalidate_size()
+	return last
+
+
+## Plans the warning-signs notification from the current state (D-057). Not for an unnamed gifted starter.
+func _update_notification() -> void:
+	var enabled: bool = _settings != null and _settings.notifications and not is_first_run()
+	_notifier.update(_starter, _env, _clock.now_unix(), _clock.local_utc_offset_s(), enabled, _starter.name)
 
 
 func _feed_entry(feed: FeedAction, before: StarterState, derived_before: DerivedState) -> JournalEntry:
@@ -1106,8 +1416,10 @@ func _feed_entry(feed: FeedAction, before: StarterState, derived_before: Derived
 
 
 ## The first feed after adoption closes the new-game start (narrative §8.2, B8): the Day one page.
+## JOURNAL_DAY_ONE_BODY says it was fed right at its peak, so it needs the tour and an on-time first feed
+## (ux-design §14.4); anything else gets the _SKIP_BODY.
 func _day_one_entry() -> JournalEntry:
-	var skip: bool = _history.onboarding_path == &"skip"
+	var skip: bool = _history.onboarding_path != &"tour" or _history.last_feed_timing != &"on_time"
 	var entry: JournalEntry = _make_entry(&"milestone", &"JOURNAL_DAY_ONE_TITLE", {
 		"milestone": "day_one", "path": String(_history.onboarding_path),
 		"body_key": "JOURNAL_DAY_ONE_SKIP_BODY" if skip else "JOURNAL_DAY_ONE_BODY",
@@ -1150,6 +1462,8 @@ func _append_journal(entry: JournalEntry) -> void:
 
 
 func _journal_transitions(res: CatchUpResult) -> void:
+	if is_first_run():
+		return
 	for t: Dictionary in res.transitions:
 		var to_state: String = t.get("to", "")
 		var cause: String = t.get("cause", "")
@@ -1287,6 +1601,13 @@ func _wire_bus() -> void:
 		return
 	bus.connect(&"interaction_started", _on_interaction_started)
 	bus.connect(&"interaction_ended", _on_interaction_ended)
+	bus.connect(&"feedback", on_feedback)
+
+
+## Bus.feedback(moment): the moment's haptic pulse, when haptics are on (D-059). T2 plays the sound itself.
+## Returns true when a pulse played. Tests call it directly.
+func on_feedback(moment: StringName) -> bool:
+	return _haptics.play(moment)
 
 
 func _on_interaction_started() -> void:

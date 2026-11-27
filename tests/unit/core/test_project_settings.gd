@@ -27,6 +27,10 @@ const EXPECTED: Dictionary = {
 	"debug/gdscript/warnings/unsafe_cast": 1,
 	"debug/gdscript/warnings/unsafe_call_argument": 1,
 	"input_devices/pointing/emulate_touch_from_mouse": true,
+	# Phase 4 (sound-designer, ux-design §14.3): the iOS Ambient session (the 4.7.2 default, 0, so not in the
+	# file) honors the silent switch, and mixing lets the player's own music keep playing.
+	"audio/general/ios/session_category": 0,
+	"audio/general/ios/mix_with_others": true,
 }
 
 

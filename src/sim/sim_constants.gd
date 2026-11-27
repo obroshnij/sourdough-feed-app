@@ -63,6 +63,8 @@ const RECOVER_VIGOR: float = 0.6
 const RECOVER_AT_FEED: float = 0.75
 const MOLD_WATCH: float = 0.3
 const MOLD_WARN: float = 0.5
+## spec v1.1 §13.1: a smell is "faint" when every non-musty intensity is under this (after cold damping).
+const SMELL_FAINT_MAX: float = 0.30
 
 # --- clamping ranges (spec §1)
 const STARVED_H_MAX: float = 336.0

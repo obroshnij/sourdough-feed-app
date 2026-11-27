@@ -14,11 +14,23 @@ var is_warning: bool = false
 var can_feed: bool = true
 var maturity_stage: StringName = &"young"
 var location: StringName = &"counter"
+## Phase 4. The jar holds no starter (after "Discard", until "Start again"). Then state, rise_phase and name
+## are empty, can_feed is false, and the HUD shows the empty-jar screen (EMPTY_JAR_TITLE, EMPTY_JAR_BODY).
+var empty_jar: bool = false
+## Phase 4. The revealed trait (Traits.IDS), &"" before the reveal: picks the trait copy variants.
+var trait_id: StringName = &""
 
 
 static func make(s: StarterState, d: DerivedState, env: EnvironmentState) -> StarterSnapshot:
 	var snap := StarterSnapshot.new()
 	snap.name = s.name
+	snap.location = env.location
+	if s.empty:
+		snap.empty_jar = true
+		snap.state = &""
+		snap.can_feed = false
+		snap.maturity_stage = &""
+		return snap
 	snap.state = d.state
 	snap.rise_phase = d.rise_phase
 	snap.dormant_cause = d.dormant_cause

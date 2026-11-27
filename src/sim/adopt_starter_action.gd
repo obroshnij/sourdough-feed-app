@@ -10,15 +10,21 @@ extends GameAction
 ## JOURNAL_DAY_ONE_SKIP_BODY.
 var path: StringName = &"skip"
 var starter_name: String = ""
+## Phase 4: open every unlock at once (progression §3, "I've kept a starter before"). True by default on the
+## skip path. T3 sets it false when "Skip tour" is tapped mid-tour (ux-design §14.4, open decision §20).
+var open_unlocks: bool = true
 
 
 func _init(name_text: String = "", path_id: StringName = &"skip") -> void:
 	kind = &"adopt"
 	starter_name = name_text
 	path = path_id
+	open_unlocks = path_id == &"skip"
 
 
 func validate(state: StarterState, _env: EnvironmentState, _catalog: SimCatalog) -> StringName:
+	if state.empty:
+		return REASON_EMPTY_JAR
 	if not state.name.is_empty() or not PlayerHistory.ONBOARDING_PATHS.has(path):
 		return REASON_ADOPT
 	return &"" if valid_name(starter_name) else REASON_NAME

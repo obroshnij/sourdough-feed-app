@@ -67,9 +67,26 @@ static func intensity_word(value: float) -> StringName:
 	return &""
 
 
+## spec v1.1 §13.1 (sim.py smell_check, V21), first match wins: moldy &""; musty present (mold_risk >= 0.3)
+## &"musty"; every other intensity under SMELL_FAINT_MAX (after cold damping) &"faint"; else &"". The UI
+## offers "Try inspecting the surface" whenever it isn't &"", and the "Hard to say" line only for &"faint".
+static func smell_check(s: StarterState, values: Dictionary[StringName, float]) -> StringName:
+	if s.moldy:
+		return &""
+	if values.get(&"musty", 0.0) > 0.0:
+		return &"musty"
+	for id: StringName in values:
+		if id != &"musty" and values[id] >= SimConstants.SMELL_FAINT_MAX:
+			return &""
+	return &"faint"
+
+
 static func read(s: StarterState, env: EnvironmentState) -> SmellReadout:
 	var out := SmellReadout.new()
 	out.intensities = intensities(s, env)
+	out.check = smell_check(s, out.intensities)
+	if out.check == &"faint":
+		out.faint_cause = &"cold" if Sim.ferm(s.temp_c) < SimConstants.DORMANT_COLD_FERM else &"mild"
 	var list: Array[StringName] = shown(out.intensities)
 	if list.is_empty():
 		return out

@@ -14,9 +14,14 @@ extends RefCounted
 ##   p3_rules      EventRules.registry() is T4's RuleIndex, live in catch-up, live ticks and every action;
 ##                 launch and resume catch-ups of 2 h or more run on a WorkerThreadPool thread in the real app
 ##                 (boot_async, resume_async, wait_for_catch_up); D-048's strong-peak reference
+##   p4_contracts  Phase 4 contracts: hydration presets (FeedAction.from_preset), unlocks, traits, the empty
+##                 jar (DiscardStarterAction.to_empty_jar, StartAgainAction), the onboarding demo (begin_demo,
+##                 play_demo, demo_start), the journal merge of quick moves (OD-22), Notifier, Haptics,
+##                 sound settings, EventContext.prev_env, feed_ref_at_peak_s, the smell check
 
 const LANDED: Array[StringName] = [
 	&"contracts", &"m2_sim", &"m3_clock", &"m4_save", &"m5_catchup", &"p3_contracts", &"p3_rules",
+	&"p4_contracts",
 ]
 
 

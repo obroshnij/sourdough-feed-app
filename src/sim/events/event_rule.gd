@@ -9,6 +9,12 @@ var tier: StringName = &"info"
 var cooldown_s: int = 0
 ## Fires at most once per save.
 var one_time: bool = false
+## Phase 4 (PERF-03). False for a rule that can only fire right after an action (it returns null whenever
+## ctx.last_action is null). Plain steps, and so every catch-up, then skip it.
+var on_steps: bool = true
+## Phase 4 (PERF-03). False for a rule that never fires with ctx.app_foreground false. Background catch-ups
+## (launch, resume) then skip it.
+var background: bool = true
 
 
 ## Returns an event, or null when the rule doesn't fire on this step.

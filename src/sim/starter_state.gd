@@ -16,6 +16,10 @@ var id: String = ""
 var name: String = ""
 var born_unix: int = 0
 var sim_time_unix: int = 0
+## The jar holds no starter (Phase 4, the D-047 follow-up): after "Discard", until "Start again". Every sim
+## variable is meaningless while true. CatchUp never steps an empty jar (it only moves sim_time_unix), and
+## Session never derives, maps or feeds one. Saved only when true, so older saves load unchanged.
+var empty: bool = false
 
 # sim variables (spec §1)
 var food: float = 0.05
@@ -50,6 +54,14 @@ func rebase_to(now_unix: int) -> void:
 	born_unix = now_unix
 
 
+## The empty jar at grid(now_unix): no id, no name, no culture.
+static func make_empty(now_unix: int) -> StarterState:
+	var s := StarterState.new()
+	s.empty = true
+	s.rebase_to(now_unix)
+	return s
+
+
 ## The `starter_seed` of game-copy §1.4 (name suggestions, epitaph): a non-negative int from the starter's
 ## 16-hex id, fixed for the starter's life. 0 for an empty or non-hex id.
 static func seed_of(starter_id: String) -> int:
@@ -78,6 +90,7 @@ func copy_from(other: StarterState) -> void:
 	name = other.name
 	born_unix = other.born_unix
 	sim_time_unix = other.sim_time_unix
+	empty = other.empty
 	food = other.food
 	food_at_feed = other.food_at_feed
 	yeast = other.yeast
@@ -110,6 +123,7 @@ func copy() -> StarterState:
 	s.name = name
 	s.born_unix = born_unix
 	s.sim_time_unix = sim_time_unix
+	s.empty = empty
 	s.food = food
 	s.food_at_feed = food_at_feed
 	s.yeast = yeast
@@ -144,6 +158,8 @@ func to_dict() -> Dictionary:
 		"sim_time_unix": sim_time_unix,
 		"moldy": moldy,
 	}
+	if empty:
+		d["empty"] = true
 	for f: String in FLOAT_FIELDS:
 		d[f] = get(f)
 	var mix: Dictionary = {}
@@ -162,6 +178,7 @@ static func from_dict(d: Dictionary) -> StarterState:
 	s.born_unix = r.integer("born_unix")
 	s.sim_time_unix = r.integer("sim_time_unix")
 	s.moldy = r.flag("moldy")
+	s.empty = r.flag_or("empty", false)
 	for f: String in FLOAT_FIELDS:
 		s.set(f, r.num(f))
 	var mix: Dictionary[StringName, float] = r.num_map("flour_mix")

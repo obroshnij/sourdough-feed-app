@@ -9,6 +9,9 @@ var derived: DerivedState = null
 ## Derivation of prev_state, so state_enter rules can compare labels.
 var prev_derived: DerivedState = null
 var env: EnvironmentState = null
+## The environment before an action (off_to_nap needs the old place). On a plain step it is the same object
+## as `env`, since only an action changes the environment.
+var prev_env: EnvironmentState = null
 var history: PlayerHistory = null
 var ledger: EventLedger = null
 var now_unix: int = 0

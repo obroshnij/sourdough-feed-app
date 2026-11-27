@@ -50,6 +50,11 @@ func saved_bytes() -> int:
 	return _saved_bytes
 
 
+## Forgets the cached size after an in-place update (Session's merge of quick moves, OD-22).
+func invalidate_size() -> void:
+	_saved_bytes = -1
+
+
 ## Appends, then trims while the list is over `cap` entries or over `byte_cap` saved bytes: the oldest
 ## state_change first, then the oldest inspect or smell, then the oldest of any other kind. memorial and
 ## milestone entries are never dropped. The byte cap keeps save.json inside its 128 KB budget in long play

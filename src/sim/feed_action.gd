@@ -37,6 +37,16 @@ static func from_ratio(f: float, w: float, flour_id: StringName, hydration_pct: 
 	return a
 
 
+## A ratio preset at a hydration preset (P1, game-mechanics §2.1 and §2.3): 1 : f : f x h / 100, total about
+## 150 g. Keep = round(150 / (1 + f + f x h / 100)), flour = keep x f, water = flour x h / 100; for 1:5:5 and
+## thinner, flour and water are rounded to 5 g. Equal to from_ratio(f, f, flour) at 100%. Every preset of
+## FeedPlanner.RATIOS x HYDRATION_PRESETS lands within MASS_TOLERANCE_G of 150 g:
+##   60%   1:1:1 58/58/34.8   1:2:2 36/72/43.2   1:5:5 17/85/50
+##   125%  1:1:1 46/46/57.5   1:2:2 27/54/67.5   1:5:5 12/60/75
+static func from_preset(f: float, flour_id: StringName, hydration_pct: float = 100.0) -> FeedAction:
+	return from_ratio(f, f * hydration_pct / 100.0, flour_id, hydration_pct)
+
+
 func flour_total_g() -> float:
 	var total: float = 0.0
 	for k: StringName in flour_g:
