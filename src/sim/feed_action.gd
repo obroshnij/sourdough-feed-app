@@ -77,6 +77,16 @@ func main_flour() -> StringName:
 	return main
 
 
+## The facts a journal feed entry keeps: only what can't be derived. Ratio and hydration follow from the
+## grams (ratio(), hydration_pct() on FeedAction.from_dict(facts)), so they aren't stored per entry
+## (QA's SAVE-13 finding: the save outgrew 128 KB in long play).
+func journal_facts() -> Dictionary:
+	var flours: Dictionary = {}
+	for k: StringName in flour_g:
+		flours[String(k)] = flour_g[k]
+	return {"kept_g": kept_g, "flour_g": flours, "water_g": water_g, "hooch_choice": String(hooch_choice)}
+
+
 ## A field-by-field copy (AC-05.3: "feed like last time" equals the previous feed except the time).
 func copy() -> FeedAction:
 	var a := FeedAction.new()

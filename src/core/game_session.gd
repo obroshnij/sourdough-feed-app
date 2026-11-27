@@ -1091,7 +1091,7 @@ func _feed_entry(feed: FeedAction, before: StarterState, derived_before: Derived
 		key = &"JOURNAL_LOG_FEED_AT_PEAK"
 	elif timing == &"rescue":
 		key = &"JOURNAL_LOG_FEED_RESCUE"
-	var data: Dictionary = feed.to_dict()
+	var data: Dictionary = feed.journal_facts()
 	data["timing"] = String(timing)
 	data["had_hooch"] = before.hooch >= CatchUp.HOOCH_VISIBLE
 	data["feed_u"] = _starter.feed_u
