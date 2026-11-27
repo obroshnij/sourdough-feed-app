@@ -29,8 +29,7 @@ func evaluate(ctx: EventContext) -> SimEvent:
 	var s: StarterState = ctx.state
 	if s.vigor_at_feed < PlayerHistory.STRONG_VIGOR_AT_FEED:
 		return null
-	var armed: int = maxi(RuleFacts.history_int(ctx.history, &"last_very_late_feed_unix"),
-		RuleFacts.history_int(ctx.history, &"fridge_left_unix"))
+	var armed: int = maxi(ctx.history.last_very_late_feed_unix, ctx.history.fridge_left_unix)
 	if armed <= 0 or RuleFacts.feed_unix(s) < armed:
 		return null
 	if RuleFacts.fired_after(ctx.ledger, id, armed):

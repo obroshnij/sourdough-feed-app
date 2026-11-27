@@ -39,21 +39,3 @@ static func fired_for_starter(ledger: EventLedger, id: StringName, s: StarterSta
 ## Positive and neutral events never fire while the starter shows warning signs or mold (CLAUDE.md rule 5).
 static func shows_danger(d: DerivedState) -> bool:
 	return d.state == &"unhealthy" or d.state == &"moldy"
-
-
-## An int field of PlayerHistory that T1 may not have landed yet. Absent: `fallback`.
-static func history_int(h: PlayerHistory, field: StringName, fallback: int = 0) -> int:
-	var v: Variant = h.get(field)
-	if typeof(v) == TYPE_INT:
-		var n: int = v
-		return n
-	return fallback
-
-
-## A bool field of PlayerHistory that T1 may not have landed yet. Absent: `fallback`.
-static func history_bool(h: PlayerHistory, field: StringName, fallback: bool) -> bool:
-	var v: Variant = h.get(field)
-	if typeof(v) == TYPE_BOOL:
-		var b: bool = v
-		return b
-	return fallback

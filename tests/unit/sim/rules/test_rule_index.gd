@@ -25,7 +25,7 @@ const KEYS: Dictionary = {
 	&"back_to_strength": ["TOAST", "AWAY", "JOURNAL_TITLE", "JOURNAL_BODY"],
 	&"warning_signs": ["TITLE", "BODY", "BTN_FEED", "BTN_LOOK", "OUTCOME_FED", "AWAY_HOURS", "AWAY_DAYS",
 		"JOURNAL_TITLE", "JOURNAL_BODY"],
-	&"mold_found": ["AWAY"],
+	&"mold_found": ["AWAY", "JOURNAL_TITLE", "JOURNAL_BODY"],
 }
 const MOLD_SHEET_KEYS: Array[String] = ["MOLD_SHEET_TITLE", "MOLD_SHEET_BODY", "MOLD_CONFIRM_TITLE",
 	"MOLD_CONFIRM_BODY", "MOLD_CONFIRM_YES", "MOLD_CONFIRM_NO"]

@@ -39,8 +39,7 @@ func test_one_time_per_starter() -> void:
 	check_eq(w.of(ID).size(), 1, "the second crossing doesn't fire it again")
 	# The starter is discarded and a new one starts (GameSession._discard_starter): same ledger, new born_unix.
 	var t: int = w.state.sim_time_unix
-	w.state = StarterPresets.make(&"restart", t)
-	w.env = StarterPresets.environment_for(&"restart", t)
+	w.new_starter(&"restart")
 	w.feed()
 	w.away_to(t + 12 * H)
 	check_eq(w.of(ID).size(), 2, "a new starter gets its own first_rise")

@@ -21,7 +21,7 @@ func evaluate(ctx: EventContext) -> SimEvent:
 	var s: StarterState = ctx.state
 	if RuleFacts.fired_after(ctx.ledger, id, RuleFacts.cycle_start(s)):
 		return null
-	var left: int = RuleFacts.history_int(ctx.history, &"unhealthy_left_unix")
+	var left: int = ctx.history.unhealthy_left_unix
 	if left > 0 and s.sim_time_unix - left < RuleFacts.WARNING_REARM_S:
 		return null
 	return make_event(ctx, {"began_unix": s.sim_time_unix})
