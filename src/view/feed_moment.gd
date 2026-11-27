@@ -2,11 +2,12 @@ class_name FeedMoment
 extends RefCounted
 ## Feed sequence visuals (Bus.feed_moment, art-direction.md §8). Pure: the caller passes dt and reads
 ## the outputs. It only animates between sim states: the fed state itself still comes from Session.
-##   discard  level drops (0.6 s, ease-in)
-##   scoop    the lid lifts 8 mm and turns 10 degrees (0.5 s)
-##   pour     flour dust, and the level comes back with a damped wobble (0.8 s, 2 oscillations)
-##   stir     lumps jump toward the fed look, a small wobble
-##   settle() the fed state arrived: the band snaps (0.35 s, ease-out back, 6% overshoot), lid lowers
+##   hooch    the lid lifts at the first beat into the jar, the level dips a little
+##   discard  the lid lifts if it isn't up yet; the level drops (0.6 s, ease-in)
+##   scoop    flour dust lands at +0.45 s, where feed_scoop.wav lands the flour (audio-direction §6)
+##   pour     water: the level comes back with a damped wobble (0.8 s, 2 oscillations)
+##   stir     lumps jump toward the fed look
+##   settle   T1's last beat: the band snaps (0.35 s, ease-out back, 6% overshoot), lid lowers
 ## If the fed state never arrives, everything eases back after TIMEOUT_S.
 
 const DISCARD_S: float = 0.6
@@ -36,6 +37,8 @@ var _lid_from: float = 0.0
 var _lid_to: float = 0.0
 var _lid_t: float = 1.0
 var _since_start: float = -1.0
+var _dust_in: float = -1.0
+const DUST_DELAY_S: float = 0.45
 
 
 func active() -> bool:
@@ -49,12 +52,15 @@ func begin(step: StringName) -> void:
 	if _since_start < 0.0:
 		_since_start = 0.0
 	match step:
+		&"hooch", &"discard":
+			if _lid_to < 1.0:
+				_lift(1.0)
 		&"scoop":
-			_lift(1.0)
-		&"pour":
-			dust = true
+			_dust_in = DUST_DELAY_S
 		&"stir":
 			lumps_add = 0.6
+		&"settle":
+			settle()
 
 
 ## The fed state arrived from Session: snap the band, settle the level, lower the lid.
@@ -72,10 +78,17 @@ func step(dt: float) -> void:
 		return
 	_since_start += dt
 	_t += dt
+	if _dust_in >= 0.0:
+		_dust_in -= dt
+		if _dust_in < 0.0:
+			dust = true
 	match _step:
 		&"discard":
 			var k: float = clampf(_t / DISCARD_S, 0.0, 1.0)
 			rise_mul = lerpf(_from, DISCARD_TO, k * k)
+		&"hooch":
+			var kh: float = clampf(_t / DISCARD_S, 0.0, 1.0)
+			rise_mul = lerpf(_from, 0.92, kh * kh)
 		&"pour", &"settle":
 			rise_mul = _refill(_from, _t)
 	if _step == &"settle":

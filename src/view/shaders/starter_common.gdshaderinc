@@ -24,6 +24,8 @@ uniform float dullness = 0.0;
 uniform float mold = 0.0;
 uniform float big_bubble = 0.0;
 uniform float time_override = -1.0;
+// Phase 4: rye's fissured top (art-direction.md §20.2), 0..1.
+uniform float crack = 0.0;
 
 // View only. authored_h comes from the GLB extras (starter_authored_height_m).
 uniform float authored_h = 0.030;
@@ -97,7 +99,8 @@ float edge_height() {
 
 // Same stretch as the art contract (web strands at peak).
 float stretch_amount() {
-	return bubble_size * smoothstep(1.5, 2.3, rise);
+	// No web for rye: it rises as a bubbly paste, not a stretchy web (§20.3).
+	return bubble_size * smoothstep(1.5, 2.3, rise) * (1.0 - step(0.001, crack));
 }
 
 vec3 grade(vec3 c) {

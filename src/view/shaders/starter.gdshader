@@ -29,10 +29,13 @@ uniform float hooch_value = 1.0;
 uniform float hooch_desat = 0.0;
 // Extra lift for the dark old hooch only (weighted by dullness), so R12 moves and R10 doesn't.
 uniform float hooch_dark_lift = 1.0;
+// Bran flake grade (per renderer): Compatibility's Filmic pushes dark brown flakes under hue 25.
+uniform float flake_k = 1.0;
+uniform float flake_desat = 0.0;
 
 const float TAP = 1.5 / 512.0;
 const vec2 LIGHT_UV = vec2(-0.35, 0.94);
-const vec3 FLECK_COLOR = vec3(0.2542, 0.1413, 0.0648);   // #8A6A48, linear
+const vec3 FLECK_COLOR = vec3(0.2086, 0.1104, 0.0482);   // #7E5E3E, linear, every flour (§20.3)
 const vec3 TINT_WHITE = vec3(0.9131, 0.8308, 0.6724);    // white_bread tint, linear
 // Mold, art-direction.md §2.1 (moldy only).
 const vec3 MOLD_HALO = vec3(0.9047, 0.9047, 0.8550);
@@ -152,6 +155,8 @@ void fragment() {
 	vec2 uv_top = vec2(p.x * cr + p.z * sr, p.z * cr - p.x * sr) / TOP_TILE_M;
 	vec4 mt = texture(top_mask, uv_top);
 	vec3 ft = feature(mt, bubble_density * 0.9, bubble_size * 0.8);
+	// A dry skin hides the pits (§20.3): no open pits through it.
+	ft.x *= 1.0 - surface_dryness;
 	float cav_t = 0.86 - 0.28 * ft.y;
 
 	float air = mix(fs.x, ft.x, top_w) * (1.0 - in_hooch);
@@ -166,11 +171,13 @@ void fragment() {
 	float dry = surface_dryness * top_w;
 	paste = mix(paste, CRUST_COLOR * flour_ratio, dry * 0.85);
 	// Fine crackle on a dry skin.
-	float crack = (1.0 - smoothstep(0.02, 0.06, cell_edge(p.xz / 0.0025))) * dry;
-	paste *= 1.0 - 0.07 * crack;
-	// Bran flecks (whole_wheat, rye).
-	float fl = step(1.0 - 0.03 * fleck, vnoise(tone_p * 2600.0)) * step(0.001, fleck);
-	paste = mix(paste, FLECK_COLOR, fl * 0.35);
+	float crackle = (1.0 - smoothstep(0.02, 0.06, cell_edge(p.xz / 0.0025))) * dry;
+	paste *= 1.0 - 0.07 * crackle;
+	// Bran flakes, 0.8 to 1.2 mm on 2.4 mm cells (§20.3). Never inside a pocket (applied below).
+	vec2 fc = tone_p / 0.0024;
+	vec2 fi = floor(fc);
+	vec2 fo = fract(fc) - (0.25 + 0.5 * hash22(fi));
+	float flake = (1.0 - smoothstep(0.16, 0.25, length(fo * vec2(1.0, 1.6)))) * step(hash12(fi + 7.0), fleck * 0.45);
 	// Unhealthy: a little grayer and duller, never a new hue.
 	float l = dot(paste, vec3(0.2126, 0.7152, 0.0722));
 	paste = mix(paste, vec3(l) * 0.97, 0.15 * dullness);
@@ -178,12 +185,25 @@ void fragment() {
 	paste *= mix(1.0, cap_value, top_w);
 	vec3 pocket = POCKET_COLOR * flour_ratio;
 	pocket = mix(vec3(dot(pocket, vec3(0.2126, 0.7152, 0.0722))), pocket, 1.25);
+	vec3 flake_col = mix(FLECK_COLOR, vec3(dot(FLECK_COLOR, vec3(0.2126, 0.7152, 0.0722))), flake_desat);
+	paste = mix(paste, flake_col, flake * 0.85 * flake_k * (1.0 - air));
 	vec3 albedo = mix(paste, pocket, air * (0.55 + 0.35 * dep) * pocket_k);
 	albedo *= mix(1.0, cav, air * pocket_k);
 
-	vec3 hooch_col = mix(HOOCH_COLOR, HOOCH_OLD_COLOR, 0.6 * dullness) * mix(vec3(1.0), flour_ratio, 0.5);
+	// Hooch ignores the flour (§20.3): dark hooch stays a time cue on every flour.
+	vec3 hooch_col = mix(HOOCH_COLOR, HOOCH_OLD_COLOR, 0.6 * dullness);
 	hooch_col = mix(hooch_col, vec3(dot(hooch_col, vec3(0.2126, 0.7152, 0.0722))), hooch_desat) * mix(hooch_value, hooch_value * hooch_dark_lift, dullness);
 	albedo = mix(albedo, hooch_col, in_hooch * hooch_mix);
+
+	// Rye cracks on the cap: a few wide, moist splits in pocket tone, about 16 mm apart (§20.3).
+	vec2 cp = p.xz + (vec2(vnoise(p.xz * 90.0), vnoise(p.xz * 90.0 + 17.0)) - 0.5) * 0.012;
+	float ce = cell_edge(cp / 0.016);
+	float cw = crack * 0.075 * mix(0.12, 1.0, smoothstep(0.38, 0.62, vnoise(p.xz * 70.0)));
+	float con = step(0.001, crack) * top_w * (1.0 - in_hooch);
+	float fissure = (1.0 - smoothstep(cw * 0.35, cw, ce)) * con;
+	float shoulder = (1.0 - smoothstep(cw, cw * 2.2, ce)) * con;
+	albedo = mix(albedo, pocket, fissure * 0.85 + shoulder * 0.25);
+	albedo *= mix(1.0, cav_t, fissure);
 
 	vec4 colony = mold_colony(p.xz) * top_w;
 	albedo = mix(albedo, colony.rgb, colony.a);

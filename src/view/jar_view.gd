@@ -1,5 +1,8 @@
 class_name JarView
 extends Node3D
+
+## The lid's lift (0 on, 1 up), for the lid sounds.
+signal lid_moved(k: float)
 ## The jar: binds the jar_v0 GLB by its contract node names (art-direction.md §12), owns every
 ## material on it, and shows a VisualParams. Reads sim types only; never mutates state.
 ## Everything inside the glass is opaque (D-009): the starter, the liner (alpha scissor) and the band.
@@ -157,6 +160,59 @@ func bind_wall(wall_root: Node3D) -> bool:
 	return true
 
 
+const BOX_SHADER: String = "res://src/view/shaders/box.gdshader"
+const BOX_TEX: String = "res://assets/textures/place_proofing_box.png"
+var box: MeshInstance3D
+var box_mat: ShaderMaterial
+
+
+## The proofing box (places.glb, §19.3): the box shader on Place_Proofing_Box, hidden until shown.
+func bind_places(places_root: Node3D) -> bool:
+	box = places_root.find_child("Place_Proofing_Box", true, false) as MeshInstance3D
+	if box == null:
+		push_error("JarView: no Place_Proofing_Box to bind")
+		return false
+	box_mat = ShaderMaterial.new()
+	box_mat.shader = load(BOX_SHADER) as Shader
+	box_mat.set_shader_parameter(&"box_tex", load(BOX_TEX) as Texture2D)
+	var extras: Dictionary = box.get_meta("extras", {}) as Dictionary
+	if extras.has("night_mult"):
+		var nm: Array = extras["night_mult"]
+		box_mat.set_shader_parameter(&"night_mult", Vector3(float(nm[0]), float(nm[1]), float(nm[2])))
+	box.material_override = box_mat
+	box.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	box.visible = false
+	return true
+
+
+## The set for a place blend: wall textures (a, plus b fading in), sill, box (art-direction §19).
+func set_place_look(p: Dictionary, wall_b_mix: float, night_n: float) -> void:
+	if counter_mat != null:
+		counter_mat.set_shader_parameter(&"sill_k", float(p["sill"]))
+		counter_mat.set_shader_parameter(&"box_k", float(p["box"]))
+	if backdrop_mat != null:
+		backdrop_mat.set_shader_parameter(&"place_mix", wall_b_mix)
+	if box != null:
+		var f: float = float(p["box"])
+		box.visible = f > 0.001
+		box_mat.set_shader_parameter(&"fade", f)
+		box_mat.set_shader_parameter(&"night", night_n)
+	if quality != null:
+		quality.set_shared(&"fog", float(p["fog"]))
+
+
+## Wall texture set a (shown) and b (fading in). Paths from PlacePresets.
+func set_wall_textures(a_day: String, a_night: String, a_floor: Color, b_day: String, b_night: String, b_floor: Color) -> void:
+	if backdrop_mat == null:
+		return
+	backdrop_mat.set_shader_parameter(&"wall_tex", load(a_day) as Texture2D)
+	backdrop_mat.set_shader_parameter(&"night_tex", load(a_night) as Texture2D)
+	backdrop_mat.set_shader_parameter(&"night_floor", a_floor)
+	backdrop_mat.set_shader_parameter(&"wall_tex_b", load(b_day) as Texture2D)
+	backdrop_mat.set_shader_parameter(&"night_tex_b", load(b_night) as Texture2D)
+	backdrop_mat.set_shader_parameter(&"night_floor_b", b_floor)
+
+
 ## Night factor for the wall (D-043), 0 day to 1 night.
 func set_wall_night(n: float) -> void:
 	if backdrop_mat != null:
@@ -190,6 +246,7 @@ func set_lid_lift(k: float) -> void:
 		if covers.has(cover):
 			covers[cover].position.y = lid_rest_y + 0.008 * k
 			covers[cover].rotation.y = deg_to_rad(10.0) * k
+	lid_moved.emit(k)
 
 
 ## Reduce motion turns off breathing and pops (ux-design.md §15).
@@ -227,13 +284,20 @@ func apply_look(look: ViewLook, key_dir: Vector3, rim_dir: Vector3) -> void:
 	starter_mat.set_shader_parameter(&"hooch_value", look.hooch_value)
 	starter_mat.set_shader_parameter(&"hooch_desat", look.hooch_desat)
 	starter_mat.set_shader_parameter(&"hooch_dark_lift", look.hooch_dark_lift)
+	starter_mat.set_shader_parameter(&"flake_k", look.flake_k)
+	starter_mat.set_shader_parameter(&"flake_desat", look.flake_desat)
 	if backdrop_mat != null:
 		backdrop_mat.set_shader_parameter(&"energy", look.backdrop_energy)
 		backdrop_mat.set_shader_parameter(&"night_gain", look.wall_night_gain)
 		backdrop_mat.set_shader_parameter(&"night_keep_hue", look.wall_keep_hue)
 		backdrop_mat.set_shader_parameter(&"lamp_color", look.wall_lamp_color)
 		backdrop_mat.set_shader_parameter(&"night_floor", Color("#1A1310") * look.wall_floor_mul)
+	if box_mat != null:
+		box_mat.set_shader_parameter(&"energy", look.box_energy)
+		box_mat.set_shader_parameter(&"saturation", look.box_saturation)
+		box_mat.set_shader_parameter(&"night_k", look.box_night_k)
 	if counter_mat != null:
+		counter_mat.set_shader_parameter(&"sill_value", look.sill_value)
 		counter_mat.set_shader_parameter(&"grade_value", look.dressing_value)
 		counter_mat.set_shader_parameter(&"key_dir", key_dir)
 	if lid_mat != null:
