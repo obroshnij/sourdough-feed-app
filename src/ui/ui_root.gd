@@ -576,8 +576,19 @@ func _present_smell(text: SmellCardText, first_time: bool) -> void:
 	var body: String = tr(text.body_key)
 	if text.note_key != &"":
 		body += " " + session.format_text(text.note_key, text.note_args)
-	var meaning: String = tr(text.meaning_key) if text.meaning_key != &"" else ""
-	card.present(&"smell", tr(text.title_key), body, meaning, [], true, CARD_HOLD_S,
+	var meaning: String = tr(text.meaning_key) if text.meaning_key != &"" and not text.meaning_hidden else ""
+	var buttons: Array[Button] = []
+	if text.meaning_key != &"" and text.meaning_hidden:
+		# AC-07.5: after 3 appearances the meaning is one tap away.
+		var why := SdButton.new(&"SMELL_MEANING_BTN", SdButton.Variant.TEXT)
+		why.name = "ShowMeaning"
+		var key: StringName = text.meaning_key
+		why.pressed.connect(func() -> void:
+			card.extra_label.text = tr(key)
+			card.extra_label.visible = true
+			why.visible = false)
+		buttons.append(why)
+	card.present(&"smell", tr(text.title_key), body, meaning, buttons, true, CARD_HOLD_S,
 		tr(&"SMELL_NEW_RIBBON") if first_time else "")
 
 
