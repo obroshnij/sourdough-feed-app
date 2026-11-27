@@ -134,7 +134,7 @@ root
 | `camera_focus_released()` | ui to view | Back to the player's orbit |
 | `smell_moment_started()` / `smell_moment_finished()` | ui to view | Camera nudge, wisps |
 | `feed_moment(step: StringName)` | ui to view | `discard`, `scoop`, `pour`, `stir` animations |
-| `jar_region_changed(region: Rect2)` | ui to view | The free space between the top HUD plate and the action bar, in UI units (pt, since stretch is off, §13). Emitted on every layout change (text size, safe areas, rotation). The camera frames the jar to it (`ux-design.md` §2, §19.5) |
+| `jar_region_changed(region: Rect2)` | ui to view | The free space for the jar, in UI units (pt, since stretch is off, §13). With no sheet open it runs from the top HUD plate to the action bar. Emitted on every layout change (text size, safe areas, rotation) and whenever a sheet opens or closes. The camera frames the jar to it (`ux-design.md` §2, §3, §19.5). Phase 4: while a sheet is open the HUD plate tucks away, so the region runs from `safe top + 8` to the sheet's top edge. For feed and place T2 frames the whole jar in it (§9.1) |
 | `starter_tapped(where: StringName)` | view to ui | `starter`, `glass`. A tap on the jar |
 | `interaction_started()` / `interaction_ended()` | both | Drives the frame cap (§11) |
 
@@ -321,6 +321,11 @@ Tests never call `start()`. They use `GameSession.new()`, `setup(FakeClock.new()
 - **Text size** (100%, 125%, 150%) scales Theme font sizes only, never `content_scale_factor`. Every text container grows vertically.
 - **Event display** (T3) takes `Session.event_raised` and `event_withdrawn` and enforces the display rules: nothing interrupts an open sheet, at most one `attention` on screen, order attention then nudge then info. `event.presentation()` picks toast, card or sheet. Admission caps stay in the pure `EventScheduler`, and release in `Session` (§7). The UI only decides when to show. With `keep_messages` on, toasts and cards stay until dismissed.
 - **Actions while not ready.** Until `session_ready` or `resumed`, T3 keeps the action bar disabled and quiet, because `apply()` refuses with `REASON_NOT_READY` (D-050).
+- **Sheets and the jar band (Phase 4, `ux-design.md` §3).**
+  - When any sheet opens, the HUD plate tucks away. Its space goes to the jar.
+  - A non-full sheet's top edge stays at least 160 pt below `safe top + 8`.
+  - Feed and place become fit sheets: header, content and footer, capped by that band, with the content scrolling past the cap.
+  - T3 emits `Bus.jar_region_changed` with the band on every open, close and resize. No new signal is needed.
 - **Night palette**: `Session.get_night_factor()` (§8.2).
 - Status, hint, smell, inspection, forecast and the time-lapse read only `Session` outputs (snapshots, readouts, `CatchUpResult`), never their own logic.
 - **Accessibility**: every interactive Control sets `accessibility_name` through `tr()` now. The property exists in 4.7.2 **[ran]**. Mobile screen readers arrive with 4.8 (D-012).

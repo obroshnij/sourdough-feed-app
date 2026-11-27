@@ -342,6 +342,8 @@ Keep priority: attention, milestone, peak, hunger (one merged row; `hungry_again
 | `show_time_lapse` | bool | true | "Show time-lapse on return". Off still shows the summary card |
 | `haptics` | bool | true | ux-design §15. Every haptic moment also has a sound (D-043) |
 | `keep_messages` | bool | false | "Keep messages on screen": toasts and cards stay until dismissed (D-043) |
+| `sound_on` | bool | true | **Phase 4, lands with T1** (`ux-design.md` §14.3). Mutes or unmutes the master bus |
+| `volume` | float | sound-designer's pick (80% proposed) | **Phase 4, lands with T1.** 0..1 in 0.1 steps, mapped linearly to dB on the master bus. A missing or out-of-range value loads as the default |
 
 ### 9.2 File layout
 Line 1 is a header. Everything after the first newline is the payload, byte for byte:
