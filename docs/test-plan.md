@@ -509,7 +509,7 @@ Slice events (game-mechanics §7.4):
 
 ### 3.13 Traceability: what proves each row (Phase 3)
 
-As of 2026-11-27, on top of `phase-3-slice` at `51f844b` plus QA's `tests/integration/`. `tests/run.sh --strict`: `RESULT: 209 passed, 0 failed, 0 skipped`.
+As of 2026-11-27, on top of `phase-3-slice` at `51f844b` plus QA's `tests/integration/` and `tests/property/`.
 
 **Status:**
 - **covered**: a test in `tests/run.sh --strict` asserts the whole Then today.
@@ -524,14 +524,14 @@ As of 2026-11-27, on top of `phase-3-slice` at `51f844b` plus QA's `tests/integr
 
 T1, T2 and T3 tests are mapped by name and a read of the test. Their owners confirm the mapping in review.
 
-**Summary: 107 rows. 25 covered, 71 planned, 11 manual only.**
+**Summary: 107 rows. 26 covered, 70 planned, 11 manual only.**
 
 | Group | Rows | Covered | Planned | Manual only |
 |---|---|---|---|---|
 | AC-01 Jar | 7 | 3 | 2 | 2 |
 | AC-02 Animated starter | 7 | 1 | 3 | 3 |
 | AC-03 Rotate and zoom | 14 | 6 | 7 | 1 |
-| AC-04 Lifecycle | 6 | 3 | 3 | 0 |
+| AC-04 Lifecycle | 6 | 4 | 2 | 0 |
 | AC-05 Feeding | 11 | 2 | 8 | 1 |
 | AC-06 Temperature | 7 | 3 | 4 | 0 |
 | AC-07 Smell | 8 | 0 | 7 | 1 |
@@ -595,7 +595,7 @@ Most planned rows wait on T1's contracts (`p3_contracts`), T4's event rules, or 
 | 04.3 | `t1/sim_units::state_precedence` | | | covered |
 | 04.4 | `t1/sim_vectors` V16, V18, V19, `t1/sim_units::forecast` (parts of BT-2, BT-11, BT-17) | BT-1 to BT-17 as schedules through the Session (QA, `tests/scenario/`). BT-1, 2, 3 and 9 count attention events, so they wait for T4. | | planned |
 | 04.5 | `int/ac04::neglect_states_through_catch_up` (L-6 at the counter), `int/ac06::fridge_sleeps_and_the_counter_wakes` (L-11, cold), V7, V9, V16 | L-10 (no single action is a loss, for every fixture), L-11 for every fixture (BT-16), the SIM-WARN-03 sweep (QA) | | planned |
-| 04.6 | `t1/catch_up::one_long_catch_up_equals_many_short_ones` (PROP-01), `::rules_never_touch_the_sim` (PROP-13), `save/payload::save_01_reload_is_bit_exact` (PROP-02 across a save), `int/ac09::any_absence_equals_the_app_left_open` (PROP-01 through Session) | PROP-03, 04, 05, 08 and 09 over random schedules (QA, `tests/property/`) | | planned |
+| 04.6 | `t1/catch_up::one_long_catch_up_equals_many_short_ones` (PROP-01), `::rules_never_touch_the_sim` (PROP-13), `save/payload::save_01_reload_is_bit_exact` (PROP-02 across a save), `int/ac09::any_absence_equals_the_app_left_open` (PROP-01 through Session). `property/prop_sim`: PROP-03, 04, 05, 08, 09 and 14 after every step of 100 random 2-day schedules (a quarter start near mold); PROP-06 at every 1 °C from 12 to 36 °C; PROP-07 at 24 °C. A planted mutant (a feed that raises `mold_risk`) was caught. | The 10,000-schedule nightly set (QA) | | covered |
 
 #### AC-05 Feeding interaction
 
