@@ -12,7 +12,7 @@ Owner: director (the only writer). Teammates report by message. Last updated 202
 | Reference model | 243 of 243 checks. DIFF-01 golden traces pass |
 | Look | Day and night signed off by art on Mobile A, Mobile B and Compatibility A. Probe 326 of 328 (2 granted). Kitchen wall: 0 sky pixels over the whole orbit |
 | Mac windowed run | Metal, Forward Mobile, 0 errors |
-| Android emulator run | Blocked: Godot's editor setting `export/android/java_sdk_path` is empty on this Mac. Waiting on the user |
+| Android emulator run | Skipped by the user's choice, moved to Phase 5 (D-053) |
 | The user plays the build | Waiting on the user |
 
 ## Phase 2: foundation (branch `phase-2-foundation`): merged into `main` (PR #1)
@@ -90,8 +90,7 @@ Owner: director (the only writer). Teammates report by message. Last updated 202
 
 ## Waiting on the user
 
-- Play the Phase 3 build (MAN-S0 to S5 in test-plan §6), then review `phase-3-slice` for merging.
-- Android emulator run: Godot's editor setting `export/android/java_sdk_path` is empty on this Mac. Set it to Android Studio's JDK, or skip the emulator run.
+- Play the Phase 3 build on the Mac (MAN-S0 to S5 in test-plan §6), then review `phase-3-slice` for merging.
 - The kitchen wall shape: keep the curved sweep, or a straight backsplash with side walls (D-049).
 - Before Phase 5: the bundle id and Apple Team ID, and whether to download the Metal Toolchain (about 0.7 GB, unverified) for iOS shader baking.
 
