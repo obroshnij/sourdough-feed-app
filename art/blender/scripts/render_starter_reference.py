@@ -413,8 +413,8 @@ def main():
     objs["Jar_Lid_Loose"] = bj.build_lid_loose(coll, (bj.mat_lid_wood(),))
     objs["Rubber_Band"] = bj.build_band(coll, (bj.mat_simple("M_Rubber_Band", bj.C["band"], 0.55, subsurf=0.1),))
     objs["Counter"] = bj.build_counter(coll, (bj.mat_counter(),))
-    objs["Backdrop_placeholder"] = bj.build_backdrop(coll, (bj.mat_backdrop(),))
     bj.add_starter_shape_modifier(objs["Starter_Body"], bj.mat_mold_fuzz())
+    objs.update(bj.build_wall_preview(coll))
     bj.setup_world()
     bj.setup_lights_camera(coll)
     pose_cam = sc.camera

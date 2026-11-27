@@ -1,22 +1,20 @@
 """Kitchen set textures (art-direction §10, §17). Headless, deterministic:
     /Applications/Blender.app/Contents/MacOS/Blender -b -P art/blender/scripts/bake_kitchen_set.py
 Options (after a bare "--"):
-    --samples N     Cycles samples for the wall bake and the check render (default 64)
+    --samples N     Cycles samples for the check render (default 64)
     --no-check      skip the check render
 
 Writes:
-    assets/textures/kitchen_backdrop.png     1024 x 512 RGB. The sage zellige wall under the
-                                             afternoon lights, scene-linear radiance stored with
-                                             the sRGB curve (no tonemap), pre-blurred by the
-                                             preview lens's depth of field. Maps 1:1 onto
-                                             Backdrop_placeholder's UV 0..1.
     assets/textures/counter_oak_detail.png   512 x 512 gray, tiles. Butcher-block strips, grain,
                                              glue lines and end joints. 0.36 m tile, strips along u.
     assets/textures/lid_oak_detail.png       256 x 256 gray, tiles. Oak growth rings with a
                                              cathedral arch. 64 mm tile, grain along u.
-    art/previews/kitchen_set_check.png       the §7 preview pose at_peak with these textures,
-                                             backdrop unshaded (emission), no depth of field,
-                                             so it reads like Godot on a phone.
+    art/previews/kitchen_set_check.png       the §7 preview pose at_peak with these textures and
+                                             the kitchen wall (kitchen_wall.png, unshaded), no
+                                             depth of field, so it reads like Godot on a phone.
+
+The wall texture comes from bake_kitchen_wall.py (§18). The flat card's kitchen_backdrop.png
+and its bake were removed with Backdrop_placeholder (§18.5).
 
 The detail maps are value only. Godot keeps its measured colors and mixes
 dark -> light oak by the map, so they never fight the reference-look rows.
@@ -26,7 +24,6 @@ import math
 import os
 import struct
 import sys
-import tempfile
 import time
 import zlib
 
@@ -45,8 +42,6 @@ TEX = os.path.join(REPO, "assets", "textures")
 CHECK_OUT = os.path.join(REPO, "art", "previews", "kitchen_set_check.png")
 SEED = 20261127
 
-BACKDROP_PX = (1024, 512)
-BAKE_PX_PER_M = 1024.0           # bake at square texels, then resample rows to 512
 # Preview lens (§7): 60 mm, f/2.4, focus 0.556 m. The wall is about 1.0 m from the camera,
 # so its circle of confusion is about 21 mm on the wall. A Gaussian of sigma 8 mm matches it.
 BLUR_SIGMA_M = 0.008
@@ -103,58 +98,6 @@ def gaussian_blur(img, sigma):
             acc += kv * p[tuple(sl)]
         out = acc
     return out
-
-
-# =============================================================================
-# Backdrop: render the wall orthographically under the scene lights, then blur
-# =============================================================================
-def bake_backdrop(samples):
-    bpy.ops.wm.read_factory_settings(use_empty=True)
-    sc = bpy.context.scene
-    coll = bpy.data.collections.new("Bake")
-    sc.collection.children.link(coll)
-    bj.build_backdrop(coll, (bj.mat_backdrop(),))
-    bj.build_counter(coll, (bj.mat_counter(),))          # for the bounce at the foot of the wall
-    bj.setup_world()
-    bj.setup_lights_camera(coll)
-    bj.setup_render(samples, 100)
-
-    w_m, h_m = bj.BACKDROP_W, bj.BACKDROP_H
-    res = (int(round(w_m * BAKE_PX_PER_M)), int(round(h_m * BAKE_PX_PER_M)))
-    cd = bpy.data.cameras.new("WallCam")
-    cd.type = "ORTHO"
-    cd.ortho_scale = w_m
-    cd.sensor_fit = "HORIZONTAL"
-    cd.clip_start = 0.001
-    cd.dof.use_dof = False
-    cam = bpy.data.objects.new("WallCam", cd)
-    cam.location = (0.0, bj.COUNTER_BACK_Y - 0.01, h_m / 2.0)   # in front of every light
-    cam.rotation_euler = (math.radians(90.0), 0.0, 0.0)         # looks +Y, at the wall
-    coll.objects.link(cam)
-    sc.camera = cam
-    sc.render.resolution_x, sc.render.resolution_y = res
-    sc.render.image_settings.file_format = "OPEN_EXR"
-    sc.render.image_settings.color_depth = "32"
-    tmp = os.path.join(tempfile.mkdtemp(prefix="wall_"), "wall.exr")
-    sc.render.filepath = tmp
-    bpy.ops.render.render(write_still=True)
-
-    img = bpy.data.images.load(tmp)
-    px = np.empty(res[0] * res[1] * 4, dtype=np.float32)
-    img.pixels.foreach_get(px)
-    lin = px.reshape(res[1], res[0], 4)[::-1, :, :3].astype(np.float64)   # top row first
-    blurred = gaussian_blur(lin, BLUR_SIGMA_M * BAKE_PX_PER_M)
-    # Resample rows to the power-of-two height (the image is smooth, linear is enough).
-    H = BACKDROP_PX[1]
-    src = (np.arange(H) + 0.5) * res[1] / H - 0.5
-    y0 = np.clip(np.floor(src).astype(int), 0, res[1] - 1)
-    y1 = np.clip(y0 + 1, 0, res[1] - 1)
-    t = (src - np.floor(src))[:, None, None]
-    out = blurred[y0] * (1.0 - t) + blurred[y1] * t
-    clipped = float(np.mean(out.max(axis=2) > 1.0))
-    write_rgb(os.path.join(TEX, "kitchen_backdrop.png"), srgb_encode(out))
-    print("WROTE kitchen_backdrop.png %dx%d  linear max %.3f  mean %s  clipped %.4f%%"
-          % (BACKDROP_PX[0], H, out.max(), np.round(out.reshape(-1, 3).mean(0), 3), 100 * clipped))
 
 
 # =============================================================================
@@ -247,56 +190,11 @@ def detail_node(t, name, coord, tile_m, box=False):
 
 
 def check_render(samples):
-    bpy.ops.wm.read_factory_settings(use_empty=True)
-    sc = bpy.context.scene
-    coll = bpy.data.collections.new("Check")
-    sc.collection.children.link(coll)
-    m_starter, sv = bj.mat_starter()
-    m_liner, lv = bj.mat_liner()
-
-    m_wall, t = bj.new_mat("M_Backdrop")
-    uvn = t.n("ShaderNodeUVMap")
-    img = bpy.data.images.load(os.path.join(TEX, "kitchen_backdrop.png"))
-    img.colorspace_settings.name = "sRGB"
-    tex = t.n("ShaderNodeTexImage")
-    tex.image = img
-    tex.extension = "EXTEND"
-    t.put(tex.inputs["Vector"], uvn.outputs["UV"])
-    em = t.n("ShaderNodeEmission")
-    t.put(em.inputs["Color"], tex.outputs["Color"])
-    em.inputs["Strength"].default_value = 1.0
-    t.out(em.outputs[0])
-
-    m_counter, t = bj.new_mat("M_Counter_Wood")
-    tc = t.n("ShaderNodeTexCoord")
-    d = detail_node(t, "counter_oak_detail.png", tc.outputs["Object"], COUNTER_TILE_M)
-    col = t.mix_col(d, bj.hexcol(bj.C["counter_dk"]), bj.hexcol(bj.C["counter_lt"]))
-    p = t.principled(Base_Color=col)
-    t.put(p.inputs["Roughness"], t.maprange(d, 0.0, 1.0, 0.62, 0.42, smooth_step=False))
-    t.out(p.outputs[0])
-
-    m_lid, t = bj.new_mat("M_Lid_Wood")
-    tc = t.n("ShaderNodeTexCoord")
-    d = detail_node(t, "lid_oak_detail.png", tc.outputs["Object"], LID_TILE_M, box=True)
-    col = t.mix_col(d, bj.hexcol(bj.C["lid_wood_dk"]), bj.hexcol(bj.C["lid_wood_lt"]))
-    p = t.principled(Base_Color=col, Coat_Weight=0.15)
-    t.put(p.inputs["Roughness"], t.maprange(d, 0.0, 1.0, 0.6, 0.4, smooth_step=False))
-    t.out(p.outputs[0])
-
-    objs = {}
-    objs["Jar_Glass"] = bj.build_glass(coll, (bj.mat_glass("M_Glass"), bj.mat_glass("M_Glass_Inner")))
-    objs["Starter_Body"] = bj.build_starter(coll, (m_starter,))
-    objs["Starter_Liner"] = bj.build_liner(coll, (m_liner,))
-    objs["Jar_Lid_Loose"] = bj.build_lid_loose(coll, (m_lid,))
-    objs["Rubber_Band"] = bj.build_band(coll, (bj.mat_simple("M_Rubber_Band", bj.C["band"], 0.55, subsurf=0.1),))
-    objs["Counter"] = bj.build_counter(coll, (m_counter,))
-    objs["Backdrop_placeholder"] = bj.build_backdrop(coll, (m_wall,))
-    bj.add_starter_shape_modifier(objs["Starter_Body"], bj.mat_mold_fuzz())
-    bj.setup_world()
-    bj.setup_lights_camera(coll)
-    bj.setup_render(samples, 100)
-    sc.camera.data.dof.use_dof = False                     # Godot on a phone has no DOF
-    bj.apply_state("at_peak", objs, sv, lv)
+    """The kitchen wall's preview scene: Kitchen_Wall with kitchen_wall.png unshaded, the counter
+    and lid with these maps, at_peak, the §7 pose, no DOF."""
+    import bake_kitchen_wall as bkw   # imported here: it imports this module
+    sc = bkw.preview_scene()
+    sc.cycles.samples = samples
     sc.render.filepath = CHECK_OUT
     bpy.ops.render.render(write_still=True)
     print("RENDERED", CHECK_OUT)
@@ -311,7 +209,6 @@ def main():
     print("WROTE counter_oak_detail.png %dx%d, tile %.2f m" % (COUNTER_PX, COUNTER_PX, COUNTER_TILE_M))
     write_gray(os.path.join(TEX, "lid_oak_detail.png"), lid_detail(rng))
     print("WROTE lid_oak_detail.png %dx%d, tile %.3f m" % (LID_PX, LID_PX, LID_TILE_M))
-    bake_backdrop(samples)
     if "--no-check" not in argv:
         check_render(samples)
     print("DONE in %.1fs" % (time.time() - t0))

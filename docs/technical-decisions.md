@@ -70,7 +70,7 @@ Evidence tags: **[ran]** = headless run in a scratch project (see the verificati
 - **Evidence** [spike]:
   - **`custom_aabb` works and is needed.** Godot culls by it: with a box placed 1 m under the table, the starter vanished (`objects_in_frame` 4 to 3). With the rise-3.0-plus-dome box, nothing popped during the orbit (screenshots `spikes/jar-spike/screenshots/mobile_artglb_aabb_*.png`).
   - **Procedural bubbles cost 0.63 ms GPU at p50** (3.63 to 3.01 ms with bubbles off), under the 1.5 ms threshold.
-  - The GLB arrived with every contract name (`Jar_Glass` with 2 surfaces, `Starter_Body`, `Starter_Liner`, `StarterFloor`, `StarterRim`, `Jar_Lid_Loose`, `Jar_Lid_Tight`, `Cloth_Cover`, `Rubber_Band`, `Counter`, `Backdrop_placeholder`), and extras as `get_meta("extras")`.
+  - The GLB arrived with every contract name (`Jar_Glass` with 2 surfaces, `Starter_Body`, `Starter_Liner`, `StarterFloor`, `StarterRim`, `Jar_Lid_Loose`, `Jar_Lid_Tight`, `Cloth_Cover`, `Rubber_Band`, `Counter`, `Backdrop_placeholder`), and extras as `get_meta("extras")`. `Backdrop_placeholder` was later removed in Phase 3, replaced by `Kitchen_Wall` (D-049).
   - The D-010 claim of "a reported normals bug in 4.7" for blend shapes is still **[unverified]**. It's moot because we use no blend shapes.
 - **Revisit if** procedural bubbles exceed 1.5 ms GPU on a Phase 5 phone at Tier A.
 
