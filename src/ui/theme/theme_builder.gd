@@ -117,6 +117,9 @@ static func _buttons(t: Theme, p: UiPalette, regular: Font, semibold: Font, titl
 	t.set_type_variation(&"TextButton", &"Button")
 	_button_box(t, &"TextButton", _empty(12, 8), _flat(alt, 12, 12, 8), _empty(12, 8), 12)
 	_button_text(t, &"TextButton", semibold, button, UiPalette.INK_MUTED, ink, UiPalette.DISABLED)
+	# Icons are imported at 4x (96 px); every button draws them at 24 pt.
+	for type: StringName in [&"Button", &"SecondaryButton", &"PrimaryButton", &"TextButton"]:
+		t.set_constant(&"icon_max_width", type, 24)
 
 	t.set_type_variation(&"IconButton", &"Button")
 	_button_box(t, &"IconButton", _flat(p.plate(), PILL_RADIUS, 12, 12), _flat(alt, PILL_RADIUS, 12, 12),
@@ -155,6 +158,22 @@ static func _buttons(t: Theme, p: UiPalette, regular: Font, semibold: Font, titl
 	_button_text(t, &"StatusPill", semibold, button, ink, ink, ink)
 	t.set_constant(&"icon_max_width", &"StatusPill", 24)
 	t.set_constant(&"h_separation", &"StatusPill", 8)
+
+	# OptionRow / OptionCard: surface_alt; selected adds a 3 pt accent border (the component adds the check).
+	t.set_type_variation(&"ChoiceButton", &"Button")
+	var choice_on: StyleBoxFlat = _flat(alt, 16, 0, 0)
+	choice_on.border_color = UiPalette.ACCENT
+	choice_on.set_border_width_all(3)
+	_button_box(t, &"ChoiceButton", _flat(alt, 16, 0, 0), _flat(UiPalette.pressed(alt), 16, 0, 0), _flat(alt, 16, 0, 0), 16)
+	t.set_stylebox(&"pressed", &"ChoiceButton", choice_on)
+	t.set_stylebox(&"hover_pressed", &"ChoiceButton", choice_on)
+	t.set_stylebox(&"pressed_mirrored", &"ChoiceButton", choice_on)
+	t.set_stylebox(&"hover_pressed_mirrored", &"ChoiceButton", choice_on)
+	_button_text(t, &"ChoiceButton", semibold, button, ink, ink, UiPalette.DISABLED)
+	t.set_font(&"title_font", &"ChoiceButton", semibold)
+	t.set_font_size(&"title_size", &"ChoiceButton", button)
+	t.set_font(&"sub_font", &"ChoiceButton", regular)
+	t.set_font_size(&"sub_size", &"ChoiceButton", body)
 
 	t.set_type_variation(&"ToggleRow", &"Button")
 	# Right margin leaves room for the 51 x 31 switch the component draws.

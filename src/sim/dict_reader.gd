@@ -220,6 +220,34 @@ static func canonical_dict(d: Dictionary) -> Dictionary:
 	return out
 
 
+## The exact form a free-form dictionary has after a save and load: whole numbers as ints, every other float as
+## its D-040 hex string, recursively. Journal data and args are kept in this form from the start, so an entry
+## is identical before and after a save (PROP-02 for the journal). Read numbers with float_of().
+static func saved_form(d: Dictionary) -> Dictionary:
+	var out: Dictionary = _hex_floats(canonical(d))
+	return out
+
+
+static func _hex_floats(v: Variant) -> Variant:
+	match typeof(v):
+		TYPE_FLOAT:
+			var x: float = v
+			return float_to_hex(x)
+		TYPE_DICTIONARY:
+			var src: Dictionary = v
+			var out: Dictionary = {}
+			for k: Variant in src:
+				out[k] = _hex_floats(src[k])
+			return out
+		TYPE_ARRAY:
+			var arr: Array = v
+			var list: Array = []
+			for item: Variant in arr:
+				list.append(_hex_floats(item))
+			return list
+	return v
+
+
 ## Accepts a JSON number (hand-written fixtures) or a D-040 hex string (saves).
 func _to_float(v: Variant) -> float:
 	var x: float = float_of(v)

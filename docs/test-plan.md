@@ -57,6 +57,7 @@ Numbers taken from a draft are tagged, and they move when the owning spec moves.
 | `--quit-after 120` on a hanging script | **0** | False pass. Never use it as a watchdog. |
 | Fresh checkout without `.godot/`: `class_name` types don't resolve under `-s` | **0** | False pass. Found by tech-architect (architecture §12). |
 | Prototype runner: `load()` per file, `can_instantiate()` check, custom `Logger` via `OS.add_logger()` | **1**, printed `RESULT: 1 passed, 3 failed` | Works. Caught a parse error in a test file, a null call and a failed assert. |
+| First `--import` of a fresh clone (director, 2026-11-27, Phase 3) | **134** (SIGABRT) once; a second clone passed | Engine crash, not our code. The macOS report (`Godot-2026-11-27-084455.ips`) shows libmalloc aborting on "pointer being freed was not allocated" (a double free) in Godot's `WorkerThread 3`; Godot's frames are unsymbolized. The import log shows `en.csv` reimporting at the same moment as the two fonts on worker threads. QA did not reproduce it in 37 fresh first imports (1 alone, 12 four at a time, 24 six at a time; all exit 0 in 2 to 6 s). Handled by R-0's single retry. |
 
 **JSON results (same setup), which drive the save tests:**
 - Plain `JSON.stringify` doesn't round-trip 1/3. `JSON.stringify(d, "", true, true)` does, exactly.
@@ -68,7 +69,7 @@ Numbers taken from a draft are tagged, and they move when the owning spec moves.
 
 | ID | Requirement |
 |---|---|
-| R-0 | `run.sh` first runs `godot --headless --path . --import`. |
+| R-0 | `run.sh` first runs `godot --headless --path . --import`. If that import dies by a signal (exit 129 to 159, except 142, our own timeout, and 130 and 143, a person stopping the run), `run.sh` keeps the first log in `build/logs/import_crash_<time>.txt`, prints `WARN godot --import crashed (signal N, exit C), retrying once` with the log's tail, and imports once more. A second crash fails the run. A normal non-zero exit fails at once, never retried. After a retry the `RUN:` line ends with `import retried after signal N`, even under `--strict`, and every phase-exit report must quote that note (director, 2026-11-27). |
 | R-1 | `run_tests.gd` extends `SceneTree`, runs from `_initialize()` and holds no test logic. |
 | R-2 | Discovers `res://tests/**/test_*.gd`. A file that fails `can_instantiate()` counts as a failure. |
 | R-3 | A `Logger` subclass registered with `OS.add_logger()`. Any `_log_error` during a test (a null call, `push_error`, an `assert`) fails that test. |
@@ -77,7 +78,7 @@ Numbers taken from a draft are tagged, and they move when the owning spec moves.
 | R-6 | `run.sh` applies the outer timeout `perl -e 'alarm 300; exec @ARGV'` (`RUN_TIMEOUT_S`). It passes only if the exit code is 0, the last stdout line matches `^RESULT: [0-9]+ passed, 0 failed, [0-9]+ skipped$`, and n > 0. Skips are printed and counted, never passes. `run.sh --strict` (the phase exit gate) also fails on any skip. Before the runner it runs five Python lints: `check_copy.py`, `build_catalog.py --check`, `sim.py vectors`, `verify_glb.py` on `assets/3d/jar_v0.glb` (AC-01.1, D-031, added in Phase 3), and golden-fresh (the committed traces equal a fresh `sim.py trace`). |
 | R-7 | User args after `--`: `--filter=<substring of file::test>` and `--seeds=<n>` (default 100). `--update-golden` is refused when `CI=1`. Any other argument fails the run. Every test file is loaded before filtering, so a filter never hides a broken file. |
 | R-8 | Loads every `.gd` under `res://src/` and fails on any that can't instantiate (LINT-03, `tests/lint/test_lint_03_typing.gd`). |
-| R-9 | `run.sh --selftest` runs each case in `tests/runner_selftest/cases/` as a throwaway project through `run.sh`'s own judge, and checks both the outcome and the reason (`expect_output`). 33 cases: a positive control, a parse error, an untyped declaration, a non-TestCase file, an empty suite, a null call, `push_error`, a failed `assert`, an error in a test's `_init`, 0 checks, skips (counted, can't hide a failure, fail under `--strict`, milestone gate), a hang, no tests, a runner parse error, a runner exiting 0 with failures or 1 without, output after `RESULT`, the filter (and that it can't hide a parse error), `--update-golden` under `CI=1`, an unknown argument, a fresh checkout and a stale `.godot/` (each also run without `--import` to prove R-0 is what makes it come out right), and planted LINT-01 and LINT-03 violations plus a clean near-miss file. |
+| R-9 | `run.sh --selftest` runs each case in `tests/runner_selftest/cases/` as a throwaway project through `run.sh`'s own judge, and checks both the outcome and the reason (`expect_output`). 35 cases (35 of 35 on 2026-11-27). The two added in Phase 3 run a stand-in engine, `tests/runner_selftest/fake_godot_abort.sh`, whose `--import` dies like the crash above: once (retried, then passes with the WARN) and twice (fails with "crashed again"). The original 33: a positive control, a parse error, an untyped declaration, a non-TestCase file, an empty suite, a null call, `push_error`, a failed `assert`, an error in a test's `_init`, 0 checks, skips (counted, can't hide a failure, fail under `--strict`, milestone gate), a hang, no tests, a runner parse error, a runner exiting 0 with failures or 1 without, output after `RESULT`, the filter (and that it can't hide a parse error), `--update-golden` under `CI=1`, an unknown argument, a fresh checkout and a stale `.godot/` (each also run without `--import` to prove R-0 is what makes it come out right), and planted LINT-01 and LINT-03 violations plus a clean near-miss file. |
 | R-10 | Tests that need T1 code call `require(&"<milestone>")` and SKIP until T1 lists that id in `Milestones.LANDED` (`src/core/milestones.gd`). Stubs from the contracts commit skip instead of failing, and each test turns on in the commit that makes its code real. Ids: `contracts`, `m2_sim`, `m3_clock`, `m4_save`, `m5_catchup` (`tests/lib/t1_api.gd`). QA only: `QA_FORCE_MILESTONES=m3_clock,m4_save tests/run.sh` runs gated tests early to report problems to T1. Never set it in CI or in a green-run report. |
 
 ---
@@ -443,7 +444,7 @@ Input is injected with `InputEventScreenTouch` and `InputEventScreenDrag`. Numbe
 | ID | Given | When | Then | Check |
 |---|---|---|---|---|
 | AC-09.1 | Close at T | Reopen at T + Δ, Δ in {1 min, 59 min, 60 min, 8 h, 25 h, 3 d, 7 d, 13 d, 14 d, 30 d} | `simulated_s` = min(Δ, 14 d). The state is byte-equal to a foreground run of the same length. | auto |
-| AC-09.2 | Same | Reopen | "While you were away" shows only if Δ ≥ 60 min (`AWAY_SUMMARY_MIN_S` = 3,600) **and** at least one event or state change happened (game-mechanics §8). Boundary: 3,599 s and 3,600 s. | auto |
+| AC-09.2 | Same | Reopen | "While you were away" shows only if the simulated time is ≥ 60 min (`AWAY_SUMMARY_MIN_S` = 3,600) **and** at least one event or state change happened (game-mechanics §8). Boundary from a grid-aligned close: 3,599 s away (3,540 s simulated) shows nothing, 3,600 s shows it. The rule counts simulated grid time, so a close in mid-minute can show it up to 59 s early (accepted 2026-11-27). | auto |
 | AC-09.3 | 7 days away, many events | Reopen | At most 3 summary lines and 1 prompt. Keep priority and drop order per §4.2. Every dropped item is in the journal (BT-15). | auto |
 | AC-09.4 | Attention pending on return | Reopen | The summary card is skipped, and its lines go at the top of the attention sheet. | auto |
 | AC-09.5 | Any qualifying return | The time-lapse | It uses ≤ 30 `CatchUpResult.snapshots`, plays 3 to 6 s (longer absences get longer, capped at 6 s), and a tap skips it. Reduce motion shows a before still and an after still, 1.2 s each. With the setting off, it's skipped. | auto |
@@ -509,7 +510,7 @@ Slice events (game-mechanics §7.4):
 
 ### 3.13 Traceability: what proves each row (Phase 3)
 
-As of 2026-11-27, on top of `phase-3-slice` at `51f844b` plus QA's `tests/integration/` and `tests/property/`.
+As of 2026-11-27, on top of `phase-3-slice` at `51f844b` and later merges (T1's contracts, T4's rules), plus QA's `tests/integration/` and `tests/property/`.
 
 **Status:**
 - **covered**: a test in `tests/run.sh --strict` asserts the whole Then today.
@@ -524,7 +525,7 @@ As of 2026-11-27, on top of `phase-3-slice` at `51f844b` plus QA's `tests/integr
 
 T1, T2 and T3 tests are mapped by name and a read of the test. Their owners confirm the mapping in review.
 
-**Summary: 107 rows. 26 covered, 70 planned, 11 manual only.**
+**Summary: 107 rows. 27 covered, 69 planned, 11 manual only.**
 
 | Group | Rows | Covered | Planned | Manual only |
 |---|---|---|---|---|
@@ -536,7 +537,7 @@ T1, T2 and T3 tests are mapped by name and a read of the test. Their owners conf
 | AC-06 Temperature | 7 | 3 | 4 | 0 |
 | AC-07 Smell | 8 | 0 | 7 | 1 |
 | AC-08 Condition display | 8 | 1 | 6 | 1 |
-| AC-09 Offline | 8 | 1 | 7 | 0 |
+| AC-09 Offline | 8 | 2 | 6 | 0 |
 | AC-10 Events | 12 | 0 | 12 | 0 |
 | AC-11 Save and load | 4 | 1 | 2 | 1 |
 | AC-12 Mobile UI | 15 | 4 | 10 | 1 |
@@ -603,7 +604,7 @@ Most planned rows wait on T1's contracts (`p3_contracts`), T4's event rules, or 
 |---|---|---|---|---|
 | 05.1 | `int/ac05::every_preset_and_flour` (3 presets × 2 slice flours: the §2.3 grams, whole-gram discard, mass, `freshly_fed`, one journal line, one `action_applied` and one `state_changed`, the save holds it, exactly one draw), `t1/sim_units::derived_discard_presets`, `apply_feed_draws_exactly_once` | | | covered |
 | 05.2 | | Sheet preselects last time's choices (T3). Reads `Session.last_feed_action()` (`p3_contracts`). | MAN-05 | planned |
-| 05.3 | | The stored feed equals `last_feed_action()` field by field (QA int), plus the 2-tap path (T3) | MAN-S1 | planned |
+| 05.3 | `int/p3_contracts::feed_like_last_time_is_the_same_feed` (field by field, across a relaunch, the default before any feed) | The 2-tap path (T3) | MAN-S1 | planned |
 | 05.4 | | The 3-tap path from a return (T3, QA int after the return summary) | | planned |
 | 05.4b | | The 4-tap safe route (T3 after T4's `warning_signs`) | | planned |
 | 05.5 | `int/ac05::hooch_pour_off_vs_stir_in` (V20 through Session: no hooch after, hydration gain 0.5 to 1.1 points, acid identical, peaks within 0.05 h and 0.01x, journal records the choice), `t1/sim_vectors::v20` | The hooch step comes first with "Pour off" as default, and none at 0.1 − ε (T3). `hooch_forming` (T4). | | planned |
@@ -656,10 +657,10 @@ Most planned rows wait on T1's contracts (`p3_contracts`), T4's event rules, or 
 | Row | Automated today | To add (owner) | Manual | Status |
 |---|---|---|---|---|
 | 09.1 | `int/ac09::any_absence_equals_the_app_left_open` (all 10 absences: `simulated_s`, starter, environment and state journal equal the app left open; 30 days is the 14-day state, held), `clock/clock_session` CLK-01, 02, 08 | | | covered |
-| 09.2 | | The 3,599 / 3,600 s boundary on `Session.get_return_summary().show` (QA int, `p3_contracts`) | MAN-S5 | planned |
-| 09.3 | | At most 3 lines plus 1 prompt, the drop order, dropped items in the journal (QA int, after T4) | MAN-S5 | planned |
+| 09.2 | `int/p3_contracts::summary_needs_an_hour_and_a_change` (3,599 s with a state change shows nothing, 3,600 s shows; 2 h asleep in the fridge with no change shows nothing) | | MAN-S5 | covered |
+| 09.3 | `int/p3_contracts::a_week_away_fits_in_three_lines_and_one_prompt` (at most 3 lines, every key in the catalog, the long title, every dropped event in the journal) | The keep priority and drop order of §4.2 (QA int) | MAN-S5 | planned |
 | 09.4 | | Attention pending on return (QA int after T4, T3) | | planned |
-| 09.5 | `int/ac09::time_lapse_frames_are_bounded_and_end_on_the_jar` (1 to 30 frames, none when no time passed, the last is the jar shown) | 3 to 6 s, tap skips, reduce-motion stills, setting off (T2, T3) | MAN-S1, MAN-S4 | planned |
+| 09.5 | `int/ac09::time_lapse_frames_are_bounded_and_end_on_the_jar` (1 to 30 frames, none when no time passed, the last is the jar shown), `int/p3_contracts::keyframes_keep_every_transition` (at most 30 keyframes, ordered, every state change kept, plays only with the setting on) | 3 to 6 s, tap skips, reduce-motion stills, setting off (T2, T3) | MAN-S1, MAN-S4 | planned |
 | 09.6 | `int/ac04::time_lapse_frames_pass_the_warning_stage` (warning frames before mold, mold latched, no mold before moldy) | The summary names when the warnings began, then `mold_found` (QA int after T4) | MAN-S2 | planned |
 | 09.7 | | PERF-03, a timed 14-day catch-up with T4's rules (QA, Mac estimate) | | planned |
 | 09.8 | `clock/*`, `t1/session`: CLK-01 to 05, 08, 09, 11, 12, 14, 16, 17. `int/ac05`: CLK-10 (sheet open across 8 h), CLK-18 (two feeds in a minute). | CLK-06, 07 and 15 (quiet hours, `NightFade`, after T4). CLK-13 needs a release export. | | planned |
@@ -858,7 +859,7 @@ Each check time below sits at least 0.3 h inside its window, to absorb jitter an
 | EC-22 | Android split screen or a resized window | Height down to 50% | No crash. Layout follows the safe area. | manual (Phase 5) |
 | EC-23 | Low power mode or a hot phone | Device | The frame cap still applies. No sim or visual difference. | manual (device) |
 | EC-24 | Taps the starter 100 times | INT-08 | The sim is byte-unchanged. | auto |
-| EC-25 | Kills the app during the discard ceremony | After `DiscardStarterAction` is applied | Relaunch shows the new starter, and the memorial exists exactly once. | auto |
+| EC-25 | Kills the app during the discard ceremony | (a) After the new name is confirmed (`DiscardStarterAction` applied). (b) Before it: the memorial page or naming is showing. | (a) Relaunch shows the new starter, and the memorial exists exactly once. (b) Nothing was saved (D-047: discard and adopt are one atomic save), so the relaunch is the moldy jar with no memorial, and the flow runs again. `int/ac04::ec_25_discard_survives_a_kill_and_leaves_one_memorial`, `::ec_25_kill_before_the_name_is_confirmed_keeps_the_moldy_jar`. | auto |
 
 ---
 
@@ -1181,7 +1182,7 @@ All of these were accepted by tech-architect. The names are from `architecture.m
 | OD-14 | iPhone SE is in UX §2 but not in the role-file matrix | director | Include it: it's the smallest layout, and the simulator is installed. |
 | OD-15 | Clock set back > 6 h and later corrected credits the gap (≤ 14 d) | tech-architect | Accepted limit, documented in ADR-006. Tested by CLK-17, with the boundary in CLK-16. |
 | OD-17 | Triangle budget: the art checker and architecture disagreed | art-director | **Resolved**: the checker now asserts ≤ 16k per visible cover set. It caught the cloth set at 17,408, rebuilt to 14,552. QA re-ran it: PASS. |
-| OD-19 | **A debug time scale wrote saves ahead of the real clock** (QA, from reading `debug_clock.gd` and `start()`). After 10 min at `--time-scale=60`, the save sat about 10 h in the future. The next normal launch froze the starter for up to 6 h, or re-anchored. | t1-sim-core | **Resolved in `p3_contracts`**: the real save is written once at real time, then scaled runs save to `<save dir>_time_travel`. Test planned: the real `save.json` stays byte-identical, and the next normal launch neither holds nor re-anchors. MAN-S0 checks it by hand. |
+| OD-19 | **A debug time scale wrote saves ahead of the real clock** (QA, from reading `debug_clock.gd` and `start()`). After 10 min at `--time-scale=60`, the save sat about 10 h in the future. The next normal launch froze the starter for up to 6 h, or re-anchored. | t1-sim-core | **Resolved in `p3_contracts`**: the real save is written once at real time, then scaled runs save to `<save dir>_time_travel`. `int/p3_contracts::time_travel_never_touches_the_real_save` proves it with a real `DebugClock`: after the switch, an 8 h `debug_advance` and a feed leave the real `save.json` byte-identical, and the next normal launch neither re-anchors nor catches up more than 5 steps. MAN-S0 checks it by hand. The sandbox folder outlives the run, so a later `--time-scale` launch starts from its future-dated save (dev only). |
 | OD-20 | Tests could boot the real `Main` only once per process (the autoload's `_booted` latches) | t1-sim-core | **Resolved in `p3_contracts`**: `Session.shutdown()`, debug only. Unblocks AC-03.2b, 03.10 and 03.11. |
 | OD-21 | After every save file is bad, the new starter had no name and `is_first_run()` was false | t1-sim-core, t3-ui | **Resolved in `p3_contracts`**: `is_first_run()` means "no name yet", so T3 runs M.'s note and naming. `recovered_this_launch()` drives the calm notice (OD-3 copy still needed). QA's AC-11 total-loss test flips its first-run assertion in the merge that brings the contracts. |
 | OD-22 | 50 place flips in a minute write 50 journal lines (measured). EC-10 says "no spam". The sim is untouched, so this is about the journal only. | game-designer | Proposal: merge moves made within a few minutes into one line, or keep each one. QA tests whichever is chosen. |

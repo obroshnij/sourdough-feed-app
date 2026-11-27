@@ -6,7 +6,10 @@ extends Control
 ## 3D view while the sheet is open; tapping it closes the sheet unless `dismiss_on_scrim` is off.
 ## Swipe down on the header closes it at 25% of its height or 700 pt/s.
 ## Open 300 ms cubic out, close 220 ms cubic in; reduce motion fades in 150 / out 120 ms.
-## Subclasses fill `content` in `_build_content()`.
+## Subclasses fill `content` in `_build_content()` and refresh it in `_on_open()`, each time it opens.
+## The footer button is Done by default; a sheet can make it its primary action (feed: Mix) and override
+## `_on_done()`. Attention sheets that can't be deferred turn off `dismissable`: no Close, no scrim tap, no
+## swipe.
 
 signal opened(sheet_id: StringName)
 signal closed(sheet_id: StringName)
@@ -23,6 +26,19 @@ const GRABBER := Vector2(36, 5)
 @export var title_key: StringName = &""
 @export var height_kind: Height = Height.HALF
 @export var dismiss_on_scrim: bool = true
+## Overrides the height share when above 0 (the place sheet is 45%, ux-design §3).
+@export var custom_share: float = 0.0
+@export var done_key: StringName = &"UI_DONE_BTN"
+@export var done_primary: bool = false
+
+## Set by UiRoot. Sheets read Session outputs and change the game only through session.apply().
+var session: GameSession = null
+## False for sheets that must be acted on: hides Close, ignores the scrim and swipes.
+var dismissable: bool = true:
+	set(v):
+		dismissable = v
+		if close_button != null:
+			close_button.visible = v
 
 var content: VBoxContainer = null
 var scrim: ColorRect = null
@@ -76,7 +92,13 @@ func sheet_height() -> float:
 	var h: float = size.y
 	if height_kind == Height.FULL:
 		return h - _insets.top - FULL_TOP_GAP
-	return h * minf(SHARES[height_kind], MAX_SHARE)
+	var share: float = custom_share if custom_share > 0.0 else SHARES[height_kind]
+	return h * minf(share, MAX_SHARE)
+
+
+## The sheet's top edge once open, in this control's coordinates.
+func open_top() -> float:
+	return size.y - sheet_height()
 
 
 func open() -> void:
@@ -84,6 +106,7 @@ func open() -> void:
 		return
 	_open = true
 	visible = true
+	_on_open()
 	_layout()
 	_animate(0.0, UiMotion.sheet_open(), Tween.EASE_OUT)
 	opened.emit(sheet_id)
@@ -100,6 +123,34 @@ func close() -> void:
 ## Override to add rows to `box`.
 func _build_content(_box: VBoxContainer) -> void:
 	pass
+
+
+## Override to refresh the rows from the Session each time the sheet opens.
+func _on_open() -> void:
+	pass
+
+
+## The footer button. Done closes; a sheet whose footer is its primary action overrides this.
+func _on_done() -> void:
+	close()
+
+
+## Removes every row from `content` (sheets that rebuild their page).
+func clear_content() -> void:
+	for child: Node in content.get_children():
+		content.remove_child(child)
+		child.queue_free()
+
+
+## A wrapping label in one of the Theme's label types, text set from a key (and args) through tr().
+func add_label(type: StringName, text: String) -> Label:
+	var l := Label.new()
+	l.theme_type_variation = type
+	l.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.text = text
+	content.add_child(l)
+	return l
 
 
 func _refresh_text() -> void:
@@ -160,6 +211,7 @@ func _build() -> void:
 	close_button = IconButton.new(&"ui_close", &"UI_CLOSE_A11Y")
 	close_button.name = "Close"
 	close_button.pressed.connect(close)
+	close_button.visible = dismissable
 	row.add_child(close_button)
 
 	var scroll := ScrollContainer.new()
@@ -173,9 +225,9 @@ func _build() -> void:
 	content.add_theme_constant_override(&"separation", 12)
 	scroll.add_child(content)
 
-	done_button = SdButton.new(&"UI_DONE_BTN", SdButton.Variant.SECONDARY)
+	done_button = SdButton.new(done_key, SdButton.Variant.PRIMARY if done_primary else SdButton.Variant.SECONDARY)
 	done_button.name = "Done"
-	done_button.pressed.connect(close)
+	done_button.pressed.connect(_on_done)
 	body.add_child(done_button)
 	_footer_pad = Control.new()
 	_footer_pad.name = "BottomInset"
@@ -221,7 +273,7 @@ func _animate(target: float, duration: float, ease_type: Tween.EaseType) -> void
 
 func _on_scrim_input(event: InputEvent) -> void:
 	var mb: InputEventMouseButton = event as InputEventMouseButton
-	if mb != null and mb.button_index == MOUSE_BUTTON_LEFT and not mb.pressed and dismiss_on_scrim:
+	if mb != null and mb.button_index == MOUSE_BUTTON_LEFT and not mb.pressed and dismiss_on_scrim and dismissable:
 		close()
 
 
@@ -229,6 +281,8 @@ func _on_header_input(event: InputEvent) -> void:
 	var mb: InputEventMouseButton = event as InputEventMouseButton
 	var mm: InputEventMouseMotion = event as InputEventMouseMotion
 	var now: float = Time.get_ticks_msec() / 1000.0
+	if not dismissable:
+		return
 	if mb != null and mb.button_index == MOUSE_BUTTON_LEFT:
 		if mb.pressed:
 			_drag_active = true

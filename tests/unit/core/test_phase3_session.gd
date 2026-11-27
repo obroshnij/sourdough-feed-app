@@ -125,6 +125,35 @@ func test_feed_like_last_time_and_hooch_entries() -> void:
 	poured.free()
 
 
+func test_journal_entries_are_identical_after_a_reload() -> void:
+	if not require(&"p3_contracts"):
+		return
+	var clock := FakeClock.new(T0)
+	var dir: String = fresh_dir("journal_form")
+	var s := GameSession.new()
+	s.setup(clock, SaveStore.new(dir))
+	s.boot()
+	s.apply(AdoptStarterAction.new("Bramble"))
+	s.apply(FeedAction.from_ratio(5.0, 5.0, &"whole_wheat"))
+	var hoochy: GameSession = _from_fixture(s, "journal_form_hooch", clock, {"hooch": 0.3})
+	hoochy.apply(FeedAction.from_ratio(2.0, 2.0, &"white_bread"))
+	var before: Array[JournalEntry] = hoochy.get_journal()
+	var hooch_data: Dictionary = before[-2].data
+	check(typeof(hooch_data["hooch"]) == TYPE_STRING and DictReader.float_of(hooch_data["hooch"]) == 0.3,
+		"a non-whole float is held as its hex string, read with float_of")
+	var reloaded := GameSession.new()
+	reloaded.setup(clock, SaveStore.new(hoochy._store.base_dir))
+	reloaded.boot()
+	var after: Array[JournalEntry] = reloaded.get_journal()
+	check(after.size() >= before.size(), "the journal reloads")
+	for i: int in before.size():
+		check(before[i].data == after[i].data and before[i].args == after[i].args,
+			"entry %d (%s) is identical after a reload" % [i, before[i].text_key])
+	s.free()
+	hoochy.free()
+	reloaded.free()
+
+
 func test_moldy_locks_and_the_discard_flow() -> void:
 	if not require(&"p3_contracts"):
 		return
@@ -165,7 +194,11 @@ func test_events_release_once_and_withdraw_when_stale() -> void:
 	s.apply(AdoptStarterAction.new("Bramble"))
 	var raised: Array[int] = []
 	var withdrawn: Array[int] = []
-	s.event_raised.connect(func(e: SimEvent) -> void: raised.append(e.uid))
+	var injected: Array[int] = []
+	# The slice rules fire real events (peak_now) during these ticks too; only the injected ones count here.
+	s.event_raised.connect(func(e: SimEvent) -> void:
+		if injected.has(e.uid):
+			raised.append(e.uid))
 	s.event_withdrawn.connect(func(uid: int) -> void: withdrawn.append(uid))
 	var now: int = s.get_starter().sim_time_unix
 	var info: SimEvent = _pending(s, &"first_rise", &"info", now)
@@ -174,6 +207,7 @@ func test_events_release_once_and_withdraw_when_stale() -> void:
 	later.not_before_unix = now + 2 * H
 	var expiring: SimEvent = _pending(s, &"hungry_again", &"nudge", now)
 	expiring.expires_unix = now + 3 * 60
+	injected.append_array([info.uid, card.uid, later.uid, expiring.uid])
 	check_eq(info.presentation(), SimEvent.PRESENT_TOAST, "info is a toast")
 	check_eq(card.presentation(), SimEvent.PRESENT_CARD, "nudge is a card")
 	clock.advance(60)
@@ -198,7 +232,8 @@ func test_events_release_once_and_withdraw_when_stale() -> void:
 	var raised_again: Array[int] = []
 	again.event_raised.connect(func(e: SimEvent) -> void: raised_again.append(e.uid))
 	again.boot()
-	check_eq(raised_again, [later.uid], "a relaunch raises the unacknowledged card again, and only it")
+	check(raised_again.has(later.uid) and not raised_again.has(card.uid) and not raised_again.has(info.uid),
+		"a relaunch raises the unacknowledged card again, never an acked card or a toast: %s" % [raised_again])
 	again.free()
 
 

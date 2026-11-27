@@ -172,9 +172,24 @@ func _check_sheet(tag: String, s: Sheet, screen: Vector2, insets: SafeInsets) ->
 				if b.icon != null:
 					room -= b.get_theme_constant(&"icon_max_width") + b.get_theme_constant(&"h_separation")
 				check(w2 <= room + EPS, "%s %s text '%s' fits (%.1f of %.1f)" % [tag, c.name, b.text, w2, room])
-			check(panel.grow(EPS).encloses(r), "%s %s %s inside the sheet %s" % [tag, c.name, r, panel])
+			# Rows below the fold scroll; they must fit the sheet's width, and the footer must stay inside.
+			check(r.position.x >= panel.position.x - EPS and r.end.x <= panel.end.x + EPS,
+				"%s %s %s inside the sheet's width %s" % [tag, c.name, r, panel])
+			if not s.content.is_ancestor_of(c):
+				check(panel.grow(EPS).encloses(r), "%s %s %s inside the sheet %s" % [tag, c.name, r, panel])
+	# Scrolled rows are clipped to the scroll area, so compare the parts a finger can reach.
+	var scroll_rect: Rect2 = (s.content.get_parent() as Control).get_global_rect()
 	for i: int in targets.size():
 		for j: int in range(i + 1, targets.size()):
-			var a: Rect2 = targets[i].get_global_rect().grow(-EPS)
-			var b2: Rect2 = targets[j].get_global_rect().grow(-EPS)
-			check(not a.intersects(b2), "%s %s and %s don't overlap" % [tag, targets[i].name, targets[j].name])
+			var a: Rect2 = _reachable(s, targets[i], scroll_rect)
+			var b2: Rect2 = _reachable(s, targets[j], scroll_rect)
+			if a.size.x <= 2.0 * EPS or a.size.y <= 2.0 * EPS or b2.size.x <= 2.0 * EPS or b2.size.y <= 2.0 * EPS:
+				continue
+			check(not a.grow(-EPS).intersects(b2.grow(-EPS)), "%s %s and %s don't overlap" % [tag, targets[i].name, targets[j].name])
+
+
+func _reachable(s: Sheet, c: Control, scroll_rect: Rect2) -> Rect2:
+	var r: Rect2 = c.get_global_rect()
+	if not s.content.is_ancestor_of(c):
+		return r
+	return r.intersection(scroll_rect) if r.intersects(scroll_rect) else Rect2()

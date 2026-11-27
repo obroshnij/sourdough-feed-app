@@ -54,6 +54,31 @@ const IDLE_AFTER_S: float = 3.0
 const PAYLOAD_SECTIONS: Array[String] = [
 	"environment", "events", "history", "journal", "memorials", "meta", "rng", "starter",
 ]
+## D-042 fallback: in the real app, a launch or resume catch-up of at least this many steps (2 h) runs on a
+## WorkerThreadPool thread. A 14-day catch-up with the 8 slice rules takes a median 229 to 230 ms on the Mac
+## (estimate, D-050), inside the 250 ms budget, but a phone is slower (unmeasured, D-004), so the first jar
+## frame never waits for it. Shorter catch-ups take a few milliseconds and stay on the main thread.
+const ASYNC_MIN_STEPS: int = 120
+
+
+## A launch or resume catch-up running on a worker thread. It works on copies of the starter, environment,
+## history and ledger; the main thread swaps them in once the task completes (architecture §11). CatchUp is
+## pure, so no locks are needed.
+class CatchUpJob:
+	var kind: StringName = &"boot"
+	var first_launch: bool = false
+	var starter: StarterState = null
+	var env: EnvironmentState = null
+	var history: PlayerHistory = null
+	var ledger: EventLedger = null
+	var catalog: SimCatalog = null
+	var to_unix: int = 0
+	var utc_offset_s: int = 0
+	var mono_ms: int = 0
+	var result: CatchUpResult = null
+
+	func run() -> void:
+		result = CatchUp.run(starter, env, history, ledger, catalog, to_unix, utc_offset_s, false)
 
 
 ## The decoded payload, before it is applied.
@@ -101,6 +126,11 @@ var _recovered_this_launch: bool = false
 var _released: Dictionary[int, bool] = {}
 var _to_raise: Array[SimEvent] = []
 var _to_withdraw: Array[int] = []
+var _job: CatchUpJob = null
+var _job_id: int = -1
+## The real app (start() and the resume notifications) catches up on a worker thread. Tests call boot() and
+## on_resume(), which stay synchronous, or boot_async() plus wait_for_catch_up().
+var async_catch_up: bool = true
 var _timer: Timer = null
 var _idle_timer: Timer = null
 var _flags: DevFlags = DevFlags.new()
@@ -110,6 +140,15 @@ func _ready() -> void:
 	_flags = DevFlags.parse()
 	I18nLoader.load_all()
 	_wire_bus()
+
+
+## Polls the worker-thread catch-up while one runs. With no job it switches itself off, so the order of
+## _ready() and boot_async() doesn't matter.
+func _process(_delta: float) -> void:
+	if _job == null:
+		set_process(false)
+	elif WorkerThreadPool.is_task_completed(_job_id):
+		_finish_job()
 
 
 # ------------------------------------------------------------------ lifecycle
@@ -140,6 +179,8 @@ func start() -> void:
 		_settings.load_settings()
 	if _flags.fixture != "":
 		boot_from_fixture(_flags.fixture)
+	elif async_catch_up:
+		boot_async()
 	else:
 		boot()
 	_start_timer()
@@ -147,20 +188,45 @@ func start() -> void:
 
 
 ## Launch (architecture.md §6.1): load (or start new), clock rules, catch-up, save, session_ready.
+## Synchronous: tests use it. The real app uses boot_async().
 func boot() -> CatchUpResult:
-	var now: int = _clock.now_unix()
-	var report: SaveLoadReport = _store.load_latest(_is_payload_valid)
-	var parts: Parts = _decode_payload(report.payload, false) if report.ok else null
-	if parts != null:
-		_apply_parts(parts)
-	else:
-		_begin_new_game(now, &"new_game")
-		if not report.first_run:
-			_meta.recovered_from = "quarantine"
-			_recovered_this_launch = true
+	var first_launch: bool = _load_or_new()
 	var summary: CatchUpResult = _sync_to_clock()
-	_finish_boot(summary, parts == null and report.first_run)
+	_finish_boot(summary, first_launch)
 	return summary
+
+
+## The real app's launch (D-042): loads the save and shows it at once (state_changed with the saved state),
+## then runs a long catch-up on a worker thread. Until it finishes, is_booted() is false and apply() refuses
+## with REASON_NOT_READY; then everything continues exactly as boot() (same result, same signals, ending in
+## session_ready). A short catch-up (under 2 h) just runs boot()'s way. wait_for_catch_up() blocks until done.
+func boot_async() -> void:
+	if _job != null:
+		return
+	var first_launch: bool = _load_or_new()
+	if not _start_job(&"boot", first_launch):
+		_finish_boot(_sync_to_clock(), first_launch)
+
+
+## Coming back from the background in the real app: like on_resume(), with a long catch-up on a worker thread.
+## While it runs, apply() refuses with REASON_NOT_READY and the jar keeps showing the state from before.
+func resume_async() -> void:
+	if not _booted or _job != null:
+		return
+	_foreground = true
+	if not _start_job(&"resume", false):
+		_finish_resume(_sync_to_clock())
+
+
+## True while a worker-thread catch-up runs.
+func is_catching_up() -> bool:
+	return _job != null
+
+
+## Blocks until a running worker-thread catch-up is done and applied (tests, and before a background save).
+func wait_for_catch_up() -> void:
+	if _job != null:
+		_finish_job()
 
 
 ## Dev and test entry: a full save file or a bare payload, shown as of now (no catch-up). Falls back to
@@ -183,7 +249,7 @@ func boot_from_fixture(path: String) -> CatchUpResult:
 
 ## One foreground grid tick (the 60 s timer calls it; tests call it directly).
 func tick() -> void:
-	if not _booted:
+	if not _booted or _job != null:
 		return
 	var prev_state: StringName = _derived.state
 	var res: CatchUpResult = _live_sync(true)
@@ -200,7 +266,9 @@ func tick() -> void:
 
 
 ## Backgrounding (APPLICATION_PAUSED, FOCUS_OUT, close): advance to now and save. Idempotent.
+## A worker-thread catch-up still running is finished first, so the save holds it.
 func on_background() -> void:
+	wait_for_catch_up()
 	if not _booted:
 		return
 	var res: CatchUpResult = _live_sync(true)
@@ -210,12 +278,19 @@ func on_background() -> void:
 	_save()
 
 
-## Returning (APPLICATION_RESUMED): clock rules, catch-up, save, resumed(summary).
+## Returning (APPLICATION_RESUMED): clock rules, catch-up, save, resumed(summary). Synchronous: tests and
+## debug_advance() use it. The real app uses resume_async().
 func on_resume() -> CatchUpResult:
+	wait_for_catch_up()
 	if not _booted:
 		return CatchUpResult.empty(0)
 	_foreground = true
 	var summary: CatchUpResult = _sync_to_clock()
+	_finish_resume(summary)
+	return summary
+
+
+func _finish_resume(summary: CatchUpResult) -> void:
 	_journal_transitions(summary)
 	var entries: Array[JournalEntry] = _record_events(summary.events)
 	_prepare_return(summary, false)
@@ -225,7 +300,6 @@ func on_resume() -> CatchUpResult:
 	resumed.emit(summary)
 	_emit_entries(entries)
 	_emit_releases()
-	return summary
 
 
 ## Android back with no sheet open (T3 decides): save, then quit.
@@ -239,6 +313,7 @@ func save_and_quit() -> void:
 func shutdown() -> void:
 	if not OS.is_debug_build():
 		return
+	wait_for_catch_up()
 	if _booted:
 		on_background()
 	for t: Timer in [_timer, _idle_timer]:
@@ -278,12 +353,15 @@ func _notification(what: int) -> void:
 			on_background()
 		NOTIFICATION_APPLICATION_RESUMED, NOTIFICATION_APPLICATION_FOCUS_IN:
 			if _booted and not _foreground:
-				on_resume()
+				if async_catch_up:
+					resume_async()
+				else:
+					on_resume()
 
 
 # ------------------------------------------------------------------ the action pipeline (architecture §4)
 func apply(action: GameAction) -> ActionResult:
-	if not _booted:
+	if not _booted or _job != null:
 		var not_ready: ActionResult = ActionResult.rejected(action.kind, NOT_READY_KEY)
 		action_applied.emit(not_ready)
 		return not_ready
@@ -585,6 +663,7 @@ func local_utc_offset_s() -> int:
 ## sandbox (`<save dir>_time_travel`) for the rest of the run, so a scaled timestamp never reaches the real
 ## save. The next normal launch loads the real save and catches up as usual.
 func set_debug_time_scale(scale: float) -> bool:
+	wait_for_catch_up()
 	if not _booted or not (_clock is DebugClock):
 		return false
 	var dc: DebugClock = _clock
@@ -680,6 +759,75 @@ func _prepare_return(summary: CatchUpResult, first_launch: bool) -> void:
 			continue
 		_released[e.uid] = true
 		_ledger.remove_pending(e.uid)
+
+
+## Loads the latest save, or starts a new game when there is none (or none could be read). Returns true on
+## the very first launch.
+func _load_or_new() -> bool:
+	var now: int = _clock.now_unix()
+	var report: SaveLoadReport = _store.load_latest(_is_payload_valid)
+	var parts: Parts = _decode_payload(report.payload, false) if report.ok else null
+	if parts != null:
+		_apply_parts(parts)
+		return false
+	_begin_new_game(now, &"new_game")
+	if not report.first_run:
+		_meta.recovered_from = "quarantine"
+		_recovered_this_launch = true
+	return report.first_run
+
+
+## Starts a worker-thread catch-up when the clock rules call for one of ASYNC_MIN_STEPS or more. Returns false
+## (and does nothing) otherwise, so the caller runs the synchronous path.
+func _start_job(kind: StringName, first_launch: bool) -> bool:
+	var now: int = _clock.now_unix()
+	var decision: TimeResolution = TimePolicy.resolve(_starter.sim_time_unix, now)
+	@warning_ignore("integer_division")
+	var steps: int = (Sim.grid(now) - _starter.sim_time_unix) / SimConstants.GRID_S
+	if decision.action != &"catch_up" or steps < ASYNC_MIN_STEPS:
+		return false
+	# The shared rule list is built here, on the main thread, never lazily on the worker.
+	EventRules.registry()
+	_refresh()
+	_emit_state()
+	var job := CatchUpJob.new()
+	job.kind = kind
+	job.first_launch = first_launch
+	job.starter = _starter.copy()
+	job.env = _env.copy()
+	job.history = _history.copy()
+	job.ledger = _ledger.copy()
+	job.catalog = _catalog
+	job.to_unix = now
+	job.utc_offset_s = _clock.local_utc_offset_s()
+	job.mono_ms = _clock.monotonic_msec()
+	_job = job
+	_job_id = WorkerThreadPool.add_task(job.run, true, "Sourdough catch-up")
+	set_process(true)
+	return true
+
+
+## Swaps a finished worker-thread catch-up in, then continues exactly as boot() or on_resume() do.
+func _finish_job() -> void:
+	WorkerThreadPool.wait_for_task_completion(_job_id)
+	var job: CatchUpJob = _job
+	_job = null
+	_job_id = -1
+	set_process(false)
+	_starter = job.starter
+	_env = job.env
+	_history = job.history
+	_ledger = job.ledger
+	# The session clock resumes from where the catch-up stopped; the next tick covers the time it took.
+	_session_now = job.to_unix
+	_last_wall = job.to_unix
+	_last_mono_ms = job.mono_ms
+	_refresh()
+	_last_summary = job.result
+	if job.kind == &"boot":
+		_finish_boot(job.result, job.first_launch)
+	else:
+		_finish_resume(job.result)
 
 
 ## Launch and resume: TimePolicy, then catch-up (app in the background for the whole window).
@@ -975,7 +1123,11 @@ func _make_entry(kind: StringName, key: StringName, data: Dictionary) -> Journal
 	return e
 
 
+## Every entry goes through here. data and args are stored in their saved form (DictReader.saved_form), so an
+## entry is the same before and after a save (QA's PROP-02 finding).
 func _append_journal(entry: JournalEntry) -> void:
+	entry.data = DictReader.saved_form(entry.data)
+	entry.args = DictReader.saved_form(entry.args)
 	JournalEntry.append_capped(_journal, entry)
 
 

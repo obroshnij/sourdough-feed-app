@@ -831,20 +831,30 @@ Two looks on the one shared night factor n (D-043): day (the signed-off afternoo
 
 ### 18.7 The `bubbles` inspection camera (the §16.6 follow-up)
 
-Yes: keep the camera at or a little above the starter's rim, where the cap meets the glass.
+**Agreed with ux-designer (ux-design §10), 2026-11-27.** Keep the camera a little above the starter's rim (where the cap meets the glass), at a fixed distance, and keep the whole cap inside the band the UI leaves free. Revised 2026-11-27 for ux-designer's condition: the peek sheet covers the bottom 42% and the HUD plate the top. That leaves a visible band of 215 pt (32%) on an iPhone SE, 195 pt (31%) on a 360 x 640 Android and 340 pt (36%) on an iPhone 17 Pro Max.
 
 - **Today.** `focus_pose(&"bubbles")` aims at floor + 0.55 x `level_m`, the fed level of about 0.030 m. So the camera sits at y ≈ 0.037 whatever the rise. At `at_peak` the rim is at 0.077. The camera then frames the band and the jar base, below ux's "mid-height" (ux-design §10), and anything it sees of the cap is edge-on. That is what made the cap look pointed (§16.6).
-- **The board** (§16.2) aims at floor + 0.55 x `level_m` x `rise`, the middle of the real paste.
-- **Proposed.**
-  - Target y_t = floor + 0.55 x `level_m` x `rise`.
-  - Camera y = max(y_t + 0.012, rim_y + 0.004), where rim_y = floor + `level_m` x `rise` (no dome).
-  - Keep the horizontal offset (-0.0737, 0.1386) m, which is 0.157 m from the axis.
-  - T2 passes rim_y to the rig next to `starter_top_y`.
-- **Result.** The pitch is 6.4 degrees for `freshly_fed`, 12.6 degrees for `at_peak`, and 21 degrees at rise 3.0 with the 0.042 m maximum level.
-- **Checked in Cycles** at `at_peak`, 320 x 400, with three cameras:
-  - Today's preset (y 0.037) shows the band and the jar base, and the cap is out of frame.
-  - The board's (y 0.058) sees the dome nearly edge-on.
-  - The proposed one (y 0.081) shows the cap as a soft top surface at the top of the frame, and the bubbles still read clearly through the glass.
+- **Rule.**
+  - Direction: yaw -28.0 degrees, pitch 4.4 degrees. This is the §16.2 board's offset direction.
+  - Distance: 0.36 m, the same for every state. The glass fills about 70% of the screen width, as ux-design §10 asks.
+  - Target: y_t = max(floor + 0.55 x `level_m` x `rise`, `starter_top_y` - 0.028). `starter_top_y` is the value the rig already gets from `JarGeometry.surface_top_m()`.
+  - Frustum shift: put the target at the visible band's vertical center. T2 computes the band from the HUD plate's bottom and the sheet's top.
+- **Why not pull back.** Keeping the target at mid-paste and pulling back until the cap fits the 31% band takes the camera to 0.53 m at `at_peak` and 0.88 m at maximum rise. The glass would then fill only 47% and 28% of the width.
+  - Worse, the distance would change with the rise, so the bubbles would look smaller at peak than at `freshly_fed`. Bubble size is a state tell (§7), so the distance must stay fixed.
+- **Result.** With the fixed distance, the target moves up only when the paste is tall:
+
+  | State | Target, share of the paste height | Camera above the rim |
+  |---|---|---|
+  | `freshly_fed` | 0.55 | 14.1 mm |
+  | `at_peak` | 0.74 | 9.7 mm |
+  | Maximum rise (rise 3.0 at the 0.042 m level) | 0.87 | 11.7 mm |
+
+  On the tightest band (31%), the cap's top stays within 85% of the band's upper half. The band shows about 67 mm of paste height.
+- **Checked in Cycles** with the rule above, at 375 x 667 (iPhone SE, 1 px per pt), masked with the HUD plate and the sheet at 0.94 opacity:
+  - `freshly_fed`: the whole paste and the rubber band are in the band.
+  - `at_peak`: the upper paste and the whole domed cap, as a soft rounded top.
+  - Maximum rise: the cap sits just under the band's top edge.
+  - In all three, the bubbles read clearly through the glass.
   - The renders are not committed (D-045).
-- **Next step.** ux-designer confirms the framing. If the cap still reads pointed from there, art revisits the §5 dome profile.
-- **Wall coverage.** Covered: the check includes pitches up to 40 degrees at close range.
+- **If the cap still reads pointed in Godot in this framing,** that is the §5 dome profile (art's follow-up), not the camera.
+- **Wall coverage.** Covered: the check includes this pitch at close range.
