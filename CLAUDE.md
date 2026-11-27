@@ -38,8 +38,10 @@ Only commands that have actually been run go here.
 # Reference simulation: checks test vectors V1 to V20 against the spec (about 3 s)
 python3 -I tools/sim-reference/sim.py vectors   # ends "Checks: 243 run, 0 failed", exit 0; exit 1 on any miss
 
-# Full test gate: imports first, runs every Godot test plus 4 lints; --strict fails on any skip (D-041)
-tests/run.sh --strict   # "RESULT: 179 passed, 0 failed, 0 skipped" / "RUN: PASS" on a fresh clone (Phase 2 close)
+# Full test gate: imports first, runs every Godot test plus 5 lints; --strict fails on any skip (D-041).
+# If Godot's first import crashes (an engine bug, test-plan §1), run.sh retries once and the RUN line says
+# "import retried after signal N". Any phase-exit report must quote that note. A second crash fails the run.
+tests/run.sh --strict   # "RESULT: 298 passed, 0 failed, 0 skipped" / "RUN: PASS" on a fresh clone (Phase 3, 917bf3c)
 
 # Copy checker (docs plus pending CSVs) and the catalog build
 python3 -I tools/i18n/check_copy.py .              # 640 strings, "OK: ... pending CSVs", exit 0
