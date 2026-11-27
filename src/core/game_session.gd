@@ -536,6 +536,24 @@ func get_journal() -> Array[JournalEntry]:
 	return _journal.duplicate()
 
 
+## AC-08.7: true while the status pill should show the "new" dot for `state_id`, that is until
+## mark_state_seen() records it. Per player, not per starter: a discard and restart never brings the dot back.
+## False for anything that isn't one of the 11 canonical state ids, and before boot.
+func is_state_new(state_id: StringName) -> bool:
+	return _booted and SimConstants.STATES.has(state_id) and not _history.seen_states.has(state_id)
+
+
+## AC-08.7: the player tapped the pill (or its explainer) for `state_id`, so its "new" dot goes for good.
+## Records it and saves. Never touches the sim, the events or the journal, and doesn't step time. Idempotent;
+## ignores ids that aren't canonical states. Returns true when it recorded something new.
+func mark_state_seen(state_id: StringName) -> bool:
+	if not is_state_new(state_id):
+		return false
+	_history.seen_states[state_id] = true
+	_save()
+	return true
+
+
 ## This launch found saves but none could be read, so a new game began (D-024 quarantine). The UI shows a
 ## calm notice once; is_first_run() is also true, so the new-game start names the new starter.
 func recovered_this_launch() -> bool:
