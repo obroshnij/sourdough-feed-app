@@ -142,7 +142,7 @@ FEED_SHEET_TITLE,Feed
 FEED_SKIP_ANIM_BTN,Skip
 FEED_STEP_FLOUR,Flour
 FEED_STEP_HOOCH,Hooch
-FEED_STEP_HYDRATION,Hydration
+FEED_STEP_HYDRATION,Water
 FEED_STEP_TIMING,Timing
 FEED_SUMMARY,Keep {grams} g · {ratio} · {flour}
 FLOUR_RYE,Rye
@@ -153,6 +153,7 @@ FLOUR_WHITE_BREAD,Bread flour
 FLOUR_WHITE_BREAD_NOTE,"The mildest. A tall, smooth dome."
 FLOUR_WHOLE_WHEAT,Whole wheat
 FLOUR_WHOLE_WHEAT_NOTE,"Tan and flecked, with a sourer smell."
+FORECAST_HINT,At its best {window}
 FORECAST_LINE,It should be at its best {window}.
 GLOSS_DISCARD,"Discard: the part you take out before feeding, so the jar doesn’t overflow."
 GLOSS_FEED,"Feed: fresh flour and water, so it has food again."
@@ -457,6 +458,7 @@ ONBOARD_NOTE_BTN_SKIP,I know starters
 ONBOARD_NOTE_BTN_TOUR,Show me around
 ONBOARD_NOTE_TITLE,It came with a note
 ONBOARD_SKIP_DONE,All yours. The journal has notes if you want them.
+ONBOARD_SKIP_TOUR_BTN,Skip tour
 ONBOARD_SMELL_AFTER,The smell changes as it rises. Your nose will learn it.
 ONBOARD_SMELL_COACH,Now smell it. Tap Smell.
 ONBOARD_TIMELAPSE_BADGE,Time-lapse
@@ -487,6 +489,7 @@ REACT_MOVE_COUNTER,Back on the counter. Its usual pace.
 REACT_MOVE_PROOFING,Into the proofing box. Warm and steady.
 REACT_MOVE_WARM,"Somewhere warmer. A faster rise, and hungry sooner."
 REASON_ADOPT,It already has a name.
+REASON_EMPTY_JAR,The jar is empty. Start again when you’re ready.
 REASON_ENVIRONMENT,That place isn’t available.
 REASON_EVENT,That note is already gone.
 REASON_FLOUR,Pick a flour to feed with.
@@ -511,11 +514,16 @@ SETTINGS_A11Y,Settings
 SETTINGS_HAPTICS,Vibration
 SETTINGS_KEEP_MESSAGES,Keep messages on screen
 SETTINGS_REDUCE_MOTION,Reduce motion
+SETTINGS_SOUND,Sound
 SETTINGS_TEXT_LARGE,Large
 SETTINGS_TEXT_LARGEST,Largest
 SETTINGS_TEXT_SIZE,Text size
 SETTINGS_TEXT_STANDARD,Standard
+SETTINGS_TIME_LAPSE,Time-lapse on return
 SETTINGS_TITLE,Settings
+SETTINGS_VOLUME,Volume
+SETTINGS_WARNING_ALERT,Warning alert
+SETTINGS_WARNING_ALERT_NOTE,One alert if it shows warning signs while you’re away.
 SMELL_ACETONE_1,"Sharp and solvent, like nail polish remover."
 SMELL_ACETONE_2,"Sharp and chemical. Nail polish remover, clearly."
 SMELL_ACETONE_3,"Like nail polish remover. Odd, from flour and water."

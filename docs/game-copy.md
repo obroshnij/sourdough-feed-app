@@ -183,6 +183,7 @@ The status pill's `accessibility_name` is the status word itself (12, within 40)
 | `REASON_HOOCH_CHOICE` | Pour off the hooch or stir it in first. | 60 |
 | `REASON_ENVIRONMENT` | That place isn't available. | 60 |
 | `REASON_INSPECT_KIND` | That one can't be inspected yet. | 60 |
+| `REASON_EMPTY_JAR` | The jar is empty. Start again when you're ready. | 60 |
 | `REASON_NAME` | A name needs 1 to 16 characters. | 60 |
 | `REASON_ADOPT` | It already has a name. | 60 |
 | `REASON_EVENT` | That note is already gone. | 60 |
@@ -208,6 +209,11 @@ Used by the UI component inventory (ux-design §14 and §17). Settings rows so f
 | `SETTINGS_TEXT_LARGE` | Large | 12 |
 | `SETTINGS_TEXT_LARGEST` | Largest | 12 |
 | `SETTINGS_REDUCE_MOTION` | Reduce motion | 24 |
+| `SETTINGS_SOUND` | Sound | 24 |
+| `SETTINGS_VOLUME` | Volume | 24 |
+| `SETTINGS_TIME_LAPSE` | Time-lapse on return | 24 |
+| `SETTINGS_WARNING_ALERT` | Warning alert | 24 |
+| `SETTINGS_WARNING_ALERT_NOTE` | One alert if it shows warning signs while you're away. | 60 |
 | `SETTINGS_HAPTICS` | Vibration | 24 |
 | `SETTINGS_KEEP_MESSAGES` | Keep messages on screen | 24 |
 
@@ -228,6 +234,7 @@ Shown on the feed result card and on a status tap during a rise phase. Not shown
 | Key | Text | Max |
 |---|---|---|
 | `FORECAST_LINE` | It should be at its best {window}. | 60 |
+| `FORECAST_HINT` | At its best {window} | 34 |
 
 ## 5. Smell
 
@@ -589,7 +596,7 @@ Flow (ux §8, mechanics §2): the sheet opens with last time's choices preselect
 | `FEED_STEP_HOOCH` | Hooch | 14 |
 | `FEED_STEP_TIMING` | Timing | 14 |
 | `FEED_STEP_FLOUR` | Flour | 14 |
-| `FEED_STEP_HYDRATION` | Hydration | 14 |
+| `FEED_STEP_HYDRATION` | Water | 14 |
 | `FEED_MIX_BTN` | Mix | 18 |
 | `FEED_MIX_HOLD` | Hold to mix. | 60 |
 | `FEED_SKIP_ANIM_BTN` | Skip | 18 |
