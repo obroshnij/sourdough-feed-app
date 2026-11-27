@@ -20,6 +20,8 @@
 .env
 .env.*
 export_credentials.cfg
+# Local iOS signing and device settings (team ID, device UDID, dev bundle id): never committed (D-058)
+tools/build/local.env
 
 # Blender autosaves and backups
 *.blend1
