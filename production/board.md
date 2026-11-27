@@ -2,7 +2,20 @@
 
 Owner: director (the only writer). Teammates report by message. Last updated 2026-11-27.
 
-## Phase 2: foundation (branch `phase-2-foundation`): done, waiting for the user's review
+## Phase 3 exit (branch `phase-3-slice`, 2f7645b): code done, waiting for the user's play session
+
+| Exit criterion (D-046) | Result |
+|---|---|
+| `tests/run.sh --strict` green on a fresh clone | 399 passed, 0 failed, 0 skipped, 5 lints passed. No import retry. Clean `git status` after import |
+| AC-01 to AC-12 | 107 rows: 88 covered by tests, 11 manual only (MAN-S0 to S5), 8 waived to Phase 4 or 5 (D-052), 0 open |
+| Budgets (Mac estimates, D-004) | 14-day catch-up 225.8 ms against 250 ms (PERF-03). Save write 5.45 ms against 10 ms (PERF-04). save.json about 104.6 KB flat to day 365, against 128 KB |
+| Reference model | 243 of 243 checks. DIFF-01 golden traces pass |
+| Look | Day and night signed off by art on Mobile A, Mobile B and Compatibility A. Probe 326 of 328 (2 granted). Kitchen wall: 0 sky pixels over the whole orbit |
+| Mac windowed run | Metal, Forward Mobile, 0 errors |
+| Android emulator run | Blocked: Godot's editor setting `export/android/java_sdk_path` is empty on this Mac. Waiting on the user |
+| The user plays the build | Waiting on the user |
+
+## Phase 2: foundation (branch `phase-2-foundation`): merged into `main` (PR #1)
 
 | Exit criterion (roadmap) | Result |
 |---|---|
@@ -24,7 +37,7 @@ Owner: director (the only writer). Teammates report by message. Last updated 202
 | Art | `art-director` | Masks, reference board, 47 icons, kitchen set, sign-off |
 | Toolchain | `t1-toolchain` | Android export works end to end. iOS simulator is boot-only (D-044) |
 
-## Phase 3: vertical slice (branch `phase-3-slice`): in progress (D-046)
+## Phase 3: vertical slice (branch `phase-3-slice`): how it ran (D-046)
 
 | Step | Owner | Status |
 |---|---|---|
@@ -34,9 +47,10 @@ Owner: director (the only writer). Teammates report by message. Last updated 202
 | AC harness, traceability (107 rows), play-session checklists MAN-S0 to S5, import retry | `qa-engineer` | done (3aca626) |
 | Rules wired, catch-up 230 ms with 8 rules and on a worker thread (D-050), F3 dev overlay | `t1-sim-core` | done (6bacb19) |
 | Easing, breathing, bubble pops, feed and smell visuals | `t2-view` | done (ef6fcf6) |
-| Kitchen wall and its `.import` files, inspection and mold cameras, time-lapse, day and night light, R12 and R13, performance | `t2-view` | in progress |
-| Feed, place, smell and inspect sheets, event cards, away summary, journal, naming, moldy locks, restart (D-047), settings, 411×914 profile, flaky sheet test | `t3-ui` | in progress |
-| Architecture and data-model docs brought up to date | `tech-architect` | in progress |
+| Kitchen wall and its `.import` files, inspection and mold cameras, time-lapse, day and night light, R12 and R13, performance | `t2-view` | done (111f37b, night re-tune dc5fb52) |
+| Feed, place, smell and inspect sheets, event cards, away summary, journal, naming, moldy locks, restart (D-047), settings, 411×914 profile, flaky sheet test | `t3-ui` | done (148528c, be769de, edc9d50) |
+| Architecture and data-model docs brought up to date | `tech-architect` | done |
+| Test backfill for the 40 buildable AC rows, save-size fix (SAVE-13) | T1, T2, T3, QA | done (9551f26, bd88864, b057af3, 24e9b74) |
 | Exit: AC-01 to AC-12 green under `--strict` on a fresh clone, and the user plays on the Mac and the Android emulator | director | |
 
 ## Phase 3 backlog (vertical slice), carried from Phase 2
@@ -76,16 +90,15 @@ Owner: director (the only writer). Teammates report by message. Last updated 202
 
 ## Waiting on the user
 
+- Play the Phase 3 build (MAN-S0 to S5 in test-plan §6), then review `phase-3-slice` for merging.
+- Android emulator run: Godot's editor setting `export/android/java_sdk_path` is empty on this Mac. Set it to Android Studio's JDK, or skip the emulator run.
 - The kitchen wall shape: keep the curved sweep, or a straight backsplash with side walls (D-049).
-
-- Review and merge PR #1 (Phase 2). Phase 3 builds on top of it and is approved.
 - Before Phase 5: the bundle id and Apple Team ID, and whether to download the Metal Toolchain (about 0.7 GB, unverified) for iOS shader baking.
-- Machine note: Godot's editor setting `export/android/java_sdk_path` now points to Android Studio's JDK (set during the toolchain dry run). Set it back to empty to undo.
 
 ## Later phases
 
 | Phase | Status |
 |---|---|
-| 3. Vertical slice | In progress |
+| 3. Vertical slice | Code done, waiting for the user's play session |
 | 4. Polish and the rest of the MVP | |
 | 5. Mobile validation | |
