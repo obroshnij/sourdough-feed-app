@@ -45,6 +45,7 @@ class World:
 		action.at_unix = state.sim_time_unix
 		var before: StarterState = state.copy()
 		var derived_before: DerivedState = StateDeriver.derive(state, env)
+		var env_before: EnvironmentState = env
 		match action.kind:
 			&"feed":
 				var feed: FeedAction = action
@@ -54,7 +55,7 @@ class World:
 				env = move.env.copy()
 				env.changed_unix = state.sim_time_unix
 		var derived: DerivedState = StateDeriver.derive(state, env)
-		history.record_action(action, before, derived_before)
+		history.record_action(action, before, derived_before, env_before)
 		var ctx := EventContext.new()
 		ctx.prev_state = before
 		ctx.prev_derived = derived_before
@@ -79,6 +80,15 @@ class World:
 
 	func move(location: StringName) -> Array[SimEvent]:
 		return act(SetEnvironmentAction.to_location(location))
+
+	## Discard and restart, as GameSession._discard_starter does: a new starter from `preset`, born now,
+	## on the counter. The ledger is kept; the history's per-starter fields reset.
+	func new_starter(preset: StringName) -> void:
+		var t: int = state.sim_time_unix
+		state = StarterPresets.make(preset, t)
+		state.id = "t4_%s_%d" % [preset, t]
+		env = StarterPresets.environment_for(preset, t)
+		history.reset_for_new_starter()
 
 	## The player acknowledges every waiting event (closes the sheet or card).
 	func ack_all() -> void:

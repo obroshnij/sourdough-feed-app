@@ -21,14 +21,14 @@ func evaluate(ctx: EventContext) -> SimEvent:
 		return null
 	if RuleFacts.shows_danger(ctx.derived):
 		return null
-	# T1's PlayerHistory.peak_seen_foreground; until it lands, this step's foreground flag stands in.
-	if RuleFacts.history_bool(ctx.history, &"peak_seen_foreground", ctx.app_foreground):
+	if ctx.history.peak_seen_foreground:
 		return null
 	var s: StarterState = ctx.state
 	var cycle: int = RuleFacts.cycle_start(s)
 	if RuleFacts.fired_after(ctx.ledger, id, cycle) or RuleFacts.fired_after(ctx.ledger, OTHER, cycle):
 		return null
-	var peak_unix: int = RuleFacts.history_int(ctx.history, &"cycle_peak_unix", 0)
+	# A preset adopted mid-cycle may have no recorded peak time of its own yet; then "around now".
+	var peak_unix: int = ctx.history.cycle_peak_unix
 	if peak_unix <= cycle:
 		peak_unix = s.sim_time_unix
 	return make_event(ctx, {

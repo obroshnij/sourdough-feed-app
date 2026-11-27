@@ -60,6 +60,13 @@ python3 -I art/blender/scripts/verify_glb.py assets/3d/jar_v0.glb
 
 # Rebuild the jar .blend, GLB and preview renders (about 100 s, run by art-director)
 /Applications/Blender.app/Contents/MacOS/Blender -b -P art/blender/scripts/build_jar.py
+
+# Kitchen wall contract (D-049): "PASS: kitchen wall node ..." and exit 0
+python3 -I art/blender/scripts/verify_glb.py assets/3d/kitchen_wall.glb
+
+# Rebuild the kitchen wall GLB, day and night textures and check sheet (about 60 s, run by art-director).
+# Ends with a ray coverage check over the whole orbit: 0 misses within the limits.
+/Applications/Blender.app/Contents/MacOS/Blender -b -P art/blender/scripts/bake_kitchen_wall.py
 ```
 
 ## Hard rules

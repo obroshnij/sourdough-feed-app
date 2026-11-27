@@ -69,8 +69,7 @@ func test_the_first_restart_starter_gets_its_own_warning() -> void:
 	check_eq(w.of(ID).size(), 1, "the first starter was warned")
 	w.ack_all()
 	var t: int = w.state.sim_time_unix
-	w.state = StarterPresets.make(&"first_restart", t)
-	w.env = StarterPresets.environment_for(&"first_restart", t)
+	w.new_starter(&"first_restart")
 	check(RuleFacts.feed_unix(w.state) < w.of(ID)[0].created_unix, "its last feed predates the old warning")
 	var onset: int = first_time(w, t + 6 * DAY, enters_state(&"unhealthy"))
 	w.away_to(t + 6 * DAY)
@@ -82,12 +81,11 @@ func test_not_re_armed_within_24_hours_of_leaving() -> void:
 	if not require(&"m5_catchup"):
 		return
 	# The sim can't re-enter unhealthy within 24 h of a feed, so the gap is set on the history's timestamp
-	# (T1's PlayerHistory.unhealthy_left_unix). The starter's state is a real V9 onset.
+	# (PlayerHistory.unhealthy_left_unix). The starter's state is a real V9 onset.
 	var w: World = _neglected()
 	var onset: int = first_time(w, T0 + 7 * H + 14 * DAY, enters_state(&"unhealthy"))
 	w.away_to(onset - SimConstants.GRID_S)
-	w.history.set(&"unhealthy_left_unix", onset - 23 * H)
-	check_eq(w.history.get(&"unhealthy_left_unix"), onset - 23 * H, "T1's unhealthy_left_unix exists")
+	w.history.unhealthy_left_unix = onset - 23 * H
 	w.away_to(onset)
 	check_eq(w.of(ID).size(), 0, "23 h out of unhealthy is still the same episode")
 	w.away_to(onset - 23 * H + RuleFacts.WARNING_REARM_S)

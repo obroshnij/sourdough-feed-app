@@ -39,7 +39,7 @@ QA_HUNGER_BAD = ["danger", "unsafe", "toxic", "sick", "poison", "throw it out", 
 QA_ANY_BAD = ["probiotic", "gut health", "health benefit", "cure"]
 # moldy messages that must say "discard" (titles, words, observations, buttons are always shown beside one)
 MUST_DISCARD = re.compile(r"^(STATUS_MOLDY_(HINT|TAP)|SMELL_MOLDY_BODY|INSPECT_\w*MOLDY\w*_MEAN|"
-                          r"MOLD_SHEET_BODY\w*|MOLD_FEED_BLOCKED|REASON_MOLDY_LOCKED)$")
+                          r"MOLD_SHEET_BODY\w*|MOLD_FEED_BLOCKED|REASON_MOLDY_LOCKED|EVENT_MOLD_FOUND_JOURNAL_BODY)$")
 
 ROW = re.compile(r"^\|\s*`([^`]+)`\s*\|\s*(.*?)\s*\|\s*(\d+)\s*\|\s*$")
 PLACEHOLDER = re.compile(r"\{(\w+)\}")

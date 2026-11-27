@@ -48,8 +48,7 @@ func test_the_next_starter_gets_its_own_sheet() -> void:
 	w.ack_all()
 	# Discard and restart (GameSession._discard_starter): same ledger, new starter born now.
 	var t: int = w.state.sim_time_unix
-	w.state = StarterPresets.make(&"restart", t)
-	w.env = StarterPresets.environment_for(&"restart", t)
+	w.new_starter(&"restart")
 	w.away_to(t + 12 * DAY)
 	check(w.state.moldy, "the second starter, also neglected, molds too")
 	check_eq(w.of(ID).size(), 2, "and gets its own mold sheet (per starter, not per save)")

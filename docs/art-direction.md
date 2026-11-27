@@ -1,6 +1,6 @@
 # Art direction
 
-Owner: art-director. Status: Phase 2. Look-dev jar v0 is built and verified (§12). New in Phase 2: the real-time starter look for T2, with masks and a reference board (§16, D-037), and the production icons (§11, D-034).
+Owner: art-director. Status: Phase 3. Look-dev jar v0 is built and verified (§12). Phase 2 added the real-time starter look for T2, with masks and a reference board (§16, D-037), and the production icons (§11, D-034). New in Phase 3: the curved kitchen wall that holds over the whole orbit, the night look, and the `bubbles` camera height (§18).
 
 Source of truth for the jar: `art/blender/scripts/build_jar.py`. Change a parameter, re-run, and the .blend, GLB and previews all follow. Never hand-edit `jar_v0.blend` or the GLB.
 
@@ -109,6 +109,8 @@ Likely Mobile fix: desaturate the view's `starter_color` a few points. Keep the 
 
 The HUD plate cross-fades from surface to surface_night on the same blend factor as the evening preset. The jar is always well lit; night never hides the starter.
 
+**Phase 3 (§18.6):** the slice runs two looks, day and night, on the one shared night factor (D-043). The night values and sign-off rows are in §18.6. Dropping `morning` for the slice is an open item (§15).
+
 **Locations** (one kitchen scene, camera moves and light presets, per game-designer):
 - `counter`: as built.
 - `warm_spot`: next to the kettle or oven. Key 10% warmer, a faint heat shimmer is optional.
@@ -129,7 +131,8 @@ Every GLB material is a placeholder. Godot assigns shader materials by node and 
 | `M_Cloth_Linen`, `M_Twine` | Oatmeal linen with sage tea-towel stripes, fine weave | Stripes from UV, weave from two wave textures, sheen 0.6 | 512 px tileable linen albedo + normal, stripes from UV in shader, rim (sheen) 0.4, `cull_disabled` | Same |
 | `M_Rubber_Band` | Deep sage rubber, soft matte | Principled, roughness 0.55 | StandardMaterial3D | Same |
 | `M_Counter_Wood` | Pale oak butcher block, fine grain | Brick-strip planks multiplied by wave grain | `counter_oak_detail.png` (512 px, gray, tiles) on world XZ, mixing T2's oak colors (§17) | Same |
-| `M_Backdrop` | Sage zellige, out of focus | Brick texture tiles, glossy glaze bump, real DOF | `kitchen_backdrop.png` (1024 x 512): the lit wall, pre-blurred, unshaded, with a time-of-day tint (§17) | Same |
+| `M_Backdrop` | Sage zellige, out of focus | Brick texture tiles, glossy glaze bump, real DOF | `kitchen_backdrop.png` (1024 x 512): the lit wall, pre-blurred, unshaded, with a time-of-day tint (§17). Replaced by `M_Kitchen_Wall` | Same |
+| `M_Kitchen_Wall` (`kitchen_wall.glb`) | The same wall, curved around the orbit, plus the base-cabinet front | Baked in Cycles, see §18 | `kitchen_wall.png` (1024 x 512) plus `kitchen_wall_night.png` (512 x 256): unshaded, with the time-of-day tint and the night path (§18.3) | Same |
 | `M_Mold_Fuzz_preview` | Render-only hair, not in the GLB | GN curves | See §6, `moldy` | |
 
 ## 5. Starter shader contract
@@ -256,7 +259,7 @@ Budget: at most 64 particles on screen, 2 systems at once, 2 overdraw layers. Ev
 
 v0: a kitchen corner. Oak butcher-block counter, sage tile wall, soft focus. The window is off-screen left as the key light.
 
-- Godot: Counter mesh plus `Backdrop_placeholder`, a wall card showing the baked, pre-blurred wall (§17). No real DOF needed on mobile. The card fills the frame to about ±15 degrees of yaw. Beyond that, T2's `kitchen_sky` shows. A set that holds up over the whole ±70 degree orbit is an open item (§15).
+- Godot: the Counter (2.20 m wide since Phase 3) plus `Kitchen_Wall`, a curved wall that wraps the jar from the back to the counter's front corners, with a base-cabinet front under the counter edge (§18). The wall shows the baked, pre-blurred tiles (§17, §18). No real DOF needed on mobile. It fills every frame over the whole orbit: yaw ±70 degrees, pitch -5 to +35 degrees, zoom 1 to 2.2x, and the focus presets. The old card, `Backdrop_placeholder`, covered only about ±15 degrees of yaw and goes away once T2 switches (§18.5).
 - Props (P1, soft-focus only, never competing with the jar): a flour canister, a folded linen towel, a small herb pot.
 
 ## 11. Icons (style for ux-designer's set)
@@ -304,12 +307,12 @@ Agreed with tech-architect and godot-developer. **The node names are an interfac
 | `Jar_Lid_Tight` | (0, 0.170, 0) | Enamel screw cap | 1536 | Cover `tight_lid` |
 | `Cloth_Cover` | (0, 0.170, 0) | Draped 150 mm square linen with folds, short skirt that never hides the starter, plus twine (surface 1) | 3576 | Cover `cloth`. Single-sided, render double-sided |
 | `Rubber_Band` | (0, 0.038, 0) its center | Flat band on the body | 1152 | y = floor + `level_m` |
-| `Counter` | (0, 0, 0) top surface | Slab, rounded front edge | 32 | |
-| `Backdrop_placeholder` | (0, 0, 0) | Wall card at z = -0.45 m, UV 0..1 | 96 | Placeholder |
+| `Counter` | (0, 0, 0) top surface | Slab 2.20 m wide (x ±1.10), z from -0.45 to +0.24 m, 35 mm thick, rounded front edge | 32 | Widened from 0.90 m in Phase 3 so it runs under the kitchen wall's ends (§18). At the preview pose this moved the `at_peak` preview by 0.21/255 on average, so the previews were not re-rendered |
+| `Backdrop_placeholder` | (0, 0, 0) | Wall card at z = -0.45 m, UV 0..1 | 96 | Placeholder. Replaced by `Kitchen_Wall` in `kitchen_wall.glb` (§18); removed from this GLB after T2 switches |
 | `StarterFloor` | (0, 0.008, 0) | Empty | | Fallback for extras |
 | `StarterRim` | (0.0385, 0.133, 0) | Empty | | Inner radius, liner top |
 
-All variants: 18,680 tris (budget 30k). **Visible set** (base + one cover, `architecture.md` §11 budget 16k): loose lid 13,568, tight lid 12,512, cloth 14,552. Verify after every export: `python3 art/blender/scripts/verify_glb.py` (asserts both budgets, exits 1 on any break). Last run: PASS.
+All variants: 18,680 tris (budget 30k). **Visible set** (base + one cover, `architecture.md` §11 budget 16k): loose lid 13,568, tight lid 12,512, cloth 14,552. With `Kitchen_Wall` (144 tris) in place of the card, the heaviest visible set is 14,600. Verify after every export: `python3 -I art/blender/scripts/verify_glb.py assets/3d/jar_v0.glb` (asserts both budgets, exits 1 on any break). The same script checks `kitchen_wall.glb` against §18.2. Last run (2026-11-27, after widening the Counter): PASS for both.
 
 ## 13. Asset conventions and budgets
 
@@ -319,13 +322,14 @@ All variants: 18,680 tris (budget 30k). **Visible set** (base + one cover, `arch
   The full run takes about 2 minutes (build, export, .blend, 8 renders). The .blend keeps a live Geometry Nodes modifier, `StarterShape` (Level, Dome, Lumps, Mold), that mirrors §5.
 - **Polycount:** glass 5k or less, starter 4k or less. The rendered scene (base plus one cover) is 16k or less. All variants in the GLB are 30k or less. Lathed parts share 48 segments.
 - **Textures:** 1024 px max, ASTC or ETC2, 8 MB VRAM for the whole scene. Prefer procedural shader detail over big maps.
-- **Draw calls:** the jar is under 10 draw surfaces (`architecture.md` §11): glass 4 (2 surfaces x 2 passes), starter, liner, band, cover 1 or 2. Counter and backdrop are 2 more.
+- **Draw calls:** the jar is under 10 draw surfaces (`architecture.md` §11): glass 4 (2 surfaces x 2 passes), starter, liner, band, cover 1 or 2. Counter and backdrop are 2 more. The kitchen wall is one surface, so it keeps that count.
+- **Kitchen set textures:** `kitchen_wall.png` about 0.5 MB (ASTC 4x4), `kitchen_wall_night.png` 0.13 MB or less, counter 0.35 MB, lid 0.09 MB. About 1.1 MB once `kitchen_backdrop.png` is deleted (§18.5).
 
 ## 14. Placeholders
 
 | Asset | Why it's a placeholder | Replaced by |
 |---|---|---|
-| `Backdrop_placeholder` | Still a flat card. The look is final (the §17 bake), and the node keeps its name because names are the interface | A wider or curved backdrop, if the full ±70 degree orbit needs one (§15) |
+| `Backdrop_placeholder` | A flat card that covers only about ±15 degrees of yaw | `Kitchen_Wall` (§18). Removed from `jar_v0.glb` once T2 has switched (§18.5) |
 | All GLB materials | By design | Godot shaders (§4) |
 | `M_Mold_Fuzz_preview` | Blender-only hair | Godot shells (§6) |
 
@@ -333,7 +337,10 @@ All variants: 18,680 tris (budget 30k). **Visible set** (base + one cover, `arch
 
 - **Icon import check (T3):** import one filled file with holes (`status_moldy_filled.svg`) through Godot's SVG importer at 2x and 3x, and confirm the evenodd holes survive. rsvg-convert renders them correctly; ThorVG was not run here.
 - **`surface` inspection pitch (ux-designer, T2):** at the 60 degree preset (D-036, ux-design §10), the line of sight to the cap center crosses the shoulder glass whenever the cap is lower than 111 mm above the jar base, which is every state (`at_peak` center is about 85 mm). At 76 degrees it passes through the open mouth at every level. **Agreed with ux-designer: 76 degrees** (ux-design §10). At 76 degrees the cap must sit at least 33.6 mm above the jar base. The lowest cap of any state is about 36 mm (`unhealthy` and `moldy`: 8 mm floor + 0.95 x 30 mm, dome -0.5 mm). `freshly_fed` is 39 mm. 72 degrees would fail below 65 mm. The reference board uses 76 degrees (§16.2).
-- **Backdrop beyond ±15 degrees of yaw:** the 1.0 m wall card ends there, and the kitchen sky takes over. To keep the soft-focus kitchen over the whole ±70 degree orbit, art would add a curved wall node to the GLB with a wider bake. It's not needed while the home pose sits near yaw 0.
+- **Backdrop beyond ±15 degrees of yaw:** answered by `Kitchen_Wall` (§18). Within the orbit limits no ray misses the set. D-023 and D-036 hold yaw at ±70 degrees "until the set works all the way round": it now works over ±70 degrees, not 360 degrees. A wider orbit would need a new set.
+- **`morning` preset (§3):** recommend cutting it for the slice. The shared night factor (D-043) is one axis, day to night, and a third look doubles the tuning and the capture matrix. Owner: game-designer and ux-designer, with the director.
+- **The camera dips under the counter in the pitch band:** past -5 degrees, at a long home distance, the camera goes below the counter top (y < 0), and the sky shows under the slab. Of the 18.1 M rays in the §18.1 check, 7,912 missed the set this way, all in the band. Suggest T2 keep the camera at least 20 mm above the counter top. That is camera code, not art.
+- **Wall shape (for the user's review):** the wall is a gentle curve, like a photo studio sweep (§18.1). From yaw ±50 degrees and beyond, the foot of the wall reads as a curve, not a straight backsplash. If the user wants a straight backsplash with side walls instead, art can rebuild it with the same pipeline.
 - **Mask import (T2):** confirm on first import that a gray + alpha PNG samples as (L, L, L, A) in 4.7.2 on both renderers (§16.3).
 - Pink or orange mold tint: not in v0. sourdough-scientist agrees this is the conservative choice for safety: text already teaches "fuzz, pink or orange means discard". A visual variant can come later as an optional P1 item. Either way, the hard rule stays: never pink, orange or red outside `moldy`.
 - `moldy` from the default pose relies on glass colonies. Consider an automatic `surface` close-up on entering `moldy` (game-designer and ux-designer).
@@ -669,3 +676,175 @@ Generator: `/Applications/Blender.app/Contents/MacOS/Blender -b -P art/blender/s
    ```
 
 Total texture memory for the set is about 0.95 MB, inside the §13 budget. Time of day stays a tint on the wall (§3): the bake is the afternoon preset.
+
+**Phase 3:** the wall moves to `Kitchen_Wall` and `kitchen_wall.png` (§18). Same encoding, same blur at the back, same shader body plus a night path. `kitchen_backdrop.png` and `bake_backdrop()` stay until T2 has switched, then go (§18.5). The counter and lid maps don't change.
+
+## 18. Kitchen wall (Phase 3, for T2)
+
+Generator: `/Applications/Blender.app/Contents/MacOS/Blender -b -P art/blender/scripts/bake_kitchen_wall.py`. It takes about 60 s on an M4 and is seeded. Add `-- --coverage-only` to run only the camera check (about 10 s, exit 1 on any miss). Verify the GLB: `python3 -I art/blender/scripts/verify_glb.py assets/3d/kitchen_wall.glb`.
+
+Preview: `art/previews/kitchen_wall_check.png`, six in-game frames with an unshaded wall and no depth of field. Top row: yaw -70, 0 and +70 degrees at pitch 15. Bottom row: yaw 0 at pitch -5, yaw -70 at pitch 35, and yaw +70 at pitch -5 zoomed to 2.2x. The jar is `at_peak`, at a 0.68 m home distance.
+
+### 18.1 Shape, and why
+
+| Part | Geometry (Godot meters, jar axis at x = z = 0, counter top at y = 0) |
+|---|---|
+| Wall | An arc of a circle. Center (0, ·, 0.65), radius 1.10, ±67.0 degrees, so its ends sit at x ±1.012, z 0.22. Height y -0.02 to 0.80. Its back is at z = -0.45, where the card was |
+| Cabinet front | A plane at z 0.22, from y -0.03 down to -0.45, x ±1.012. It closes the space under the counter's front edge, which pitch -5 shows. Greige painted doors, 0.60 m wide and centered on the jar, with a drawer line 0.15 m down. Baked in the overhang's shade |
+| Counter (`jar_v0.glb`) | Widened from 0.90 to 2.20 m (x ±1.10) so it runs under the wall's ends. Same node, top, front edge, bevel and 32 tris |
+
+- **Why a curve.** A flat wall that works at yaw 70 would have to be about 3 m wide at grazing angles, and so would the counter. The curve keeps the wall 0.45 to 1.05 m behind the jar, so the texel density and the blur stay even. It reads like a soft photo-studio sweep, which fits the §1 product-photo mood.
+- **Yaw 0 is unchanged.** Over the part of the wall that yaw 0 sees, the bake is on average 1.5 levels brighter than the signed-off card (mean absolute difference 3.3/255). A Cycles check at the §7 pose reads the tile row (360, 150) at `#A09D7D` (H 54, S 22%, V 63%), against the card's `#A49F80` (H 52, S 22%, V 64%).
+- **Light around the orbit.** The bake uses the same §3 look-dev lights as the card. The window side (left, seen from yaw +70) is a deeper sage, about V 30%. The far side (seen from yaw -70) is lit, about V 65%. That is the natural falloff from a window on the left. It stays sage (hue 52 to 58) and never goes gray.
+- **Coverage, checked by the script** (a numpy ray cast against the counter top and front, the cabinet front and the wall):
+  - What it tests: 18.1 M rays. Yaw ±78 (the limit plus the band), pitch -10 to +40, distance 0.25 to 0.92 m (2.2x zoom up to a zoomed-out 360 x 640 phone), and three aspect ratios (390 x 844, 9:16, 3:4). Also no sheet or a sheet covering 20 to 60%, and the four focus presets.
+  - It skips rays under the HUD plate (top 17%), the action bar (bottom 12.5%) or a sheet.
+  - **Within the limits: 0 misses.** The camera stays at least 0.09 m inside the circle. The widest wall angle seen is 59.4 degrees (the end is at 67.0), and the highest point seen is 0.68 m (the top is 0.80).
+  - In the rubber bands only, 7,932 rays (0.04%) miss. 7,912 of them come from the camera dipping under the counter top (§15).
+
+### 18.2 Contract (names are the interface)
+
+| Item | Value |
+|---|---|
+| File | `assets/3d/kitchen_wall.glb`, 7.0 KB. Instance it with the same transform as `jar_v0.glb` (identity): both share the origin |
+| Node | `Kitchen_Wall`. Origin (0, 0, 0), the jar axis on the counter top. Identity transform, 148 verts, 144 tris |
+| Surface | One surface, so one draw call. Material slot `M_Kitchen_Wall` is a placeholder: put the backdrop shader on it as `material_override`, with `cast_shadow` off, as on the card |
+| Normals | Toward the camera side: the wall faces the circle center, the cabinet faces +z. Default back-face culling works, because the camera never leaves the circle |
+| UV0 | The atlas. u runs left to right as seen from the front, and v runs down (row 0 is the top, as on the card). Wall: u = angle, -67 to +67 degrees. v = 0 at y 0.80, down to 0.875 at y -0.02. Cabinet: u = x, -1.012 to +1.012. v = 0.8828 at y -0.03, down to 1.0 at y -0.45. Rows 448 to 451 are edge padding |
+| Extras | `wall_center_z_m`, `wall_radius_m`, `wall_end_deg`, `wall_top_m`, `cabinet_z_m`, `texture` |
+| Attaches to the counter | The wall's foot runs 20 mm into the counter slab and the cabinet top 5 mm, so no gap shows at any pose. The counter reaches 88 mm past the wall's ends on each side |
+
+| Texture | Size | What it is | Import (T2) |
+|---|---|---|---|
+| `assets/textures/kitchen_wall.png` | 1024 x 512 RGB, 268 KB | The day wall and cabinet front: scene-linear radiance with the sRGB curve, no tonemap, pre-blurred. Same encoding as the card (§17) | Copy `kitchen_backdrop.png.import`: VRAM Compressed, mipmaps off. About 0.5 MB with ASTC 4x4, 0.25 MB with ETC2 |
+| `assets/textures/kitchen_wall_night.png` | 512 x 256 gray, 30 KB | Data, not color. The night lamp's light alone, in the same atlas layout, normalized to 1 at the brightest wall texel and stored as its square root | VRAM Compressed or Lossless, mipmaps off. 0.13 MB or less |
+
+- **Why 1024 x 512 is enough for a wall 2.6 times wider.** The texels are 2.5 mm along the arc and 1.8 mm up the wall. The bake is blurred with sigma 8 mm at the back, growing to 17.9 mm at the ends, so nothing finer than about 20 mm survives. 2.5 mm texels hold that about 3x over.
+- **Zoom.** At 2.2x zoom one texel covers about 14 screen pixels on a 3x phone. The content is smooth, so bilinear filtering is fine. If block artifacts show at 2.2x on ETC2, import as Lossless (2 MB) rather than adding pixels.
+- **Blur.** The blur grows with the distance behind the jar: sigma = 8 mm x (0.58 + d - 0.556) / 0.474, where d is the jar-to-wall distance. This is the preview lens's object-space circle of confusion, so the far sides read softer, as a real lens would show them.
+
+### 18.3 Shader: `backdrop.gdshader`, extended
+
+```glsl
+shader_type spatial;
+render_mode unshaded, shadows_disabled;
+
+uniform sampler2D wall_tex : source_color, filter_linear, repeat_disable;
+uniform sampler2D night_tex : filter_linear, repeat_disable;      // data, not color
+uniform vec3 tod_tint : source_color = vec3(1.0);
+uniform float energy = 1.0;                                     // ViewLook.backdrop_energy
+uniform float night = 0.0;                                      // the shared night factor (D-043)
+uniform vec3 lamp_color : source_color = vec3(1.0, 0.843, 0.659);     // #FFD7A8
+uniform vec3 night_floor : source_color = vec3(0.102, 0.075, 0.063);  // #1A1310
+uniform float night_gain = 0.5;
+uniform float night_keep_hue = 0.5;
+
+void fragment() {
+	vec3 day = texture(wall_tex, UV).rgb;
+	float m = texture(night_tex, UV).r;
+	float l = max(dot(day, vec3(0.2126, 0.7152, 0.0722)), 1e-4);
+	vec3 hue = mix(vec3(1.0), day / l, night_keep_hue);         // keep some sage under the warm lamp
+	vec3 lamp = hue * lamp_color * (m * m) * night_gain + night_floor;
+	ALBEDO = mix(day * tod_tint, lamp, night) * energy;
+}
+```
+
+| Input | Mobile | Compatibility |
+|---|---|---|
+| `energy` (`ViewLook.backdrop_energy`) | 1.0, as the card | 1.0, as the card |
+| `tod_tint` | White. Kept as the hook for location tints such as `fridge` (§3) | Same |
+| `night`, `lamp_color`, `night_floor`, `night_gain`, `night_keep_hue` | Start values above. Set the colors from `ViewLook` as `Color("#FFD7A8")` and `Color("#1A1310")`, and confirm one value in a capture | Same start values. Re-measure N3 and N4 (§18.6) |
+
+Re-measure the §3 tile row on both renderers after the switch. It must hold hue 45 to 70.
+
+What the night path gives at n = 1 (a numpy run of this formula on the baked textures, before the tonemap):
+
+| Where | Value |
+|---|---|
+| Lamp pool behind the jar | `#746143` (H 37, S 42%, V 45%) |
+| Wall foot behind the jar | `#68563B` (V 41%) |
+| Wall top above the lamp | `#211913` (V 13%) |
+| Wall ends | `#271E17` (V 15%) |
+| Cabinet front | `#1A1310` (V 10%) |
+
+All of these pass §2.3.
+
+### 18.4 How to check it in Godot
+
+1. **Orbit captures.**
+   - The scrubber's capture views are `pose`, `side` and `top`, all at yaw 0. T2 adds an orbit view, for example `--views=orbit --orbits=-70:15:1,0:15:1,70:15:1,0:-5:1,-70:35:1,70:-5:2.2` (yaw:pitch:zoom), using `OrbitCamera.set_pose()` and the real home distance.
+   - Those six poses are the preview sheet, so compare frame by frame.
+2. **No sky check.**
+   - Set the `kitchen_sky` colors to pure magenta for one run.
+   - Capture yaw -70, -35, 0, +35 and +70, each at pitch -5, 15 and 35, at zoom 1.0 and 2.2: 30 frames.
+   - Count the magenta pixels between the HUD plate and the action bar. Pass: 0 in every frame. qa-engineer could turn this into a test.
+3. **Look.**
+   - At yaw 0 the wall matches the §3 tile row.
+   - At yaw +70 the wall behind the jar is a deeper sage, and at yaw -70 it is lighter.
+   - The wall's foot meets the counter with no gap or bright line at any yaw.
+   - At pitch -5 the cabinet front shows as a soft, dark band under the counter edge.
+
+### 18.5 What to delete
+
+| When | Who | What |
+|---|---|---|
+| Now | T2 | Reimport `jar_v0.glb` (wider Counter). Load `kitchen_wall.glb`, bind `Kitchen_Wall` and put the backdrop material on it. Hide `Backdrop_placeholder` (`visible = false`): it sits on the same back plane and would z-fight. Keep it in `JarGeometry.REQUIRED_NODES` for now, so the contract check stays green |
+| After T2's switch lands | art-director | Remove `Backdrop_placeholder` from `build_jar.py`, `jar_v0.glb` and `verify_glb.py`. Delete `kitchen_backdrop.png` and `bake_backdrop()` in `bake_kitchen_set.py` |
+| In the same change | T2 | Drop `NODE_BACKDROP` and `Backdrop_placeholder` from `jar_geometry.gd`, delete `kitchen_backdrop.png.import`, and point `WALL_TEX` at `kitchen_wall.png` |
+
+`kitchen_sky` stays: it still drives ambient light and reflections. It just no longer shows behind the jar within the orbit limits.
+
+### 18.6 Night look: recommendation for T2's presets
+
+Two looks on the one shared night factor n (D-043): day (the signed-off afternoon) at n = 0, and night at n = 1. Lerp every row by n.
+
+| Item | Day (n = 0) | Night (n = 1) |
+|---|---|---|
+| Key (DirectionalLight3D) | 60 degrees left, 50 degrees up, `#FFF6EE`, `key_energy` | Fades to 15% |
+| Lamp | Off | OmniLight3D at (-0.10, 0.44, -0.26), just under the baked LED bar. Color `#FFE6CC`, range 1.2 m, attenuation 1.0, no shadow. Tune its energy to rows N1 and N2 |
+| Rim | `rim_energy` | 35% of day: the glass edge still reads |
+| Sky (ambient and reflections) | `sky_energy` | 30% of day. `window_energy` goes to 0, because the window is dark |
+| Glass reflection | `glass_reflection` | 50% of day |
+| Counter drop shadow (`key_dir`) | Key direction | Toward the lamp from mid-jar: (-0.23, 0.77, -0.59) |
+| Wall | Day texture x `tod_tint` | The §18.3 night path |
+| HUD plate | `surface` | `surface_night` (T3, same n) |
+| Exposure and tonemap | As day | Unchanged. The darkness comes from the lights, never from the exposure |
+
+- **Why an omni light.** The lamp is only about 0.44 m from the middle of the jar. A point light gives the warm pool on the counter that matches the baked pool on the wall, with no counter shader work.
+- **Fallback.** If one omni light costs too much on Compatibility, keep the key at night instead: turn it toward the lamp at `#FFE6CC`, and darken the counter away from the lamp in `counter.gdshader`:
+  ```glsl
+  vec2 d = v_world.xz - vec2(-0.10, -0.26);           // under the lamp
+  float pool = 1.0 / pow(1.0 + dot(d, d) / (0.35 * 0.35), 2.0);
+  ALBEDO *= mix(1.0, 0.25 + 1.5 * pool, night);      // about 0.8 at the jar, 0.27 at 1 m
+  ```
+- **Why the lamp is paler on the jar than on the wall.** `#FFD7A8` multiplied by the cream paste comes out at about 45% saturation, which drifts toward the reserved orange (§2.3). So the light that reaches the starter is `#FFE6CC`, and the wall and counter carry the warmth.
+
+**Night rows.** Measure at n = 1 in the §7 pose capture, with 31 px patches as in §3:
+
+| Row | Target |
+|---|---|
+| N1 paste, lit (290, 850) | V 72 to 88%, S 22% or less, hue 30 to 40, max channel 0.92 or less |
+| N2 paste, shadow side (450, 830) | V 40% or more: night never hides the starter |
+| N3 wall behind the jar (360, 150) | V 25 to 45%, hue 30 to 60, S 45% or less |
+| N4 darkest wall in the yaw ±70 captures | V 8% or more, never pure black (about `#1A1310`) |
+| N5 everywhere | §2.3: nothing under hue 25 at S over 50% |
+
+### 18.7 The `bubbles` inspection camera (the §16.6 follow-up)
+
+Yes: keep the camera at or a little above the starter's rim, where the cap meets the glass.
+
+- **Today.** `focus_pose(&"bubbles")` aims at floor + 0.55 x `level_m`, the fed level of about 0.030 m. So the camera sits at y ≈ 0.037 whatever the rise. At `at_peak` the rim is at 0.077. The camera then frames the band and the jar base, below ux's "mid-height" (ux-design §10), and anything it sees of the cap is edge-on. That is what made the cap look pointed (§16.6).
+- **The board** (§16.2) aims at floor + 0.55 x `level_m` x `rise`, the middle of the real paste.
+- **Proposed.**
+  - Target y_t = floor + 0.55 x `level_m` x `rise`.
+  - Camera y = max(y_t + 0.012, rim_y + 0.004), where rim_y = floor + `level_m` x `rise` (no dome).
+  - Keep the horizontal offset (-0.0737, 0.1386) m, which is 0.157 m from the axis.
+  - T2 passes rim_y to the rig next to `starter_top_y`.
+- **Result.** The pitch is 6.4 degrees for `freshly_fed`, 12.6 degrees for `at_peak`, and 21 degrees at rise 3.0 with the 0.042 m maximum level.
+- **Checked in Cycles** at `at_peak`, 320 x 400, with three cameras:
+  - Today's preset (y 0.037) shows the band and the jar base, and the cap is out of frame.
+  - The board's (y 0.058) sees the dome nearly edge-on.
+  - The proposed one (y 0.081) shows the cap as a soft top surface at the top of the frame, and the bubbles still read clearly through the glass.
+  - The renders are not committed (D-045).
+- **Next step.** ux-designer confirms the framing. If the cap still reads pointed from there, art revisits the §5 dome profile.
+- **Wall coverage.** Covered: the check includes pitches up to 40 degrees at close range.
