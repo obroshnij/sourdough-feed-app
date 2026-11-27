@@ -23,6 +23,9 @@ var note_key: StringName = &""
 ## {note}: the second descriptor's SMELL_<D>_NOTE key (Session.format_text translates it).
 var note_args: Dictionary = {}
 var meaning_key: StringName = &""
+## After the first 3 appearances the meaning sits one tap away (AC-07.5): the key stays, hidden behind a
+## button. Never for musty, which always shows.
+var meaning_hidden: bool = false
 var primary: StringName = &""
 var is_warning: bool = false
 
@@ -50,7 +53,8 @@ static func build(r: SmellReadout, moldy: bool, feed_count: int, seen: int) -> S
 	if top == &"" or (all_faint and musty <= 0.0):
 		c.title_key = &"SMELL_FAINT_TITLE"
 		c.body_key = StringName("SMELL_FAINT_%d" % (1 + posmod(feed_count, 2)))
-		c.meaning_key = &"SMELL_FAINT_MEANING" if seen <= MEANING_VIEWS else &""
+		c.meaning_key = &"SMELL_FAINT_MEANING"
+		c.meaning_hidden = seen > MEANING_VIEWS
 		if top != &"":
 			c.note_key = &"SMELL_NOTE_FAINT"
 			c.note_args = {"note": String(Keys.smell(top, "NOTE"))}
@@ -67,6 +71,6 @@ static func build(r: SmellReadout, moldy: bool, feed_count: int, seen: int) -> S
 	if second != &"" and best >= NOTE_MIN:
 		c.note_key = &"SMELL_NOTE_CLEAR" if best >= NOTE_CLEAR_MIN else &"SMELL_NOTE_FAINT"
 		c.note_args = {"note": String(Keys.smell(second, "NOTE"))}
-	if top == &"musty" or seen <= MEANING_VIEWS:
-		c.meaning_key = Keys.smell(top, "MEANING")
+	c.meaning_key = Keys.smell(top, "MEANING")
+	c.meaning_hidden = top != &"musty" and seen > MEANING_VIEWS
 	return c
