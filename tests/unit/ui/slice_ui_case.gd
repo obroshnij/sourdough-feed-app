@@ -69,6 +69,28 @@ func boot(fixture: String, device: String = "iphone_17e_390x844") -> void:
 	await H.settle(tree, 3)
 
 
+## A first launch: no save, so the Session starts the gifted starter with no name (is_first_run()).
+func boot_new(device: String = "iphone_17e_390x844") -> void:
+	var dir: String = "%s/new_%d" % [TMP, Time.get_ticks_usec()]
+	clock = FakeClock.new()
+	session = GameSession.new()
+	tree.root.add_child(session)
+	session.setup(clock, SaveStore.new(dir), SettingsStore.new(dir + "/settings.cfg"))
+	ui = H.mount(tree.root, device)
+	ui.bind_session(session)
+	session.boot()
+	await H.settle(tree, 3)
+
+
+## A synthetic event for presenter tests (not in the Session's ledger, so an ack is refused harmlessly).
+static func event(id: StringName, tier: StringName, uid: int) -> SimEvent:
+	var e := SimEvent.new()
+	e.id = id
+	e.tier = tier
+	e.uid = uid
+	return e
+
+
 func wait(seconds: float) -> void:
 	await tree.create_timer(seconds).timeout
 

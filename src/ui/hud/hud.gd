@@ -105,6 +105,14 @@ func set_snapshot(snap: StarterSnapshot) -> void:
 		bar_button(id).locked_reason_key = &"" if snap.can_feed else MOLDY_LOCKS[id]
 
 
+## D-050: disabled and quiet while the Session catches up on a worker thread.
+func set_actions_enabled(on: bool) -> void:
+	for b: ActionBarButton in bar_buttons():
+		if b.disabled == on:
+			b.disabled = not on
+			b.queue_redraw()
+
+
 ## Marks the button whose sheet is open (filled icon and the accent pill), or none.
 func set_open_action(action_id: StringName) -> void:
 	for b: ActionBarButton in bar_buttons():

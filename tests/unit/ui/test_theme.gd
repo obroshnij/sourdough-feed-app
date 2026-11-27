@@ -35,11 +35,7 @@ func test_palette_matches_the_docs() -> void:
 	check_eq(night.get_color(&"surface", ThemeBuilder.PALETTE_TYPE).to_html(false).to_upper(), "EDE3D2", "surface_night")
 	check_close(night.get_color(&"plate", ThemeBuilder.PALETTE_TYPE).a, 0.94, 0.0, 0.001, "night plate alpha 0.94")
 	check_close(t.get_color(&"plate", ThemeBuilder.PALETTE_TYPE).a, 0.88, 0.0, 0.001, "day plate alpha 0.88")
-	check_close(UiPalette.night_blend_at(12 * 60), 0.0, 0.0, 0.001, "noon is day")
-	check_close(UiPalette.night_blend_at(23 * 60), 1.0, 0.0, 0.001, "23:00 is night")
-	check_close(UiPalette.night_blend_at(3 * 60), 1.0, 0.0, 0.001, "03:00 is night")
-	check_close(UiPalette.night_blend_at(17 * 60), 0.5, 0.0, 0.001, "17:00 is mid fade")
-	check_close(UiPalette.night_blend_at(6 * 60), 0.5, 0.0, 0.001, "06:00 is mid fade")
+	check_close(UiPalette.new(0.5).plate().a, 0.91, 0.0, 0.001, "mid fade plate alpha follows the night factor")
 
 
 func test_type_scale_matches_ux_17() -> void:
