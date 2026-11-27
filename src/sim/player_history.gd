@@ -13,8 +13,12 @@ const WARM_UNFED_MIN_C: float = 11.0
 const ONBOARDING_PATHS: Array[StringName] = [&"tour", &"skip"]
 
 var consecutive_early_feeds: int = 0
-## The last peak_rise from a cycle with vigor_at_feed >= 0.75 (back_to_strength).
+## The last peak_rise from a cycle with vigor_at_feed >= 0.75 that reached at_peak (back_to_strength's
+## reference). A cycle cut short by an early feed, or spent in the fridge, never peaked, so it keeps the old
+## reference (t4-events' review).
 var last_strong_peak_rise: float = 0.0
+## Per starter. The current cycle's rise_phase has entered at_peak. Cleared by every feed.
+var cycle_reached_peak: bool = false
 var smelled_descriptors: Dictionary[StringName, bool] = {}
 ## Keys smell.<id> and inspect.<kind>.level_<n>. Meaning lines fade after 3.
 var seen_counts: Dictionary[StringName, int] = {}
@@ -86,10 +90,12 @@ func record_action(action: GameAction, before: StarterState, derived_before: Der
 	if derived_before.rise_phase == &"at_peak":
 		peak_seen_foreground = true
 	if action.kind == &"environment":
+		# A fridge wake: a cold-dormant jar moves out of the fridge. Without env_before (a caller that doesn't
+		# track it), any move of a cold-dormant jar to a place that isn't the fridge counts.
 		var move: SetEnvironmentAction = action
-		var leaving_fridge: bool = env_before != null and env_before.location == &"fridge" \
-			and move.env != null and move.env.location != &"fridge"
-		if leaving_fridge and derived_before.dormant_cause == &"cold":
+		var from_fridge: bool = env_before == null or env_before.location == &"fridge"
+		var to_other: bool = move.env != null and move.env.location != &"fridge"
+		if from_fridge and to_other and derived_before.dormant_cause == &"cold":
 			fridge_left_unix = before.sim_time_unix
 		return
 	if action.kind != &"feed":
@@ -100,8 +106,9 @@ func record_action(action: GameAction, before: StarterState, derived_before: Der
 		consecutive_early_feeds += 1
 	else:
 		consecutive_early_feeds = 0
-	if before.vigor_at_feed >= STRONG_VIGOR_AT_FEED:
+	if before.vigor_at_feed >= STRONG_VIGOR_AT_FEED and cycle_reached_peak:
 		last_strong_peak_rise = before.peak_rise
+	cycle_reached_peak = false
 	recent_feed_unix.append(action.at_unix)
 	while recent_feed_unix.size() > RECENT_FEEDS_CAP:
 		recent_feed_unix.remove_at(0)
@@ -124,6 +131,7 @@ func record_step(state: StarterState, derived: DerivedState, prev_derived: Deriv
 		if prev_derived != null and prev_derived.rise_phase != &"at_peak":
 			peak_seen_foreground = false
 			peaks += 1
+			cycle_reached_peak = true
 		if app_foreground:
 			peak_seen_foreground = true
 	if state.rise >= state.peak_rise:
@@ -138,6 +146,7 @@ func record_step(state: StarterState, derived: DerivedState, prev_derived: Deriv
 func reset_for_new_starter() -> void:
 	consecutive_early_feeds = 0
 	last_strong_peak_rise = 0.0
+	cycle_reached_peak = false
 	recent_feed_unix.clear()
 	real_feeds = 0
 	last_feed_unix = 0
@@ -186,6 +195,7 @@ func to_dict() -> Dictionary:
 		"recent_feed_unix": recent,
 		"daily": days,
 		"real_feeds": real_feeds,
+		"cycle_reached_peak": cycle_reached_peak,
 		"last_feed_unix": last_feed_unix,
 		"last_feed_timing": String(last_feed_timing),
 		"last_very_late_feed_unix": last_very_late_feed_unix,
@@ -229,6 +239,7 @@ static func from_dict(d: Dictionary) -> PlayerHistory:
 			return null
 		h.daily.append(b)
 	h.real_feeds = r.integer_or("real_feeds", 0)
+	h.cycle_reached_peak = r.flag_or("cycle_reached_peak", false)
 	h.last_feed_unix = r.integer_or("last_feed_unix", 0)
 	h.last_feed_timing = StringName(r.text_or("last_feed_timing", ""))
 	h.last_very_late_feed_unix = r.integer_or("last_very_late_feed_unix", 0)

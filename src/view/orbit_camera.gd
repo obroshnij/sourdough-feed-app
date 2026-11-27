@@ -82,6 +82,7 @@ var _anim_s: float = 0.0
 var _anim_ease: int = 0
 var _free_pose: Pose = null
 var _interacting: bool = false
+var _nudge_from: float = -1.0
 var _idle_s: float = 0.0
 var _frame_dyaw: float = 0.0
 var _frame_dpitch: float = 0.0
@@ -176,6 +177,18 @@ func focus(what: StringName) -> void:
 	yaw_velocity = 0.0
 	pitch_velocity = 0.0
 	_move_to(pose, 0.0 if reduce_motion else FOCUS_S, Ease.IN_OUT_CUBIC)
+
+
+## Smell moment dolly: 12% closer over 600 ms, back over 400 ms (ux-design.md §15). Off with reduce motion.
+func nudge(on: bool) -> void:
+	if reduce_motion or focus_target != &"":
+		return
+	if on and _nudge_from < 0.0:
+		_nudge_from = zoom
+		_move_to(Pose.new(yaw, pitch, zoom * 1.12, target), 0.6, Ease.IN_OUT_SINE)
+	elif not on and _nudge_from >= 0.0:
+		_move_to(Pose.new(yaw, pitch, _nudge_from, target), 0.4, Ease.IN_OUT_SINE)
+		_nudge_from = -1.0
 
 
 ## Back to where the player left the orbit.

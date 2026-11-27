@@ -51,6 +51,11 @@ func _init(label: String, start_unix: int = T0, utc_offset_s: int = 0) -> void:
 
 ## A launch: a fresh Session node on this phone's files, booted against the clock.
 func launch() -> GameSession:
+	return launch_with(clock)
+
+
+## A launch against another clock, for example a real DebugClock for the debug time travel tests.
+func launch_with(launch_clock: Clock) -> GameSession:
 	kill()
 	DirAccess.make_dir_recursive_absolute(dir)
 	store = SaveStore.new(dir)
@@ -58,7 +63,7 @@ func launch() -> GameSession:
 	settings.load_settings()
 	session = GameSession.new()
 	_tree.root.add_child(session)
-	session.setup(clock, store, settings)
+	session.setup(launch_clock, store, settings)
 	_listen(session, &"session")
 	session.boot()
 	return session
@@ -145,6 +150,7 @@ func dispose() -> void:
 				_bus.disconnect(sig_name, recorder)
 	_bus_links.clear()
 	QaTemp.remove(dir)
+	QaTemp.remove(dir + GameSession.TIME_TRAVEL_SUFFIX)
 
 
 # ------------------------------------------------------------------ seeding a phone

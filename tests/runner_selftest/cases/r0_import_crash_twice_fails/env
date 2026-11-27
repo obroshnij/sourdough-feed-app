@@ -1,0 +1,4 @@
+REAL_GODOT=$GODOT
+GODOT=$ROOT/tests/runner_selftest/fake_godot_abort.sh
+FAKE_ABORTS=2
+CRASH_LOG_DIR=$WORK/crash_logs

@@ -1,0 +1,2 @@
+WARN godot --import crashed (signal 6, exit 134), retrying once
+FAIL godot --import crashed again (signal 6, exit 134)
