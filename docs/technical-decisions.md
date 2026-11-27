@@ -1,6 +1,6 @@
 # Technical decisions
 
-Owner: `tech-architect`. Status: **draft v0, wave A** (2026-11-26).
+Owner: `tech-architect`. Status: **v1**, Phase 3 amendments synced to `phase-3-slice` at e94b644 (2026-11-27): ADR-001, 004, 005, 006, 010, 012 and 013 (D-040 to D-050).
 Each entry maps to a row in `decisions.md` where one exists. Status: **accepted** (evidence in hand), **proposed** (our bet, evidence pending), **amends D-0xx** (changes a logged decision; the director updates the log).
 Evidence tags: **[ran]** = headless run in a scratch project (see the verification log at the end), **[src]** = read in the `4.7.2-stable` source, **[web]** = cited page, **[spike]** = `godot-developer`'s jar spike, **[unverified]**.
 
@@ -11,16 +11,16 @@ Evidence tags: **[ran]** = headless run in a scratch project (see the verificati
 | 001 | Renderer: Mobile plus Compatibility tier | D-008 | **accepted** (spike, Mac estimates); phone check in Phase 5 |
 | 002 | Glass: opaque interior, Tier A two-pass, Tier B front pass with refraction | D-009 | **accepted, amends D-009** (spike) |
 | 003 | Starter deformation: one shader fed by `VisualMapper` | D-010 | **accepted** (spike) |
-| 004 | Custom headless test runner | D-011 | **accepted**, with a required wrapper |
-| 005 | Save format and atomic write | D-013 | **accepted, amends D-013** |
-| 006 | Time model and clock rules | D-006, D-013 | **accepted, amends D-013** |
+| 004 | Custom headless test runner | D-011, D-041 | **accepted**, with a required wrapper and `--strict` |
+| 005 | Save format and atomic write | D-013, D-024, D-040 | **accepted, amends D-013**; Phase 3: optional fields within v1 |
+| 006 | Time model, clock rules and catch-up | D-006, D-013, D-042, D-050 | **accepted, amends D-013**; Phase 3: catch-up on a worker thread, debug time sandbox |
 | 007 | Local notifications after the slice | D-007 | proposed, deferred |
 | 008 | Accessibility and the 4.8 upgrade | D-012 | accepted, with a device-test gate |
 | 009 | Dependency policy | | accepted |
-| 010 | Export and toolchain | D-016 | proposed |
+| 010 | Export and toolchain | D-016, D-044 | **accepted** for Android; iOS simulator boot-only (D-044) |
 | 011 | Performance and battery | | **accepted** for phone defaults and the evidence protocol (director ruling); phone numbers in Phase 5 |
-| 012 | Layers, two autoloads, contracts commit | | accepted |
-| 013 | Events: pure scheduler, no RNG in events | | accepted (agreed with `game-designer` and the scientist) |
+| 012 | Layers, two autoloads, contracts commit | D-032, D-046 | accepted; Phase 3: `project.godot` in Godot's own form |
+| 013 | Events: pure scheduler, no RNG in events | D-030, D-048 | accepted (agreed with `game-designer` and the scientist); Phase 3: stateless shared registry, tie order |
 | 014 | Localization: generated `en.csv` plus per-track pending CSVs | D-003 | **accepted** (confirmed by `narrative-designer`) |
 | 015 | UI scale: 1 unit = 1 pt or dp | | proposed (Mac value in; simulator check in Phase 2) |
 
@@ -48,6 +48,7 @@ Evidence tags: **[ran]** = headless run in a scratch project (see the verificati
 
   Both revisit conditions pass on the Mac. Compatibility Tier A runs at about 236 fps (p99 180 fps). Tier B adds 1.16 ms GPU at p50 (0.35 at p95), under the 2 ms threshold. Also `fallback_to_opengl3` defaults to `true` **[ran]**, and `get_current_rendering_method()` exists **[ran]**.
 - **Re-measure on a real device as soon as one exists** (D-004). An M4 at native resolution says little about a 2021 mid-range phone.
+- **Gap found in Phase 2 (D-044).** `fallback_to_opengl3` did not catch a failed Metal start on the arm64 iOS simulator: no renderer started at all. Real iPhones on iOS 15 or later all have Metal, so this blocks only simulator rendering. A real iPhone render check is a Phase 5 gate.
 - **Revisit if** that device misses 60 fps at Tier A with `scaling_3d_scale` 0.75.
 
 ## ADR-002 Glass (D-009)
@@ -90,6 +91,7 @@ Evidence tags: **[ran]** = headless run in a scratch project (see the verificati
 | Runtime error directly in `_init` | **hangs**. Killed by `perl -e 'alarm 15'`, exit 142 |
 | `-- --filter=test_ok` | `OS.get_cmdline_user_args()` sees it |
 
+- **Added in Phase 2 (D-041).** `tests/run.sh --strict` also fails on any skip; phase exit gates use it. Suites skip with "waits for T1 <id>" until `Milestones.has(id)`. `QA_FORCE_MILESTONES` is never set in CI or a green-run report.
 - **Revisit if** we need mocks of engine classes. Then GUT is the fallback, under ADR-009.
 
 ## ADR-005 Save format and atomic write (amends D-013)
@@ -114,7 +116,14 @@ Evidence tags: **[ran]** = headless run in a scratch project (see the verificati
   - `rename_absolute` always uses `ACCESS_FILESYSTEM` with a globalized path **[src: core/io/dir_access.cpp]**. On Android, `ACCESS_FILESYSTEM` is `DirAccessJAndroid`, which goes through JNI to `FileData.rename`, which calls `File.renameTo` **[src]**. `user://` on Android, iOS and macOS is `DirAccessUnix`, which calls POSIX `::rename` **[src: drivers/unix/dir_access_unix.cpp, platform/android/os_android.cpp, drivers/unix/os_unix.cpp via OS_AppleEmbedded]**. POSIX rename replaces the destination atomically.
   - Overwriting rename returns `OK` and replaces the content, for both `rename_absolute` and the instance `rename` **[ran on macOS]**.
 - **Consequences.** A kill at any point leaves at least one verifiable file. Tested by the `fault_point` seam. A power cut can still lose the newest save, because there is no fsync; the checksum makes that a fallback, not a corruption.
-- **Revisit if** an Android emulator run (Phase 5) shows instance `rename` failing on an existing file **[unverified on device]**.
+- **Phase 3 amendment: the schema grows within v1.**
+  - **Context.** Phase 3 added `PlayerHistory` and `Memorial` fields and a journal kind (`hooch`). Phase 2 saves exist on dev machines, and no build has shipped.
+  - **Options.** (a) Bump to v2 with a migration step for every addition. (b) Read added fields as optional with a default, and keep v1.
+  - **Decision.** (b). `DictReader.*_or` readers: a missing key gives the default, a wrong type still fails the load. A rename, removal, change of meaning or unit needs a version bump and a migration (`data-models.md` §9.5). After the first release, an added enum value that older code rejects also bumps the version.
+  - **Evidence.** `tests/unit/sim/test_phase3_sim.gd` loads a Phase 2 `PlayerHistory` and `Memorial` without the new fields. No full Phase 2 save fixture is frozen yet (OD-23).
+  - **Also in Phase 3.** Journal `args` and `data` are kept in their saved form (`DictReader.saved_form()`) from the moment they are appended, so an entry is identical before and after a save (QA's PROP-02).
+  - **Revisit** at the first release: from then on, every schema change gets a frozen fixture.
+- **Revisit if** an Android emulator run (Phase 5) shows instance `rename` failing on an existing file **[unverified on device]**. The Phase 2 Android emulator run wrote saves with no errors (D-044), but didn't test an overwrite on purpose.
 
 ## ADR-006 Time model and clock rules (amends D-013, implements D-006)
 - **Decision.**
@@ -128,7 +137,23 @@ Evidence tags: **[ran]** = headless run in a scratch project (see the verificati
   - **Known limit (accepted).** If the clock is set back more than 6 h (re-anchor), the player plays a while, then fixes the clock, the next catch-up credits the whole gap, up to the 14-day cap, in one go. That is the price of fixing the freeze without trusted time. A cheat that only fast-forwards a starter is harmless in a single-player offline game. `qa-engineer` CLK-16 asserts the cap.
   - Determinism is promised per build and device. Cross-platform libm differences in `exp` and `pow` are possible and tiny, and saves never move between devices.
   - Catch-up cost: a toy 11-variable step took 1.1 µs, so 14 days (20,160 steps) took 22 ms on an Apple M4 **[ran, Mac estimate]**. Budget 250 ms with the real sim.
-- **Revisit if** the scientist's v1 needs sub-minute dynamics, or the real catch-up exceeds budget. Then use a `WorkerThreadPool` task.
+- **Revisit if** the scientist's v1 needs sub-minute dynamics.
+
+### ADR-006 amendment A: catch-up on a worker thread (D-042, D-050)
+- **Context.** The real sim took 206 ms for 14 days with no rules (D-042). With the 8 slice rules it took 292 to 296 ms. T1's cost work (one reused previous-state buffer, the day key built only on a day change) brought it to 229 to 230 ms, inside the 250 ms budget on the Mac. A phone is likely several times slower **[unverified, D-004]**.
+- **Options.** (a) Keep catch-up on the main thread and rely on the Mac margin. (b) A `WorkerThreadPool` task on copies, with the saved state shown meanwhile. (c) Split catch-up across frames on the main thread.
+- **Decision.** (b), on in the app (D-050). Launch and resume catch-ups of 2 h (120 steps) or more run on a worker thread. `apply()` refuses with `REASON_NOT_READY` until the result is swapped in on the main thread. Tests keep the synchronous `boot()` and `on_resume()`; `async_catch_up = false` turns it off. Mechanics in `architecture.md` §11.
+- **Why not (c).** It needs resumable state in `CatchUp`, which is pure and simple today, and it still spends main-thread time.
+- **Consequences.**
+  - No locks, because `CatchUp` touches only the objects passed in and the rule registry is stateless (ADR-013). This is now a rule: a stateful rule or a lazily built shared table would be a data race.
+  - A pause during a running catch-up waits for it (`on_background()` calls `wait_for_catch_up()`), so the save holds the result. On a slow phone that wait is inside the pause notification **[unverified on device]**.
+- **Evidence.** Byte-equal results and signals against the synchronous path (`tests/unit/core/test_catch_up_async.gd`). `session_ready` arrived after 37 frames with the main loop running (Mac estimate, D-050). The timings above are T1's one-off runs (2a6d063: Apple M4, headless editor binary, 9 runs in two interleaved rounds); no automated perf test exists yet.
+- **Revisit if** a phone makes the worker catch-up longer than about 2 s (the player would wait on a frozen-looking jar), or a pause handler on a phone runs out of time. Then show a progress cue, or save before waiting.
+
+### ADR-006 amendment B: debug time travel never touches the real save (D-017, D-050)
+- **Decision.** Debug builds get a `DebugClock` with a time scale and jumps, driven by the F3 overlay. The first time travel of a run saves the real state once at real time, then every later save of that run goes to `<save dir>_time_travel`. Release builds have no `DebugClock`, so the path doesn't exist there.
+- **Why.** A scaled timestamp in the real save would look like a clock set into the future, and the next real launch would re-anchor or hold, losing real time.
+- **Evidence.** `test_debug_time_travel_never_touches_the_real_save` and QA's OD-19 contract test.
 
 ## ADR-007 Local notifications (D-007)
 - **Decision.** Out of the MVP (vision: after the vertical slice). Define the seam now: `Notifier` (`src/core/notifier.gd`) with `request_permission()`, `schedule(id: StringName, at_unix: int, title_key: StringName, body_key: StringName)`, `cancel(id)` and `cancel_all()`. The MVP ships `NullNotifier`.
@@ -148,11 +173,12 @@ Evidence tags: **[ran]** = headless run in a scratch project (see the verificati
 - **Decision.** Zero third-party runtime code, addons or plugins in the MVP. Adding one needs an entry here with: the need, alternatives tried, license (MIT, BSD or Apache only), maintenance signal, Godot version support, size, and a wrapper so it can be swapped. Tools outside the game (Blender, Python scripts in `art/`) are not runtime dependencies.
 - **Consequences.** Notifications (ADR-007) and GUT (ADR-004 fallback) are the only foreseen candidates.
 
-## ADR-010 Export and toolchain (D-016)
-- **Context.** Godot 4.7.2 and Blender 5.3.0 are verified. Export templates (1,281 MB) are not installed. The Android SDK is missing platform 36, build-tools 36.1.0 and the NDK (`CLAUDE.md`).
+## ADR-010 Export and toolchain (D-016, D-044)
+- **Context.** Godot 4.7.2 and Blender 5.3.0 are verified. Export templates are installed and checksum-verified (2026-11-26). The Android SDK is missing platform 36, build-tools 36.1.0 and the NDK (`CLAUDE.md`).
 - **Decision.**
-  - Phase 2 needs export templates for the iOS simulator check (D-016), which needs the user's OK to download.
-  - Android SDK pieces are needed by Phase 5, and only for a Gradle build. The non-Gradle export needs no NDK **[unverified]**.
+  - **Amended by D-044.** Android works end to end with the prebuilt template and no Gradle: a debug APK runs on the Pixel_9 emulator with Vulkan Mobile, 0 script errors, saves written. So the non-Gradle export needs no NDK (verified by t1-toolchain). The emulator GPU is software, so its timings are not phone numbers.
+  - **Amended by D-044.** No renderer starts on the arm64 iOS simulator (the stock template's simulator library is x86_64 only). The iOS check is a boot and log check through an unofficial, simulator-only workaround in `tools/build/`, plus a real iPhone render check in Phase 5. The workaround is never used for device or release builds.
+  - The shader baker is off in development until real-device data exists. The bundle id and Apple Team ID stay placeholders until the user picks them.
   - `import_etc2_astc = true`.
   - Signing material never enters the repo. Godot keeps export credentials in `.godot/export_credentials.cfg`, which is ignored.
   - CI runs `tests/run.sh` on macOS.
@@ -173,6 +199,11 @@ Evidence tags: **[ran]** = headless run in a scratch project (see the verificati
 ## ADR-012 Layers, two autoloads, contracts commit
 - **Decision.** The four layers and the dependency rule in `architecture.md` §1. Exactly two autoloads (`Bus`, `Session`). Clock, store and settings are injected objects. Phase 2 opens with a contracts commit (T1) that freezes the public classes, `GameSession` API, `Bus` signals and `project.godot`. Then the parallel tracks in §14.
 - **Evidence.** Autoload `_ready` runs after a `-s` script's `_init`, so tests can't rely on autoloads and construct services directly **[ran]**. `class_name` cannot equal an autoload name, hence `Session` and `GameSession` **[unverified as an error message; avoided by design]**.
+- **Phase 3 amendment (D-046).**
+  - **Context.** Phase 2 kept owner comments in `project.godot` and told tracks to `git checkout` it after the editor rewrote it. Every import or run made a diff, which invites a wrong commit.
+  - **Decision.** Commit `project.godot` in the exact form Godot 4.7.2 writes: no hand comments, and keys equal to the default left out. The intended values, including the four defaults (stretch mode, `rendering_method.mobile`, `fallback_to_opengl3`, `inferred_declaration`), are pinned in `tests/unit/core/test_project_settings.gd`. Ownership lives in `architecture.md` §14.2, not in the file.
+  - **Consequence.** A changed engine default would silently change our setting. The test catches it on an upgrade (ADR-010, 4.8).
+  - Phase 3 also opened with a T1 contracts commit (131b3fe), the same pattern as Phase 2.
 
 ## ADR-013 Events: pure scheduler, no RNG in events
 - **Decision.** Rules, admission caps, cooldowns, quiet hours and the ledger live in `src/sim/events/` and are pure. Local time is an argument. The only RNG is `sim_rng`, with one draw per feed (`feed_u`, stored). Event rules take no RNG. `big_bubble` reads `feed_u` (spec §14.1). Presentation timing (don't interrupt a sheet) lives in the UI `EventPresenter`.
@@ -182,6 +213,12 @@ Evidence tags: **[ran]** = headless run in a scratch project (see the verificati
   - Restoring `RandomNumberGenerator.state` from a string gives the identical next values **[ran]**.
   - Setting `seed` after `state` resets the stream **[ran]**, so restore order matters.
   - Agreed with `game-designer` by message.
+- **Phase 3 amendment (D-032, D-048, D-050).**
+  - **One stateless, shared registry.** `EventRules.registry()` returns T4's `RuleIndex.all()`, built once on the main thread. The catch-up worker uses the same instances, so rules must keep no state; what they remember lives in `PlayerHistory` and the ledger.
+  - **Tie order is the registry order** (D-048): mold_found, warning_signs, first_rise, peak_now, peaked_while_away, hungry_again, hooch_forming, back_to_strength.
+  - **Per-rule admission.** Each rule carries `cooldown_s` and `one_time`, which the scheduler applies. Only `mold_found` may replace a waiting attention event.
+  - **Release moved to `Session`.** It raises each due event once per run, drops toasts on release, keeps cards and sheets until acknowledged, and withdraws stale ones (`event_withdrawn`). The UI still decides when to show.
+  - **Evidence.** 44 rule tests in `tests/unit/sim/rules/` (T4), the release test in `tests/unit/core/test_phase3_session.gd`, and the neglect timings matching V9 (warning at 108 h, mold at 213.7 h, D-048).
 
 ## ADR-014 Localization files
 - **Decision (revised after wave A).** One shipped catalog, `src/i18n/en.csv`, **generated** from the narrative docs' `Key | Text | Max` tables by `narrative-designer`'s build script. Each code track gets its own `pending_<track>.csv` for placeholder keys, so no file has two writers. Key format `^[A-Z][A-Z0-9_]*$` (narrative's convention). The build converts straight quotes to curly ones.
