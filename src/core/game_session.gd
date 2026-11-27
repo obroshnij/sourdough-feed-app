@@ -1123,7 +1123,11 @@ func _make_entry(kind: StringName, key: StringName, data: Dictionary) -> Journal
 	return e
 
 
+## Every entry goes through here. data and args are stored in their saved form (DictReader.saved_form), so an
+## entry is the same before and after a save (QA's PROP-02 finding).
 func _append_journal(entry: JournalEntry) -> void:
+	entry.data = DictReader.saved_form(entry.data)
+	entry.args = DictReader.saved_form(entry.args)
 	JournalEntry.append_capped(_journal, entry)
 
 
