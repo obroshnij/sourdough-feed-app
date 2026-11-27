@@ -326,7 +326,7 @@ T3 found the Phase 3 sheet put the flour chips, discard line and forecast below 
      │ Flour                           │  label 22, gap 8. Only with 2+ flours unlocked
      │ [✓Bread][Whole][ Rye ][Spelt]   │  4 tiles, 56 tall
      │ [ flour][wheat][     ][     ]   │
-     │ Hydration [Stiff][✓Standard][Loose] inline row 44, shared 63 pt label column. Only once unlocked
+     │ Water   [Stiff][✓Standard][Loose]│ inline row 44, shared label column. Only once unlocked
      ├─────────────────────────────────┤  scroll area ends; footer pinned
      │ Take out 100 g first.           │  FEED_DISCARD_LINE, ink 16
      │ It should be at its best around │  FORECAST_LINE, ink 16 (1 line at 100% on 390)
@@ -366,7 +366,7 @@ So on the 390 × 844 target, every case fits above the fold at 100%. On the SE, 
 
 | Text size | Sheet | What happens (390 × 844) |
 |---|---|---|
-| Large 125% | Fit sheet, same cap | Tiles grow (schedule 93, flour 64). With "Hydration" as the label, the Water label goes above (it doesn't fit inline at 20 pt; "Water" would). Everything unlocked fits at 603. Hooch or a note makes it scroll, up to 98 pt in the worst case |
+| Large 125% | Fit sheet, same cap | Tiles grow (schedule 93, flour 64). The Water row stays inline ("Water" is 44 pt at 20 pt; the old "Hydration" would have pushed it above). Everything unlocked fits at 568. Hooch or a note makes it scroll, up to about 63 pt in the worst case |
 | Largest 150% | **Full sheet** (screen − safe top − 12). The jar is hidden while it's open: at this size, reading comes first | Caption on its own header line. Every label goes above its row. Tiles: schedule 108, flour 74, water 48. Everything unlocked fits (697 of 785). The worst case scrolls about 53. On the SE, everything unlocked scrolls about 28 |
 
 Tile labels never ellipsize and never shrink below the type scale. Schedule titles stay inside the tile at 150% on the SE ("Tomorrow" is 84 pt at 24 pt, the tile's inner width is 90).
@@ -547,7 +547,7 @@ Three layers, always in agreement because all three read the same sim state:
 | Not shown | `recovering` keeps its own hint, because it explains why the rise is weaker. `dormant`, `hungry`, `unhealthy` and `moldy` have no forecast (mechanics §6) |
 | Change | The hint changes with the status-change animation (§15), at the same moment as the pill |
 | Elsewhere | Unchanged: the long `FORECAST_LINE` stays on the feed result card, in the feed sheet's result block (60 slot), and in the status explainer during every rise phase |
-| Copy | A new short key, `FORECAST_HINT`: "At its best {window}" (Max 34; worst case "At its best tomorrow afternoon", 30). No trailing period, like the other hints. Requested from narrative-designer through the director (§18.1). Until it exists, T3 shows the state's hint, **never** the long `FORECAST_LINE` in the hint slot |
+| Copy | A new short key, `FORECAST_HINT`: "At its best {window}" (Max 34; worst case "At its best tomorrow afternoon", 30). No trailing period, like the other hints. Added by narrative (§18.1). The long `FORECAST_LINE` never goes in the hint slot |
 
 **Hint slot rule (all keys).** The hint never wraps at 100% text, and takes at most 2 lines at 125% and 150% (§18). The copy checker's Max 34 is the guard, so every key that can fill the slot, including `FORECAST_HINT` with every `WINDOW_*`, has Max 34. QA's layout test renders each one at 360 pt width and 100% text and asserts 1 line.
 
@@ -704,8 +704,8 @@ Full sheet, one row each, in this order. Dividers (outline, 1 pt) separate the 3
 | 1 | Text size | 3 chips | `SETTINGS_TEXT_SIZE`, `_STANDARD`, `_LARGE`, `_LARGEST` | Standard | As built |
 | | divider | | | | |
 | 2 | Sound | Toggle | `SETTINGS_SOUND` (**new**) | On | Mutes or unmutes the master bus. When off, the Volume row is disabled (dimmed); the toggle above is its visible reason |
-| 3 | Volume | Slider, under its label, full row width | `SETTINGS_VOLUME` (**new**) | sound-designer's pick (80% proposed) | 0 to 100% in 10% steps, linear to dB on the master bus. A light tick per step (if Vibration is on). On release it plays one short preview sound (sound-designer's pick), so the player hears the level. No number shown |
-| 4 | Vibration | Toggle | `SETTINGS_HAPTICS` ("Vibration") | On | Turning it on plays one medium pulse as a preview. Off means no `vibrate_handheld` call at all |
+| 3 | Volume | Slider, under its label, full row width | `SETTINGS_VOLUME` (**new**) | **100%** (sound-designer: the set is already mixed quiet, about −21 LUFS at its loudest, so the phone's own volume buttons are the main control) | 0 to 100% in 10% steps, linear to dB on the master bus. Each step while dragging plays `ui_tick` (`Bus.feedback(&"tick")`) and a light haptic if Vibration is on. On release it plays `glass_tink` (`Bus.feedback(&"preview")`, no haptic), so the player hears the level. No number shown |
+| 4 | Vibration | Toggle | `SETTINGS_HAPTICS` ("Vibration") | On | Turning it on plays one medium pulse and `ui_toggle_on` as a preview. Off means no `vibrate_handheld` call at all |
 | | divider | | | | |
 | 5 | Reduce motion | Toggle | `SETTINGS_REDUCE_MOTION` | Off | As built |
 | 6 | Keep messages on screen | Toggle | `SETTINGS_KEEP_MESSAGES` | Off | As built |
@@ -713,8 +713,9 @@ Full sheet, one row each, in this order. Dividers (outline, 1 pt) separate the 3
 | 8 | Warning alert | Toggle + one note line | new, deferred | Off | Only once D-057's iOS plugin is wired. Turning it on is the only thing that asks for iOS notification permission: never at launch, never in onboarding |
 | | Done | SecondaryButton, pinned | `UI_DONE_BTN` | | |
 
-- **New settings fields** (T1, in `SettingsStore`; data-models §9.1 is tech-architect's): `sound_on: bool = true`, `volume: float` (0 to 1).
-- **iOS audio session: Ambient.** The game obeys the ring/silent switch and mixes with the player's own music or podcast, as a calm game should. Godot exposes this as a project setting in recent versions; whether 4.7.2 has it is **unverified** (T1 or T2 checks).
+- **Settings fields** are T1's, as T1 built them: `sound: bool = true` and `master_volume: float = 1.0` (0 to 1). data-models §9.1 should match T1's names.
+- **Sounds** for every new Phase 4 haptic moment are in `audio-direction.md` §3 (sound-designer).
+- **iOS audio session: Ambient.** The game obeys the ring/silent switch and mixes with the player's own music or podcast, as a calm game should. sound-designer found `audio/general/ios/session_category` (with Ambient) and `audio/general/ios/mix_with_others` in the 4.7.2 binary's strings (read, not run). T1 sets it in `project.godot`. The silent-switch behavior still needs the iPhone.
 - Slider: track 6, thumb 28, hit area 48 tall (§17). Disabled: track and fill in the disabled color.
 - Out of Phase 4: "Replay tutorial" (cut, §20), "Erase all data" and a credits and licenses page (Figtree's OFL text must ship, so that page is needed before a store release; §20).
 - There are no accounts.
@@ -741,7 +742,7 @@ The beats, their order and the words are game-designer's and narrative's (game-d
 
 | Beat | Screen and layout | The jar | Advances when | Taps |
 |---|---|---|---|---|
-| **B1 Arrival** (0:00) | No HUD and no bar at first. At 1.6 s the note page rises: `ONBOARD_NOTE_TITLE`, `_BODY`, secondary "I know starters" above primary "Show me around" (both E zone) | Freshly fed, breathing. The camera starts at yaw −25°, pitch +20° and eases home over 2.4 s, `SINE` in-out (inside the orbit limits, so the kitchen wall covers it, D-049). Optional: a folded note under the band (art-director's call). Reduce motion: starts at home, the page fades in at 0.6 s | Either button | 1 |
+| **B1 Arrival** (0:00) | No HUD and no bar at first. At 1.6 s the note page rises: `ONBOARD_NOTE_TITLE`, `_BODY`, secondary "I know starters" above primary "Show me around" (both E zone) | Freshly fed, breathing. The camera starts at yaw −25°, pitch +20° and eases home over 2.4 s, `SINE` in-out (inside the orbit limits, so the kitchen wall covers it, D-049). A folded note under the band is not built this round (§20). Reduce motion: starts at home, the page fades in at 0.6 s | Either button | 1 |
 | **B2 Look** (0:20) | HUD (unnamed) and the bar fade in (300 ms). Do coach `ONBOARD_LOOK_COACH` in the card slot, with a drag cue: a 24 pt surface dot sliding 60 pt left and right twice (reduce motion: static ‹ › icons) | Orbit, pinch, pokes and tinks all work | 90° of total orbit (summed), or 10 s. Then the read coach `ONBOARD_LOOK_DONE` | 0. Gestures are optional (§16) |
 | **B3 Smell** (0:50) | Do coach `ONBOARD_SMELL_COACH`; spotlight on Smell, which pulses 1.0 to 1.06 every 1.2 s (reduce motion: ring only) | The smell moment (§9): lid tips, slow lazy wisps | The `wet_flour` card shows with its meaning line and "New smell" ribbon, and no auto-hide in the tour. 1.5 s later the read coach `ONBOARD_SMELL_AFTER` shows in the toast slot. A tap anywhere dismisses both | 2 |
 | **B5 Inspect** (1:20) | Do coach `ONBOARD_INSPECT_COACH` on Inspect. In the sheet, the spotlight moves to Bubbles; other chips are dimmed and inert | The `bubbles` close-up (§10): a few small bubbles | The result shows (observation + meaning). Done, ‹ then Done, or a tap above | 3 |
@@ -775,12 +776,12 @@ The empty jar is a real state (D-059): the discard is committed at "Discard", an
 |---|---|
 | Reached by | The restart page's `RESTART_BTN_LATER` ("Not today"), or launching while empty. No time-lapse and no away summary: nothing happened |
 | HUD | The empty variant (§4): `EMPTY_JAR_TITLE` in the name row, ⚙, no pill, no hint |
-| Jar (art-director) | Clean, washed, empty glass with the lid on. No band, no starter, no breathing or bubbles. Orbit, pinch, double-tap reset and glass tinks work. Day and night continue |
+| Jar (art-director, confirmed) | Clean, washed, empty glass with the lid on. No band, no starter, no streaks, no breathing or bubbles. T2 hides the starter, liner and band, so no new asset. The jar **stays in its current place** (an empty jar in the proofing box still shows the box), with the same light. Orbit, pinch, double-tap reset and glass tinks work. Day and night continue |
 | Card | Above the bar, can't be dismissed (like the discard card, §4). Body `EMPTY_JAR_BODY`, primary `RESTART_BTN_YES` ("Start again"). It rises 600 ms after the restart page closes (card in, 280 ms) |
 | Action bar | Feed, Smell, Inspect and Place are locked: dimmed with the 12 pt lock badge, as for `moldy`. A tap shows the toast `REASON_EMPTY_JAR` (**new**). Journal works: the closed chapter and its memorial page |
 | Events | None. There's no starter |
 | Start again | Opens naming in its restart version: `NAME_BTN_PICK` ("Pick for me") picks the current suggestion and confirms in 1 tap (D-047). The restart story page is not shown again: the player already read it before choosing "Not today" |
-| New starter | The jar fills: a 600 ms crossfade from empty to the new starter with a soft sound, then the band snaps on (firm haptic). Reduce motion: a 300 ms crossfade. First restart: M.'s spare, cold `dormant`; later ones: a friend's spoonful at its peak (mechanics §8.2). The HUD returns to normal |
+| New starter | The jar fills: a 600 ms crossfade from empty to the new starter with `starter_new` (0.9 s, played by T2 from the fill animation), then the band snaps on with `band_snap` and a firm haptic. Reduce motion: a 300 ms crossfade. First restart: M.'s spare, cold `dormant`; later ones: a friend's spoonful at its peak (mechanics §8.2). The HUD returns to normal |
 | Taps | "Start again" → "Pick for me" = 2 |
 
 ---
@@ -997,21 +998,19 @@ These are hard maximums in characters, spaces included. They were computed on a 
 | `accessibility_name` / description (not shown) | 40 / 120 | n/a |
 | Notification title / body (after the slice, OS-rendered) | 30 / 90 | OS |
 
-### 18.1 Copy needed for Phase 4 (for narrative-designer, through the director)
+### 18.1 Copy added for Phase 4
 
-Proposed text only; narrative owns the words. I haven't edited the copy docs.
+narrative-designer added all of these (commit aef63eb). Listed here so the slot each one fills is clear.
 
-| Key | Proposed text | Max | Used by | If it doesn't land |
-|---|---|---|---|---|
-| `FORECAST_HINT` | At its best {window} | 34 | Status hint after a feed (§11.1). Fixed part must stay ≤ 16 so "tomorrow afternoon" (18) fits | The state's own hint. Never the long `FORECAST_LINE` |
-| `ONBOARD_SKIP_TOUR_BTN` | Skip tour | 18 | Every tour coach mark, the B6 page (§14.4) | Blocks "skip at any time" |
-| `REASON_EMPTY_JAR` | The jar is empty. Start again when you're ready. | 60 | Toast on a locked bar button in the empty jar (§14.5) | `EMPTY_JAR_BODY` (90) in a toast, over the toast's 60 |
-| `SETTINGS_SOUND` | Sound | 24 | Settings row 2 (§14.3) | Blocks the row |
-| `SETTINGS_VOLUME` | Volume | 24 | Settings row 3 | Blocks the row |
-| `SETTINGS_TIME_LAPSE` | Time-lapse on return | 24 | Settings row 7 ("Show time-lapse on return" is 25, one over) | Blocks the row |
-| `SETTINGS_WARNING_ALERT`, `_NOTE` | Warning alert / One alert if it shows warning signs while you're away. | 24 / 60 | Settings row 8, **deferred** until D-057's plugin is wired | Row stays hidden |
+| Key | Max | Used by |
+|---|---|---|
+| `FORECAST_HINT` | 34 | Status hint after a feed (§11.1). Its fixed part must stay ≤ 16 characters so "tomorrow afternoon" (18) fits |
+| `ONBOARD_SKIP_TOUR_BTN` | 18 | Every tour coach mark, and the B6 page (§14.4) |
+| `REASON_EMPTY_JAR` | 60 | Toast on a locked bar button in the empty jar (§14.5) |
+| `SETTINGS_SOUND`, `SETTINGS_VOLUME`, `SETTINGS_TIME_LAPSE` | 24 each | Settings rows 2, 3 and 7 (§14.3) |
+| `SETTINGS_WARNING_ALERT`, `_NOTE` | 24 / 60 | Settings row 8, **deferred** until D-057's plugin is wired |
 
-**Optional change:** `FEED_STEP_HYDRATION` "Hydration" → "Water". Plainer, and at 125% "Hydration" no longer fits inline, so the Water row's label moves above (+35 pt). Both work.
+`FEED_STEP_HYDRATION` now reads "Water", which keeps the Water row inline at 125% (§8.1).
 
 Reused, no new copy: `SMELL_MEANING_BTN` on inspect results (§10), `FEED_SKIP_ANIM_BTN` for the B6 demo's Skip pill, `NAME_BTN_PICK` from the empty jar, `RESTART_BTN_LATER` and `EMPTY_JAR_*` (D-047).
 
@@ -1047,7 +1046,8 @@ Reused, no new copy: `SMELL_MEANING_BTN` on inspect results (§10), `FEED_SKIP_A
 | Day one text: use `JOURNAL_DAY_ONE_BODY` ("fed it right at its peak") only when the path is `tour` and the first feed's timing class is `on_time`, else `_SKIP_BODY`. Otherwise an interrupted tour can make it false | T1, narrative |
 | The pre-adoption starter must look and smell freshly fed during B1 to B5 (§14.4). How: T1's tour preset | T1 |
 | Orbit and pinch on during the B6 demo | T2 |
-| iOS audio session Ambient (obeys the silent switch, mixes with other audio): does 4.7.2 expose it? | T1 or T2, unverified |
+| iOS audio session Ambient (obeys the silent switch, mixes with other audio) | The setting exists in 4.7.2 (sound-designer, from the binary's strings, not run). T1 sets it. The behavior is checked on the iPhone |
+| A folded note under the band for B1 | art-director: cheap, but not built this round, and it needs a slot in the jar GLB contract. It may carry pencil scribbles only, no readable words (rule 3). Director's call |
 | A credits and licenses page (Figtree's OFL text must ship) and "Erase all data" | Before a store release (Phase 5) |
 | Inspect's "Smell it" button: dropped, as the scientist recommends (sim spec §14, "Inspect to smell") | Decided here |
 
