@@ -825,7 +825,7 @@ Play order (game-design §3): B1, B2, B3, B5, B6, B4, B7, B8. The B6 demo is the
 | AC-16.2 | Two runs that differ only in the revealed trait | The same schedule | Every starter and environment field is byte-identical. Traits change words only (progression §5, CLAUDE.md rule 2). | auto, QA |
 | AC-16.3 | Another trait leads 14 days in a row | Play | It becomes dominant and the journal says so (`EVENT_TRAIT_DRIFT_*`). At most one change per 28 days. | auto, T1 |
 | AC-16.4 | A revealed trait | Its copy | The reveal and trait page use `TRAIT_*`. The memorial epitaph is `MEMORIAL_EPITAPH_<TRAIT>`, else `MEMORIAL_EPITAPH_<1 + seed % 3>` (narrative §9.3). The trait never shows as a number or a bar. | auto, QA + T3 |
-| AC-16.5 | A named starter | Rename to 1 character, 24 characters, " Dough " (padded), emoji, right-to-left text; then to "", spaces only, 25 characters | The first five apply, trimmed, each with one `JOURNAL_LOG_RENAME` entry. The last three are rejected with `REASON_NAME` and change nothing. Every accepted name survives a save and reload byte for byte (UTF-8, EC-20). | auto, QA |
+| AC-16.5 | A named starter | Through `Session.apply()`, rename to 1 character, 16 characters, " Dough " (padded), a name with an emoji, right-to-left text; then to "", spaces only, 17 characters | The first five apply, trimmed, each with one `JOURNAL_LOG_RENAME` entry. The last three are rejected with `REASON_NAME` and change nothing. Every accepted name survives a save and reload byte for byte (UTF-8, EC-20). The limit is 16 after trimming (data-models §4, narrative §6.1). The UI's own filter drops emoji (narrative §6.1, T3); the Session still round-trips whatever it is given. | auto, QA |
 | AC-16.6 | Settings | "Rename starter" (ux §14) | Within the UX §7 tap budget (TBD-UX). The pill and the journal header show the new name at once, and the pill never overflows at 150% text. | auto, T3 |
 
 ### AC-17 `consistency` and `development` inspection, and "What it means"
@@ -994,24 +994,48 @@ The spec is thin: progression §7 ("a rise sketch per cycle from recorded sample
 
 Updated as tests land. **planned** means the row waits for the named track's code. `today` means QA built it against the API on `phase-4-polish` before T1's contracts.
 
-| Group | Rows | auto | manual, capture or review | Covered now |
+| Group | Rows | auto | manual, capture or review | Covered now (full + part) |
 |---|---|---|---|---|
-| AC-13 Onboarding | 13 | 12 | 1 | see below |
-| AC-14 Flours and hydration | 7 | 7 | 0 | |
-| AC-15 Places | 7 | 6 | 1 | |
-| AC-16 Traits and renaming | 6 | 6 | 0 | |
-| AC-17 Inspection | 9 | 9 | 0 | |
-| AC-18 Empty jar | 7 | 6 | 1 | |
-| AC-19 Events | 13 | 13 | 0 | |
-| AC-20 Notification | 11 | 10 | 1 | |
-| AC-21 Haptics | 6 | 5 | 1 | |
-| AC-22 Audio | 12 | 11 | 1 | |
-| AC-23 Battery | 5 | 4 | 1 | |
-| AC-24 Compact feed sheet and sheets | 7 | 7 | 0 | |
-| AC-25 Journal merge | 5 | 5 | 0 | |
-| AC-26 Saves | 2 | 2 | 0 | |
-| AC-27 Richer journal | 5 | 5 | 0 | |
-| **Total** | **115** | **108** | **7** | |
+| AC-13 Onboarding | 13 | 12 | 1 | 4 + 2 |
+| AC-14 Flours and hydration | 7 | 7 | 0 | 2 + 1 |
+| AC-15 Places | 7 | 6 | 1 | 3 + 1 |
+| AC-16 Traits and renaming | 6 | 6 | 0 | 1 + 0 |
+| AC-17 Inspection | 9 | 9 | 0 | 2 + 1 |
+| AC-18 Empty jar | 7 | 6 | 1 | 0 |
+| AC-19 Events | 13 | 13 | 0 | 0 |
+| AC-20 Notification | 11 | 10 | 1 | 0 |
+| AC-21 Haptics | 6 | 5 | 1 | 0 |
+| AC-22 Audio | 12 | 11 | 1 | 3 + 0 |
+| AC-23 Battery | 5 | 4 | 1 | 1 + 0 |
+| AC-24 Compact feed sheet and sheets | 7 | 7 | 0 | 0 |
+| AC-25 Journal merge | 5 | 5 | 0 | 0 |
+| AC-26 Saves | 2 | 2 | 0 | 0 |
+| AC-27 Richer journal | 5 | 5 | 0 | 0 |
+| **Total** | **115** | **108** | **7** | **16 + 5** |
+
+**Covered now (QA, 2026-11-27, against `phase-4-polish` before T1's Phase 4 contracts).** Each passes under `tests/run.sh`; "part" means the rest waits for the named track.
+
+| Row | Proved by | Status |
+|---|---|---|
+| AC-13.2 | `scenario/ac13_demo::test_ac_13_2_demo_frames_are_plain_60_s_steps_on_a_copy` | covered (stand-in B1 state until T1's preset) |
+| AC-13.3 | `scenario/ac13_demo::test_ac_13_3_demo_rises_through_the_phases_in_order_and_stops_at_peak` (393 steps, 6.55 h) | covered (same) |
+| AC-13.5 | `int/ac13_onboarding::test_ac_13_5_the_demo_never_touches_the_clock_or_the_save` | part: the EC-26 checks wait for T1's fix (QA bug sent 2026-11-27) |
+| AC-13.6 | `int/ac13_onboarding::test_ac_13_6_adopting_the_demo_saves_at_grid_now_with_no_time_travel` | covered |
+| AC-13.7 | `int/ac13_onboarding::test_ac_13_7_and_13_8_each_path_writes_one_day_one_entry` (the skip path's B7 feed is on time) | part: the unlocks wait for T1, the beats for T3 |
+| AC-13.8 | same test | covered |
+| AC-14.1 | `int/ac14_15_flours_places::test_ac_14_1_every_flour_ratio_and_hydration_is_accepted` (36 feeds) | part: uses QA's grams until T1's planner takes the hydration (OD-25) |
+| AC-14.2 | `int/ac14_15_flours_places::test_ac_14_2_the_culture_follows_spec_6` | covered |
+| AC-14.3 | `int/ac14_15_flours_places::test_ac_14_3_v5_and_v6_through_the_session` | covered |
+| AC-15.1 | `int/ac14_15_flours_places::test_ac_15_1_the_new_places_take_their_climate` | covered |
+| AC-15.2 | `int/ac14_15_flours_places::test_ac_15_2_the_proofing_box_dial_stays_in_24_to_30` | part: the steppers are T3's |
+| AC-15.3 | `int/ac14_15_flours_places::test_ac_15_3_peak_order_across_places` (box 30 °C 4.53 h, warm spot and box 26 °C 5.02 h, counter 6.22 h, window sill 8.68 h) | covered |
+| AC-15.4 | `int/ac14_15_flours_places::test_ac_15_4_neglect_at_the_window_sill_and_the_hot_box` (sill unhealthy 5.83 d, moldy 11.44 d; box 30 °C gap 75.8 h) | covered |
+| AC-16.5 | `int/ac16_rename::test_ac_16_5_names_are_trimmed_bounded_and_survive_a_reload`, `::test_ec_31_two_hundred_renames_stay_inside_the_journal_caps` | covered |
+| AC-17.1 | `property/p1_inspection::test_ac_17_1_*` (thresholds, and 1,836 real states against spec §14) | part: rye `airy_pasty` waits for T1's v1.1 commit |
+| AC-17.2 | `property/p1_inspection::test_ac_17_2_development_thresholds_and_keys` | covered |
+| AC-17.3 | `property/p1_inspection::test_ac_17_3_every_inspection_key_is_in_the_catalog_without_digits` (9,360 readouts) | covered |
+| AC-22.1 to AC-22.3 | `lint audio` in `run.sh` (OD-38) | covered |
+| AC-23.1 | `int/ac23_idle_cap::test_ac_23_1_idle_cap_after_three_seconds_and_back_at_once` | covered |
 
 Plus the 4 carried rows and BT-12 (§3A.14). AC-17.5 counts as auto with a capture part, and AC-15.7 as capture plus review. AC-19.13, AC-20.9 and AC-22.12 have a device part in MAN-D.
 
