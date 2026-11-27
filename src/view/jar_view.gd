@@ -1,5 +1,8 @@
 class_name JarView
 extends Node3D
+
+## The lid's lift (0 on, 1 up), for the lid sounds.
+signal lid_moved(k: float)
 ## The jar: binds the jar_v0 GLB by its contract node names (art-direction.md §12), owns every
 ## material on it, and shows a VisualParams. Reads sim types only; never mutates state.
 ## Everything inside the glass is opaque (D-009): the starter, the liner (alpha scissor) and the band.
@@ -190,6 +193,7 @@ func set_lid_lift(k: float) -> void:
 		if covers.has(cover):
 			covers[cover].position.y = lid_rest_y + 0.008 * k
 			covers[cover].rotation.y = deg_to_rad(10.0) * k
+	lid_moved.emit(k)
 
 
 ## Reduce motion turns off breathing and pops (ux-design.md §15).

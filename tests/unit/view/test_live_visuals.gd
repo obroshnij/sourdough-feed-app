@@ -70,11 +70,15 @@ func test_feed_discard_then_settle_band_overshoots_six_percent() -> void:
 	for i: int in 36:
 		f.step(DT)
 	check_close(f.rise_mul, FeedMoment.DISCARD_TO, 0.0, 0.01, "level drops over 0.6 s")
+	f.begin(&"scoop")
+	var dust_at: float = -1.0
+	for i: int in 60:
+		f.step(DT)
+		if f.dust and dust_at < 0.0:
+			dust_at = float(i + 1) * DT
+	check_close(dust_at, 0.45, 0.0, 0.02, "flour dust lands at scoop + 0.45 s")
 	f.begin(&"pour")
-	check(f.dust, "the pour fires the flour dust once")
-	f.step(DT)
-	check(not f.dust, "only one frame")
-	f.settle()
+	f.begin(&"settle")
 	var peak: float = 0.0
 	for i: int in 60:
 		f.step(DT)

@@ -7,6 +7,9 @@ extends MultiMeshInstance3D
 ## None under hooch, none at mold. Opaque (alpha scissor), so it never sorts against the glass (D-009).
 ## Child of the Jar: positions are in jar space (floor at JarGeometry.FLOOR_Y_M).
 
+## Each pop the view draws, for its sound (audio-direction.md §3).
+signal popped(serial: int)
+
 const MAX_POPS: int = 8
 const LIFE_S: float = 0.25
 const RATE_PER_ACTIVITY: float = 0.4
@@ -114,6 +117,7 @@ func _spawn() -> void:
 		_serials.remove_at(0)
 	_serials.append(serial)
 	_ages.append(0.0)
+	popped.emit(serial)
 	serial += 1
 
 

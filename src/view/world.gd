@@ -43,6 +43,9 @@ var night: float = 0.0
 var time_lapse: TimeLapsePlayer
 var _night_poll: float = 0.0
 var _sky_mat: ShaderMaterial
+var audio: JarAudio
+var _smelling: bool = false
+var _sheets_open: int = 0
 
 
 func _ready() -> void:
@@ -55,6 +58,11 @@ func _ready() -> void:
 	set_reduce_effects(false)
 	rig.tapped.connect(_on_tapped)
 	_make_vfx()
+	audio = JarAudio.new()
+	audio.name = "Audio"
+	add_child(audio)
+	jar.pops.popped.connect(audio.play_pop)
+	jar.lid_moved.connect(_on_lid_moved)
 	var bus: Node = get_node_or_null(^"/root/Bus")
 	if bus != null:
 		bus.connect(&"sheet_opened", _on_sheet_opened)
@@ -64,6 +72,9 @@ func _ready() -> void:
 		bus.connect(&"jar_region_changed", _on_jar_region_changed)
 		bus.connect(&"settings_changed", _read_settings)
 		bus.connect(&"feed_moment", _on_feed_moment)
+		bus.connect(&"feedback", audio.on_feedback)
+		bus.connect(&"event_presented", audio.on_event)
+		bus.connect(&"starter_tapped", _on_starter_tapped)
 		bus.connect(&"smell_moment_started", _on_smell_started)
 		bus.connect(&"smell_moment_finished", _on_smell_finished)
 		if bus.has_signal(&"time_lapse_skip_requested"):
@@ -123,6 +134,8 @@ func set_night(n: float) -> void:
 		jar.counter_mat.set_shader_parameter(&"grade_value", look.dressing_value * lerpf(1.0, look.night_counter, night))
 		jar.counter_mat.set_shader_parameter(&"key_dir", KEY_DIR.normalized().lerp(NIGHT_SHADOW_DIR.normalized(), night).normalized())
 	jar.set_wall_night(night)
+	if audio != null:
+		audio.night = night
 	# Under the warm lamp the tonemapper lifts the cream's saturation in the darker range (N1, §18.6).
 	for m: ShaderMaterial in jar.starter_materials():
 		if m != null:
@@ -145,6 +158,8 @@ func set_tier(t: QualityTier.Tier) -> void:
 
 func set_reduce_motion(on: bool) -> void:
 	reduce_motion = on
+	if audio != null:
+		audio.reduce_motion = on
 	rig.reduce_motion = on
 	jar.set_motion(not on)
 
@@ -160,13 +175,14 @@ func set_visuals(p: VisualParams) -> void:
 func follow_visuals(p: VisualParams) -> void:
 	easer.set_goal(p)
 	if feed.active():
+		# The fed fields jump; the band snap and the lid wait for T1's settle beat (or the timeout).
 		if _band_from < 0.0:
 			_band_from = easer.shown.level_m
 		easer.snap_fields([&"level_m", &"rise", &"lumps", &"peak_line", &"streak_amount", &"hooch_depth"])
-		feed.settle()
 
 
 func _process(delta: float) -> void:
+	audio.pops_muted = _sheets_open > 0 or feed.active() or _smelling or time_lapse != null
 	if time_lapse != null:
 		_play_time_lapse(delta)
 		return
@@ -212,6 +228,7 @@ func _read_settings() -> void:
 	if settings != null:
 		set_reduce_effects(settings.reduce_effects)
 		set_reduce_motion(settings.reduce_motion)
+		audio.apply_settings(settings.sound, settings.master_volume)
 
 
 func _on_session_ready(summary: CatchUpResult) -> void:
@@ -221,10 +238,12 @@ func _on_session_ready(summary: CatchUpResult) -> void:
 	if v != null:
 		set_visuals(v)
 	set_night(session.get_night_factor())
+	audio.room_fade(true, 2.0)
 	start_time_lapse(summary)
 
 
 func _on_resumed(summary: CatchUpResult) -> void:
+	audio.room_fade(true, 1.5)
 	start_time_lapse(summary)
 
 
@@ -288,10 +307,13 @@ func _on_feed_moment(step: StringName) -> void:
 	if not feed.active():
 		_band_from = easer.shown.level_m
 	feed.begin(step)
+	audio.on_feed(step)
 
 
 ## The smell moment: lid up, wisps tinted by what the sim smells like, a small camera dolly.
 func _on_smell_started() -> void:
+	_smelling = true
+	audio.on_smell(true)
 	_tween_lid(1.0)
 	rig.nudge(true)
 	var session: GameSession = get_node_or_null(^"/root/Session") as GameSession
@@ -302,6 +324,8 @@ func _on_smell_started() -> void:
 
 
 func _on_smell_finished() -> void:
+	_smelling = false
+	audio.on_smell(false)
 	wisps.stop()
 	rig.nudge(false)
 	_tween_lid(0.0)
@@ -358,12 +382,32 @@ func _make_vfx() -> void:
 	vfx.add_child(dust)
 
 
+func _on_starter_tapped(where: StringName) -> void:
+	audio.play("glass_tink" if where == &"glass" else "starter_poke")
+
+
+var _last_lid: float = 0.0
+
+
+## Lid sounds: lid_lift as it starts rising, lid_set once it is back within 5% of rest (§3).
+func _on_lid_moved(k: float) -> void:
+	if _last_lid <= 0.001 and k > 0.001:
+		audio.play("lid_lift")
+	elif _last_lid >= 0.05 and k < 0.05:
+		audio.play("lid_set")
+	_last_lid = k
+
+
 func _on_sheet_opened(sheet_id: StringName) -> void:
+	_sheets_open += 1
+	audio.on_sheet(true)
 	rig.set_input_enabled(false)
 	rig.set_sheet_cover(SHEET_COVER.get(sheet_id, 0.5))
 
 
 func _on_sheet_closed(_sheet_id: StringName) -> void:
+	_sheets_open = maxi(_sheets_open - 1, 0)
+	audio.on_sheet(false)
 	rig.set_input_enabled(true)
 	rig.set_sheet_cover(0.0)
 

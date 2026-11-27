@@ -368,8 +368,10 @@ func _zoom_by(scale: float, held: bool) -> void:
 	var at_limit: bool = zoom >= hi or zoom <= lo
 	if at_limit and not _zoom_at_limit:
 		zoom_limit_reached.emit()
-		if OS.get_name() == "Android":
-			Input.vibrate_handheld(10, 0.3)
+		# OD-30: the view never vibrates. The tick goes through Bus.feedback (sound here, pulse in Session).
+		var bus: Node = get_node_or_null(^"/root/Bus")
+		if bus != null:
+			bus.emit_signal(&"feedback", &"tick")
 	_zoom_at_limit = at_limit
 
 
