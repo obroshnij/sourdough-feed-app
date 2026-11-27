@@ -10,6 +10,8 @@ const HALF: int = 15
 
 var passed: int = 0
 var failed: int = 0
+## FL8: hooch-from-above V per flour (hungry, top views).
+var _hooch_v: Dictionary[String, float] = {}
 
 
 func _initialize() -> void:
@@ -22,7 +24,9 @@ func _initialize() -> void:
 		var file: String = path.get_file()
 		var state: String = _state_of(file)
 		print("PROBE %s (%dx%d) state=%s" % [file, img.get_width(), img.get_height(), state])
-		if file.contains("_focus_"):
+		if file.contains("_flour_"):
+			_flour(img, file, state)
+		elif file.contains("_focus_"):
 			print("ROW info inspect framing capture, no rows")
 		elif file.contains("magenta"):
 			_magenta(img)
@@ -41,6 +45,14 @@ func _initialize() -> void:
 			_pose(img, state)
 		_no_orange(img)
 		_clipped(img)
+	if _hooch_v.has("rye") and _hooch_v.has("white_bread"):
+		var dv: float = absf(_hooch_v["rye"] - _hooch_v["white_bread"])
+		var ok8: bool = dv <= 0.03
+		print("ROW FL8 hooch rye vs white within %.1f V points [%s] want <= 3" % [dv * 100.0, "PASS" if ok8 else "FAIL"])
+		if ok8:
+			passed += 1
+		else:
+			failed += 1
 	print("SUMMARY %d pass, %d fail" % [passed, failed])
 	quit()
 
@@ -313,6 +325,96 @@ func _magenta(img: Image) -> void:
 				hits += 1
 	var ok: bool = hits == 0
 	print("ROW magenta sky pixels in the free band: %d [%s]" % [hits, "PASS" if ok else "FAIL"])
+	if ok:
+		passed += 1
+	else:
+		failed += 1
+
+
+## Flour looks (art-direction.md §20.5): FL2 to FL5 on the side, FL6 to FL8 on the top, FL9 everywhere.
+func _flour(img: Image, file: String, state: String) -> void:
+	var flour: String = ""
+	for f: String in ["white_bread", "whole_wheat", "rye", "spelt"]:
+		if file.contains("_flour_" + f):
+			flour = f
+	if file.ends_with("_top.png"):
+		var c: Color = _patch(img, Vector2i(320, 400))
+		if state == "hungry":
+			_hooch_v[flour] = c.v
+			_row("FL8 R10 %s hooch" % flour, c, c.v >= 0.55 and c.v <= 0.70 and c.s >= 0.25 and c.s <= 0.40, "V 55-70, S 25-40")
+		elif flour == "rye" and state == "at_peak":
+			var tone: int = 0
+			var n: int = 0
+			for y: int in range(250, 550, 2):
+				for x: int in range(170, 470, 2):
+					var px: Color = img.get_pixel(x, y)
+					n += 1
+					if px.v >= 0.55 and px.v < c.v - 0.06 and _hue_in(px, 28.0, 40.0):
+						tone += 1
+			print("ROW FL6 rye cap: %.1f%% fissure-tone pixels (V >= 55, hue 28-40, under the paste), cap %s" % [100.0 * tone / maxf(n, 1.0), _fmt(c)])
+		else:
+			print("ROW info %s %s cap %s" % [flour, state, _fmt(c)])
+	elif file.ends_with("_side.png") and state == "at_peak":
+		var cols: Array[Color] = []
+		for y: int in range(40, 720, 2):
+			var row: Array[Color] = []
+			var pasty: int = 0
+			for x: int in range(60, 580, 2):
+				var px: Color = img.get_pixel(x, y)
+				row.append(px)
+				if px.v > 0.45 and px.s < 0.45 and (px.s < 0.05 or _hue_in(px, 22.0, 50.0)):
+					pasty += 1
+			if float(pasty) >= 0.85 * float(row.size()):
+				cols.append_array(row)
+		if cols.size() < 100:
+			print("ROW %s side: too few paste pixels" % flour)
+			return
+		var vs: Array[float] = []
+		for px: Color in cols:
+			vs.append(px.v)
+		vs.sort()
+		var p80: float = vs[int(vs.size() * 0.8)]
+		var sum := Color(0, 0, 0)
+		var n_paste: int = 0
+		for px: Color in cols:
+			if px.v >= p80 - 0.10:
+				sum += px
+				n_paste += 1
+		var paste: Color = sum / float(maxi(n_paste, 1))
+		match flour:
+			"whole_wheat":
+				_row("FL2 whole_wheat paste", paste, _hue_in(paste, 30.0, 40.0) and paste.s >= 0.14 and paste.s <= 0.26 and paste.v >= 0.74 and paste.v <= 0.88, "hue 30-40, S 14-26, V 74-88")
+				var bran: int = 0
+				for px: Color in cols:
+					if px.v <= paste.v - 0.20 and _hue_in(px, 25.0, 40.0):
+						bran += 1
+				var share: float = float(bran) / float(cols.size())
+				var ok5: bool = share >= 0.005 and share <= 0.03
+				print("ROW FL5 bran %.2f%% of paste pixels [%s] want 0.5-3%%" % [share * 100.0, "PASS" if ok5 else "FAIL"])
+				if ok5:
+					passed += 1
+				else:
+					failed += 1
+			"rye":
+				_row("FL3 rye paste", paste, _hue_in(paste, 30.0, 38.0) and paste.s >= 0.16 and paste.s <= 0.30 and paste.v >= 0.66 and paste.v <= 0.82, "hue 30-38, S 16-30, V 66-82")
+			"spelt":
+				_row("FL4 spelt paste", paste, _hue_in(paste, 33.0, 44.0) and paste.s >= 0.14 and paste.s <= 0.26 and paste.v >= 0.78 and paste.v <= 0.90, "hue 33-44, S 14-26, V 78-90")
+			_:
+				print("ROW FL1 white paste %s (the §16.6 rows hold)" % _fmt(paste))
+	_no_pink(img)
+
+
+## FL9: no pink, nothing at hue 330 to 20 with S over 25%.
+func _no_pink(img: Image) -> void:
+	var bad: int = 0
+	for y: int in range(0, img.get_height(), 2):
+		for x: int in range(0, img.get_width(), 2):
+			var c: Color = img.get_pixel(x, y)
+			var h: float = c.h * 360.0
+			if c.s > 0.25 and c.v > 0.15 and (h >= 330.0 or h <= 20.0):
+				bad += 1
+	var ok: bool = bad == 0
+	print("ROW FL9 no pink: %d sampled pixels [%s]" % [bad, "PASS" if ok else "FAIL"])
 	if ok:
 		passed += 1
 	else:

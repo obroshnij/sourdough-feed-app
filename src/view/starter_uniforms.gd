@@ -16,6 +16,9 @@ static func values(p: VisualParams) -> Dictionary[StringName, Variant]:
 
 static func apply(p: VisualParams, materials: Array[ShaderMaterial]) -> void:
 	var vals: Dictionary[StringName, Variant] = values(p)
+	# Fields T1 still lists as pending (crack) are declared in the shaders now: set them too.
+	for u: StringName in VisualParams.PENDING_UNIFORMS:
+		vals[u] = p.get(u)
 	for m: ShaderMaterial in materials:
 		for u: StringName in vals:
 			m.set_shader_parameter(u, vals[u])

@@ -227,6 +227,8 @@ func apply_look(look: ViewLook, key_dir: Vector3, rim_dir: Vector3) -> void:
 	starter_mat.set_shader_parameter(&"hooch_value", look.hooch_value)
 	starter_mat.set_shader_parameter(&"hooch_desat", look.hooch_desat)
 	starter_mat.set_shader_parameter(&"hooch_dark_lift", look.hooch_dark_lift)
+	starter_mat.set_shader_parameter(&"flake_k", look.flake_k)
+	starter_mat.set_shader_parameter(&"flake_desat", look.flake_desat)
 	if backdrop_mat != null:
 		backdrop_mat.set_shader_parameter(&"energy", look.backdrop_energy)
 		backdrop_mat.set_shader_parameter(&"night_gain", look.wall_night_gain)

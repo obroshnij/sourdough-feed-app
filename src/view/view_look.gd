@@ -45,7 +45,9 @@ var key_shadow: float = 0.0
 ## DirectionalLight3D.ShadowMode: 0 orthogonal (1 split), 1 PSSM 2 splits, 2 PSSM 4 splits.
 var key_shadow_mode: int = 0
 ## Starter grade (starter_common.gdshaderinc).
-var starter_saturation: float = 1.0
+var starter_saturation: float = 0.95
+var flake_k: float = 1.0
+var flake_desat: float = 0.0
 var starter_value: float = 1.0
 var backlight_k: float = 0.15
 var clearcoat_on: float = 1.0
@@ -84,7 +86,9 @@ static func for_renderer(renderer: String) -> ViewLook:
 		look.hooch_value = 1.8
 		look.hooch_desat = 0.5
 		look.clearcoat_on = 0.0
-		look.starter_saturation = 0.9
+		look.starter_saturation = 0.85
+		look.flake_k = 0.7
+		look.flake_desat = 0.5
 		look.glass_spec = 1.5
 		look.glass_reflection = 0.35
 		look.lid_saturation = 0.8

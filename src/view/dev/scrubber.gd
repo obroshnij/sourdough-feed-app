@@ -103,6 +103,8 @@ func params_for(id: StringName) -> VisualParams:
 func set_state(id: StringName) -> void:
 	state_id = id
 	params = params_for(id)
+	if args.has("flour"):
+		apply_flour(params, StringName(args["flour"]), id)
 	# Dev overrides: --set-<field>=<value>, for example --set-lumps=0.
 	for key: String in args:
 		if key.begins_with("set-"):
@@ -202,6 +204,31 @@ static func _pct(a: PackedFloat64Array, q: float) -> float:
 	var s: PackedFloat64Array = a.duplicate()
 	s.sort()
 	return s[clampi(int(q * float(s.size() - 1)), 0, s.size() - 1)]
+
+
+## Dev only: a pure flour at 100% hydration with art-direction.md §20.2's values (tint, flecks,
+## dome_k, size_k, firmness, crack), and each flour's own peak height for at_peak.
+static func apply_flour(p: VisualParams, flour: StringName, state: StringName) -> void:
+	var t: Dictionary = {
+		&"white_bread": [Color("#F5EBD6"), 0.0, 1.0, 1.0, 0.0, 2.2],
+		&"whole_wheat": [Color("#D8BD98"), 0.6, 0.7, 0.9, 0.27, 1.9],
+		&"rye": [Color("#AA9379"), 0.3, 0.3, 0.75, 0.5, 1.65],
+		&"spelt": [Color("#EFDCAC"), 0.15, 0.7, 1.0, -0.13, 1.9],
+	}
+	if not t.has(flour):
+		return
+	var row: Array = t[flour]
+	var firm: float = row[4]
+	p.tint = row[0]
+	p.fleck = row[1]
+	if state == &"at_peak":
+		p.rise = row[5]
+	p.dome *= float(row[2]) * (1.0 - 0.4 * maxf(-firm, 0.0))
+	p.bubble_size *= float(row[3])
+	p.sheen *= 1.0 - 0.35 * maxf(firm, 0.0) + 0.25 * maxf(-firm, 0.0)
+	p.lumps = (p.lumps + 0.25 * maxf(firm, 0.0)) * (1.0 - 0.5 * maxf(-firm, 0.0))
+	var on: bool = flour == &"rye" and p.rise >= 1.3 and state != &"unhealthy" and state != &"moldy"
+	p.crack = 0.35 + 0.65 * smoothstep(1.3, 1.5, p.rise) if on else 0.0
 
 
 func _names(csv: String) -> Array[StringName]:
