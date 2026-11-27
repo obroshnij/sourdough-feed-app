@@ -6,12 +6,16 @@ extends Sheet
 
 signal text_scale_chosen(text_scale: float)
 signal reduce_motion_toggled(on: bool)
+## &"haptics" or &"keep_messages".
+signal toggle_changed(setting: StringName, on: bool)
 
 const SIZE_KEYS: Array[StringName] = [&"SETTINGS_TEXT_STANDARD", &"SETTINGS_TEXT_LARGE", &"SETTINGS_TEXT_LARGEST"]
 
 var size_label: Label = null
 var size_chips: Array[Chip] = []
 var reduce_motion_row: ToggleRow = null
+var haptics_row: ToggleRow = null
+var keep_messages_row: ToggleRow = null
 var _group := ButtonGroup.new()
 var _syncing: bool = false
 
@@ -49,6 +53,28 @@ func _build_content(box: VBoxContainer) -> void:
 		if not _syncing:
 			reduce_motion_toggled.emit(on))
 	box.add_child(reduce_motion_row)
+	haptics_row = _toggle(box, &"SETTINGS_HAPTICS", &"haptics")
+	keep_messages_row = _toggle(box, &"SETTINGS_KEEP_MESSAGES", &"keep_messages")
+
+
+func _toggle(box: VBoxContainer, key: StringName, setting: StringName) -> ToggleRow:
+	var row := ToggleRow.new(key)
+	row.name = String(setting).capitalize().replace(" ", "")
+	row.toggled.connect(func(on: bool) -> void:
+		if not _syncing:
+			toggle_changed.emit(setting, on))
+	box.add_child(row)
+	return row
+
+
+## Shows the stored haptics and keep-messages values without emitting.
+func sync_toggles(store: SettingsStore) -> void:
+	_syncing = true
+	haptics_row.set_pressed_no_signal(store.haptics)
+	keep_messages_row.set_pressed_no_signal(store.keep_messages)
+	haptics_row.queue_redraw()
+	keep_messages_row.queue_redraw()
+	_syncing = false
 
 
 ## Shows the stored values without emitting.

@@ -1,1 +1,6 @@
 keys,en
+FEED_DISCARD_LINE,Take out {grams} g first.
+SMELL_NEW_RIBBON,New smell
+UI_BACK_A11Y,Back
+SETTINGS_HAPTICS,Haptics
+SETTINGS_KEEP_MESSAGES,Keep messages on screen

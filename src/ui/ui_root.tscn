@@ -12,6 +12,10 @@
 [ext_resource type="Script" path="res://src/ui/sheets/sheet_host.gd" id="10_host"]
 [ext_resource type="Script" path="res://src/ui/components/sheet.gd" id="11_sheet"]
 [ext_resource type="Script" path="res://src/ui/sheets/settings_sheet.gd" id="12_settings"]
+[ext_resource type="Script" path="res://src/ui/sheets/feed_sheet.gd" id="13_feed"]
+[ext_resource type="Script" path="res://src/ui/sheets/inspect_sheet.gd" id="14_inspect"]
+[ext_resource type="Script" path="res://src/ui/sheets/place_sheet.gd" id="15_place"]
+[ext_resource type="Script" path="res://src/ui/components/sd_button.gd" id="16_sd"]
 
 [node name="UI" type="CanvasLayer"]
 layer = 10
@@ -158,6 +162,12 @@ mouse_filter = 2
 layout_mode = 1
 script = ExtResource("9_toast")
 
+[node name="SkipPill" type="Button" parent="Root/Overlays"]
+custom_minimum_size = Vector2(96, 48)
+layout_mode = 1
+script = ExtResource("16_sd")
+text_key = &"FEED_SKIP_ANIM_BTN"
+
 [node name="Sheets" type="Control" parent="Root"]
 layout_mode = 1
 anchors_preset = 15
@@ -170,24 +180,15 @@ script = ExtResource("10_host")
 
 [node name="Feed" type="Control" parent="Root/Sheets"]
 layout_mode = 1
-script = ExtResource("11_sheet")
-sheet_id = &"feed"
-title_key = &"FEED_SHEET_TITLE"
-height_kind = 1
+script = ExtResource("13_feed")
 
 [node name="Inspect" type="Control" parent="Root/Sheets"]
 layout_mode = 1
-script = ExtResource("11_sheet")
-sheet_id = &"inspect"
-title_key = &"INSPECT_SHEET_TITLE"
-height_kind = 0
+script = ExtResource("14_inspect")
 
 [node name="Environment" type="Control" parent="Root/Sheets"]
 layout_mode = 1
-script = ExtResource("11_sheet")
-sheet_id = &"environment"
-title_key = &"PLACE_TITLE"
-height_kind = 0
+script = ExtResource("15_place")
 
 [node name="Journal" type="Control" parent="Root/Sheets"]
 layout_mode = 1

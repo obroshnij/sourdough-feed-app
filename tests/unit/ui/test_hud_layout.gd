@@ -104,7 +104,7 @@ func test_feed_emphasis_and_moldy_lock() -> void:
 	check_eq(feed.locked_reason_key, &"MOLD_FEED_BLOCKED", "moldy: Feed is locked with a reason")
 	check(not feed.emphasized, "moldy: no feed emphasis")
 	var reasons: Array[StringName] = []
-	feed.locked_pressed.connect(func(k: StringName) -> void: reasons.append(k))
+	feed.locked_pressed.connect(func(_id: StringName, k: StringName) -> void: reasons.append(k))
 	feed.pressed.emit()
 	await H.settle(_tree)
 	check_eq(reasons, [&"MOLD_FEED_BLOCKED"], "a tap on locked Feed reports the reason")

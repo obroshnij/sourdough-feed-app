@@ -14,6 +14,8 @@ const MIN_WIDTH: float = 64.0
 @export var icon_id: StringName = &""
 ## Labels stay on one line unless the slot allows two (inspect chips at 150%, ux-design §18).
 @export var wrap: bool = false
+## False for action chips (inspect kinds) that act on tap instead of staying selected.
+@export var toggles: bool = true
 
 
 func _init(key: StringName = &"") -> void:
@@ -23,7 +25,7 @@ func _init(key: StringName = &"") -> void:
 func _ready() -> void:
 	auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	theme_type_variation = &"ChipButton"
-	toggle_mode = true
+	toggle_mode = toggles
 	custom_minimum_size = Vector2(MIN_WIDTH, MIN_HEIGHT)
 	alignment = HORIZONTAL_ALIGNMENT_CENTER
 	icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
