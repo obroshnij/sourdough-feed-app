@@ -1,0 +1,4 @@
+WARN godot --import crashed (signal 6, exit 134), retrying once
+fake godot: simulated abort in a worker thread
+PASS res://tests/test_control.gd::test_control_passes (2 checks)
+RESULT: 1 passed, 0 failed, 0 skipped
