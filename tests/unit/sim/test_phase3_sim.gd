@@ -221,6 +221,10 @@ func test_time_lapse_keyframes_are_bounded_and_keep_every_transition() -> void:
 		var k: TimeLapseKeyframe = frame_at[at]
 		check(k.transition and String(k.state) == t["to"], "a transition frame at %d for %s" % [at, t["to"]])
 	check_between(r.time_lapse_duration_s(), 6.0, 6.0, "10 days plays for the full 6 s")
+	# finish_keyframes never drops a transition frame, so the 30-frame cap (AC-09.5) holds only while the
+	# collector's transition cap plus the first and last frames fit in it (QA's finding).
+	check(CatchUpResult.MAX_TRANSITION_FRAMES + 2 <= CatchUpResult.MAX_KEYFRAMES,
+		"16 transitions + first + last fit in 30")
 	var one_hour := CatchUpResult.new()
 	one_hour.simulated_s = SimConstants.AWAY_SUMMARY_MIN_S
 	check_between(one_hour.time_lapse_duration_s(), 3.0, 3.0, "a 1 h return plays for 3 s")

@@ -125,6 +125,35 @@ func test_feed_like_last_time_and_hooch_entries() -> void:
 	poured.free()
 
 
+func test_journal_entries_are_identical_after_a_reload() -> void:
+	if not require(&"p3_contracts"):
+		return
+	var clock := FakeClock.new(T0)
+	var dir: String = fresh_dir("journal_form")
+	var s := GameSession.new()
+	s.setup(clock, SaveStore.new(dir))
+	s.boot()
+	s.apply(AdoptStarterAction.new("Bramble"))
+	s.apply(FeedAction.from_ratio(5.0, 5.0, &"whole_wheat"))
+	var hoochy: GameSession = _from_fixture(s, "journal_form_hooch", clock, {"hooch": 0.3})
+	hoochy.apply(FeedAction.from_ratio(2.0, 2.0, &"white_bread"))
+	var before: Array[JournalEntry] = hoochy.get_journal()
+	var hooch_data: Dictionary = before[-2].data
+	check(typeof(hooch_data["hooch"]) == TYPE_STRING and DictReader.float_of(hooch_data["hooch"]) == 0.3,
+		"a non-whole float is held as its hex string, read with float_of")
+	var reloaded := GameSession.new()
+	reloaded.setup(clock, SaveStore.new(hoochy._store.base_dir))
+	reloaded.boot()
+	var after: Array[JournalEntry] = reloaded.get_journal()
+	check(after.size() >= before.size(), "the journal reloads")
+	for i: int in before.size():
+		check(before[i].data == after[i].data and before[i].args == after[i].args,
+			"entry %d (%s) is identical after a reload" % [i, before[i].text_key])
+	s.free()
+	hoochy.free()
+	reloaded.free()
+
+
 func test_moldy_locks_and_the_discard_flow() -> void:
 	if not require(&"p3_contracts"):
 		return
