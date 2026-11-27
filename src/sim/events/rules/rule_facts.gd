@@ -36,10 +36,6 @@ static func fired_for_starter(ledger: EventLedger, id: StringName, s: StarterSta
 	return fired_after(ledger, id, s.born_unix)
 
 
-static func crossed_up(before: float, after: float, threshold: float) -> bool:
-	return before < threshold and after >= threshold
-
-
 ## Positive and neutral events never fire while the starter shows warning signs or mold (CLAUDE.md rule 5).
 static func shows_danger(d: DerivedState) -> bool:
 	return d.state == &"unhealthy" or d.state == &"moldy"

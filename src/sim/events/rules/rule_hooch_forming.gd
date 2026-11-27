@@ -15,7 +15,8 @@ func _init() -> void:
 
 
 func evaluate(ctx: EventContext) -> SimEvent:
-	if not RuleFacts.crossed_up(ctx.prev_state.hooch, ctx.state.hooch, CatchUp.HOOCH_VISIBLE):
+	# Inlined crossing test: this runs on every grid step of a catch-up.
+	if ctx.state.hooch < CatchUp.HOOCH_VISIBLE or ctx.prev_state.hooch >= CatchUp.HOOCH_VISIBLE:
 		return null
 	if RuleFacts.shows_danger(ctx.derived):
 		return null
