@@ -20,6 +20,12 @@ func before_each() -> void:
 	g.orbited.connect(func(d: Vector2) -> void: orbits.append(d))
 
 
+## Breaks a reference cycle: g's signals hold lambdas that capture this test, and this test holds g. Without
+## it, the run ended with "6 ObjectDB instances were leaked at exit" (QA, OD-34).
+func after_each() -> void:
+	g = null
+
+
 func test_tap_within_slop_and_time() -> void:
 	g.press(0, Vector2(10, 10), 0)
 	g.move(0, Vector2(16, 10), 50)
