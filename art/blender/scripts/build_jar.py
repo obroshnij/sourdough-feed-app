@@ -104,7 +104,8 @@ BAND_T = 0.0016
 BAND_H = 0.0045
 
 # --- Environment ----------------------------------------------------------------
-COUNTER_X = 0.90
+COUNTER_X = 2.20              # full width. Reaches under the curved kitchen wall's ends (x +-1.01 m,
+                              # bake_kitchen_wall.py) so no orbit pose sees past the counter (§18)
 COUNTER_FRONT_Y = -0.24
 COUNTER_BACK_Y = 0.45
 COUNTER_T = 0.035

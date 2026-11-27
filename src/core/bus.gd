@@ -37,6 +37,16 @@ signal jar_region_changed(region: Rect2)
 @warning_ignore("unused_signal")
 signal settings_changed()
 
+## view to ui. The "while you were away" time-lapse (game-mechanics §8 step 1) began playing CatchUpResult.
+## keyframes. T2 emits it when playback starts (after T3 hands over a result with play_time_lapse true).
+@warning_ignore("unused_signal")
+signal time_lapse_started()
+## view to ui. The time-lapse ended, by itself or by a skip tap. T3 then shows the away summary card. When
+## there is no time-lapse (the setting is off, or play_time_lapse is false), T3 shows the summary at once and
+## neither signal fires.
+@warning_ignore("unused_signal")
+signal time_lapse_finished()
+
 ## view to ui. where is &"starter" or &"glass". A poke never changes the sim.
 @warning_ignore("unused_signal")
 signal starter_tapped(where: StringName)
