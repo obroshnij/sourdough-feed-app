@@ -2,7 +2,25 @@
 
 Owner: director (the only writer). Teammates report by message. Last updated 2026-11-27.
 
-## Phase 3 exit (branch `phase-3-slice`, 2f7645b): code done, waiting for the user's play session
+## Phase 4: polish and the rest of the MVP (branch `phase-4-polish`): in progress (D-059)
+
+iOS first (D-054). No screen-reader work and no Godot 4.8 (D-055). Audio from a mix (D-056). Notifications iOS only, wrapper first (D-057). Device builds on the user's iPhone 13 Pro (D-058).
+
+| Step | Owner | Status |
+|---|---|---|
+| Contracts: P1 sim content (4 flours, hydration 60/100/125, `window_sill`, `proofing_box`, traits, `consistency` and `development`), empty jar state and discard at "Discard", onboarding demo seam, journal merge of quick place moves (OD-22), `Notifier` wrapper, haptics hook | `t1-sim-core` | in progress |
+| iOS device build script (signing from a gitignored local file), first run on the iPhone | `t1-toolchain` | in progress |
+| The 8 remaining events: `first_acetone`, `off_to_nap`, `waking_up`, `fed_before_peak`, `warm_and_quick`, `big_bubble`, `getting_stretchy`, `trait_revealed` | `t4-events` | in progress |
+| Phase 4 acceptance criteria and the iPhone play checklist | `qa-engineer` | in progress |
+| Audio direction and the sound set (synthesized, CC0 only where needed) | `sound-designer` | in progress |
+| A computable rule for an ambiguous smell (for "Try inspecting the surface") | `sourdough-scientist` | in progress |
+| UX pass: onboarding screens, compact feed sheet, forecast hint length and duration, inspect "What it means", empty-jar screen | `ux-designer` | in progress |
+| Set dressing and light for `window_sill` and `proofing_box`, the flour looks | `art-director` | in progress |
+| Places, flour looks, VFX, transitions, audio playback, battery (idle frame cap, low-processor mode) | `t2-view` | after contracts |
+| Onboarding B1 to B8 with skip, P1 UI, empty-jar screen, compact feed sheet, inspect "What it means" | `t3-ui` | after contracts |
+| Exit: Phase 4 acceptance rows green under `--strict` on a fresh clone, the build runs on the user's iPhone, and the user plays it | director | |
+
+## Phase 3 exit (branch `phase-3-slice`, 2f7645b): merged into `main` (PR #2)
 
 | Exit criterion (D-046) | Result |
 |---|---|
@@ -90,7 +108,7 @@ Owner: director (the only writer). Teammates report by message. Last updated 202
 
 ## Waiting on the user
 
-- Play the Phase 3 build on the Mac (MAN-S0 to S5 in test-plan §6), then review `phase-3-slice` for merging.
+- iPhone setup for device builds (D-058), which only the user can do: sign in to Xcode with an Apple ID (Xcode > Settings > Accounts), turn on Developer Mode on the iPhone (Settings > Privacy & Security), keep it unlocked and nearby, and after the first install trust the developer (Settings > General > VPN & Device Management).
 - The kitchen wall shape: keep the curved sweep, or a straight backsplash with side walls (D-049).
 - iOS simulator note (2026-11-27): the boot check (`tools/build/export_ios_sim.sh --run`) now builds, launches and loads `main.tscn` with 0 script errors, then crashes about a frame later with SIGSEGV in Godot's `RasterizerCanvasGLES3::_render_items`. The simulator's OpenGL can't compile shaders or allocate buffers (D-044), and Phase 3's larger UI now hits an engine crash where Phase 2 only showed a blank screen. The translation loads (`en.en.translation`). The export's "Failed loading resource: res://src/i18n/en.csv" line is exporter noise. Real iPhones use Metal (Phase 5). `tools/build/README.md` (T1) still says "screen stays blank".
 - Before Phase 5: the bundle id and Apple Team ID, and whether to download the Metal Toolchain (about 0.7 GB, unverified) for iOS shader baking.
@@ -99,6 +117,6 @@ Owner: director (the only writer). Teammates report by message. Last updated 202
 
 | Phase | Status |
 |---|---|
-| 3. Vertical slice | Code done, waiting for the user's play session |
-| 4. Polish and the rest of the MVP | |
+| 3. Vertical slice | Merged into `main` (PR #2) |
+| 4. Polish and the rest of the MVP | In progress |
 | 5. Mobile validation | |

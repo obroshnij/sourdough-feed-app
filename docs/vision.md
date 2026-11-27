@@ -188,7 +188,8 @@ Only the owner writes a file. Everyone may read everything.
 | `game-designer` | `docs/game-design.md`, `docs/game-mechanics.md`, `docs/progression.md` | Simulation spec, events catalog |
 | `sourdough-scientist` | `docs/sourdough-science.md`, `docs/starter-simulation-spec.md`, `tools/sim-reference/**` (the reference model the golden tests compare against) | Mechanics, events catalog, game copy (accuracy and safety) |
 | `narrative-designer` | `docs/narrative.md`, `docs/events-catalog.md`, `docs/game-copy.md`; from Phase 2, `tools/i18n/**` and the generated `src/i18n/en.csv` (D-028) | UX design (copy fit, tone) |
-| `art-director` | `docs/art-direction.md`, `art/**`, `assets/3d/**`, `assets/textures/**`, `assets/icons/**` | UX design (visual fit) |
+| `art-director` | `docs/art-direction.md`, `art/**` except `art/audio/**`, `assets/3d/**`, `assets/textures/**`, `assets/icons/**` | UX design (visual fit) |
+| `sound-designer` (from Phase 4, D-056) | `docs/audio-direction.md`, `art/audio/**`, `assets/audio/**` (T2 owns `assets/audio/*.import` and playback) | Art direction (timing), UX design (UI sounds) |
 | `tech-architect` | `docs/architecture.md`, `docs/data-models.md`, `docs/technical-decisions.md` | Simulation spec (implementability), test plan |
 | `godot-developer` | `spikes/**` in Phase 1. From Phase 2, the code tracks in `architecture.md` §14 (D-032). | Architecture |
 | `ux-designer` | `docs/ux-design.md` | Art direction (contrast, legibility), mechanics (flows) |
