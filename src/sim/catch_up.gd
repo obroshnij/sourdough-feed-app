@@ -32,6 +32,12 @@ static func run_with_rules(state: StarterState, env: EnvironmentState, history: 
 	var has_rules: bool = not rules.is_empty()
 	var prev_d: DerivedState = StateDeriver.derive(state, env)
 	var peak_rise: float = state.rise
+	var first_frame: TimeLapseKeyframe = null
+	var frames: Array[TimeLapseKeyframe] = []
+	var transition_frames: int = 0
+	if steps > 0:
+		first_frame = TimeLapseKeyframe.make(state.sim_time_unix, VisualMapper.from_derived(state, env, prev_d),
+			prev_d, false)
 	var ctx: EventContext = null
 	if has_rules:
 		ctx = EventContext.new()
@@ -46,8 +52,9 @@ static func run_with_rules(state: StarterState, env: EnvironmentState, history: 
 		var hooch_before: float = state.hooch
 		Sim.step(state, env)
 		var d: DerivedState = StateDeriver.derive(state, env)
-		history.record_step(state, d)
-		if d.state != prev_d.state:
+		history.record_step(state, d, prev_d, app_foreground)
+		var changed: bool = d.state != prev_d.state
+		if changed:
 			res.transitions.append({
 				"at_unix": state.sim_time_unix, "from": String(prev_d.state), "to": String(d.state),
 				"cause": String(d.dormant_cause),
@@ -67,9 +74,17 @@ static func run_with_rules(state: StarterState, env: EnvironmentState, history: 
 			ctx.local_minute_of_day = LocalDay.minute_of_day(state.sim_time_unix, utc_offset_s)
 			ctx.last_action = null
 			res.events.append_array(EventRules.process(ctx, rules))
-		if ((i + 1) % every == 0 or i == steps - 1) and res.snapshots.size() < CatchUpResult.MAX_SNAPSHOTS:
-			res.snapshots.append(VisualMapper.from_derived(state, env, d))
+		var sample: bool = (i + 1) % every == 0 or i == steps - 1
+		var with_transition: bool = changed and transition_frames < CatchUpResult.MAX_TRANSITION_FRAMES
+		if sample or with_transition:
+			var v: VisualParams = VisualMapper.from_derived(state, env, d)
+			if sample and res.snapshots.size() < CatchUpResult.MAX_SNAPSHOTS:
+				res.snapshots.append(v)
+			frames.append(TimeLapseKeyframe.make(state.sim_time_unix, v, d, with_transition))
+			if with_transition:
+				transition_frames += 1
 		prev_d = d
+	res.finish_keyframes(first_frame, frames)
 	if res.capped:
 		state.sim_time_unix = target
 	res.steps = steps

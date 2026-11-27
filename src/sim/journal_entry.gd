@@ -1,10 +1,25 @@
 class_name JournalEntry
 extends RefCounted
 ## One journal line (data-models.md §6). The journal outlives a starter (memorial, then a new one).
+##
+## Rendering (T3): the timeline line is Keys.format(text_key, args, utc_offset_s), or Session.format_text().
+## The expanded view adds Keys.format(body_key(), args, ...) when body_key() isn't empty. Args that are keys
+## (FLOUR_RYE) are translated, `time_unix` becomes {time}, and `start_unix` and `end_unix` become
+## {start_date} and {end_date}.
+##
+## What the slice journal writes (mvp-scope "minimal journal"):
+## - feed: JOURNAL_LOG_FEED (or _AT_PEAK, _RESCUE). A hooch entry comes just before it when hooch was poured
+##   off or stirred in (JOURNAL_LOG_HOOCH_POURED or _STIRRED).
+## - event: EVENT_<ID>_JOURNAL_TITLE with body EVENT_<ID>_JOURNAL_BODY. A peaked_while_away entry uses its
+##   EVENT_PEAKED_WHILE_AWAY_AWAY_<WORD> line instead, so peaks read the same everywhere (events-catalog §3.2).
+## - milestone: the Day one page after the first feed (JOURNAL_DAY_ONE_TITLE, body in data.body_key).
+## - memorial: MEMORIAL_TITLE with {name}. The page itself reads Session.get_memorials().
+## - environment, smell, inspect, rename, state_change: one log line each.
 
 const CAP: int = 400
 const KINDS: Array[StringName] = [
 	&"feed", &"environment", &"smell", &"inspect", &"event", &"state_change", &"milestone", &"rename", &"memorial",
+	&"hooch",
 ]
 
 var uid: int = 0
@@ -29,7 +44,7 @@ static func append_capped(list: Array[JournalEntry], entry: JournalEntry, cap: i
 		if drop < 0:
 			drop = _first_index(list, [&"inspect", &"smell"])
 		if drop < 0:
-			drop = _first_index(list, [&"feed", &"environment", &"event", &"rename"])
+			drop = _first_index(list, [&"feed", &"hooch", &"environment", &"event", &"rename"])
 		if drop < 0:
 			return
 		list.remove_at(drop)
@@ -40,6 +55,18 @@ static func _first_index(list: Array[JournalEntry], kinds: Array[StringName]) ->
 		if kinds.has(list[i].kind):
 			return i
 	return -1
+
+
+## The longer text for the expanded entry, or &"" when the entry is one line. Uses the same args.
+func body_key() -> StringName:
+	var explicit: String = str(data.get("body_key", ""))
+	if not explicit.is_empty():
+		return StringName(explicit)
+	if kind == &"event":
+		var event_id: String = str(data.get("event_id", ""))
+		if not event_id.is_empty():
+			return StringName("EVENT_%s_JOURNAL_BODY" % event_id.to_upper())
+	return &""
 
 
 func to_dict() -> Dictionary:

@@ -7,17 +7,32 @@ extends Node
 ##
 ## Boot is started by Main (`Session.start()`), not by `_ready`, so a `-s` test run never touches
 ## user://saves, and World and UI have connected their signals before session_ready fires.
+##
+## Phase 3 call sequences for T3:
+## - Launch: session_ready(result). If is_first_run(): M.'s note, then naming with name_suggestion_key(),
+##   then apply(AdoptStarterAction.new(name, &"skip")), then the first feed (Day one goes to the journal).
+##   Otherwise read get_return_summary(): when it shows, play the time-lapse (result.keyframes, if
+##   result.play_time_lapse), then the summary card, then the prompt. resumed(result) works the same way.
+## - Events: event_raised(event) fires once per run for each event when it is due. event.presentation() says
+##   toast, card or sheet. Cards and sheets stay pending until apply(AckEventAction.new(uid, choice)).
+##   Toasts need no acknowledgement. event_withdrawn(uid) means a raised card went stale: hide it.
+## - Feed sheet: plan_feed(answer, flour, hooch) or preview_feed(last_feed_action()), then
+##   apply(preview.action).
+## - Mold: the mold_found sheet, confirm, then preview_memorial() and restart_preset() for the memorial and
+##   restart pages, then naming, then apply(DiscardStarterAction.new(name)): memorial plus new starter at once.
 
-## After launch load and catch-up. `summary` may be empty.
+## After launch load and catch-up. `summary` may be empty. Read get_return_summary() in the handler.
 signal session_ready(summary: CatchUpResult)
-## After returning from the background.
+## After returning from the background. Read get_return_summary() in the handler.
 signal resumed(summary: CatchUpResult)
 ## Every grid step that changes the state, and after every action.
 signal state_changed(snapshot: StarterSnapshot, visuals: VisualParams)
 ## After apply(): ok, or rejected with a reason key.
 signal action_applied(result: ActionResult)
-## One event released for display.
+## One event released for display: once per run, when due (quiet-hours nudges wait until 08:00).
 signal event_raised(event: SimEvent)
+## A raised event went stale before it was acknowledged (for example hungry_again after a feed). Hide it.
+signal event_withdrawn(uid: int)
 ## After the journal grows.
 signal journal_appended(entry: JournalEntry)
 ## A save failed; UI shows a calm notice. Fires once per run of failures.
@@ -26,6 +41,9 @@ signal save_failed(reason_key: StringName)
 const APP_VERSION: String = "0.2.0"
 const SAVE_DIR: String = "user://saves"
 const FIXTURE_SAVE_DIR: String = "user://fixture_saves"
+## Debug time travel saves go to `<save dir>` plus this suffix, never to the real save (see
+## set_debug_time_scale()).
+const TIME_TRAVEL_SUFFIX: String = "_time_travel"
 const AUTOSAVE_INTERVAL_S: int = 600
 const SAVE_FAILED_KEY: StringName = &"REASON_SAVE_FAILED"
 const NOT_READY_KEY: StringName = &"REASON_NOT_READY"
@@ -68,15 +86,21 @@ var _meta: SaveMeta = SaveMeta.new()
 var _derived: DerivedState = DerivedState.new()
 var _visuals: VisualParams = VisualParams.new()
 var _last_summary: CatchUpResult = CatchUpResult.new()
+var _return: ReturnSummary = ReturnSummary.new()
 var _journal_uid: int = 0
 var _booted: bool = false
-var _first_run: bool = false
 var _foreground: bool = true
 var _session_now: int = 0
 var _last_wall: int = 0
 var _last_mono_ms: int = 0
 var _last_save_wall: int = 0
 var _save_failing: bool = false
+var _time_travel: bool = false
+var _recovered_this_launch: bool = false
+## Event uids already raised this run (not saved: a relaunch raises pending cards and sheets again).
+var _released: Dictionary[int, bool] = {}
+var _to_raise: Array[SimEvent] = []
+var _to_withdraw: Array[int] = []
 var _timer: Timer = null
 var _idle_timer: Timer = null
 var _flags: DevFlags = DevFlags.new()
@@ -107,6 +131,11 @@ func start() -> void:
 		if OS.is_debug_build():
 			clock = DebugClock.new(_flags.time_scale)
 		var dir: String = FIXTURE_SAVE_DIR if _flags.fixture != "" else SAVE_DIR
+		# A launch with --time-scale runs in the time-travel sandbox from the start, so scaled time never
+		# reaches the real save (debug builds only; DevFlags is empty in release builds).
+		if _flags.fixture == "" and not is_equal_approx(_flags.time_scale, 1.0):
+			dir += TIME_TRAVEL_SUFFIX
+			_time_travel = true
 		setup(clock, SaveStore.new(dir), SettingsStore.new())
 		_settings.load_settings()
 	if _flags.fixture != "":
@@ -124,14 +153,13 @@ func boot() -> CatchUpResult:
 	var parts: Parts = _decode_payload(report.payload, false) if report.ok else null
 	if parts != null:
 		_apply_parts(parts)
-		_first_run = false
 	else:
 		_begin_new_game(now, &"new_game")
-		_first_run = report.first_run
 		if not report.first_run:
 			_meta.recovered_from = "quarantine"
+			_recovered_this_launch = true
 	var summary: CatchUpResult = _sync_to_clock()
-	_finish_boot(summary)
+	_finish_boot(summary, parts == null and report.first_run)
 	return summary
 
 
@@ -143,14 +171,13 @@ func boot_from_fixture(path: String) -> CatchUpResult:
 		push_warning("Fixture not loaded, booting normally: " + path)
 		return boot()
 	_apply_parts(parts)
-	_first_run = false
 	var now: int = _clock.now_unix()
 	_starter.sim_time_unix = Sim.grid(now)
 	_reset_session_clock(now)
 	_refresh()
 	var summary: CatchUpResult = CatchUpResult.empty(_starter.sim_time_unix)
 	_last_summary = summary
-	_finish_boot(summary)
+	_finish_boot(summary, false)
 	return summary
 
 
@@ -161,12 +188,15 @@ func tick() -> void:
 	var prev_state: StringName = _derived.state
 	var res: CatchUpResult = _live_sync(true)
 	_journal_transitions(res)
+	var entries: Array[JournalEntry] = _record_events(res.events)
+	var ledger_changed: bool = _collect_releases() or not res.events.is_empty()
+	var now: int = _clock.now_unix()
+	if _derived.state != prev_state or ledger_changed or now - _last_save_wall >= AUTOSAVE_INTERVAL_S:
+		_save()
 	if res.steps > 0:
 		_emit_state()
-	_emit_events(res.events)
-	var now: int = _clock.now_unix()
-	if _derived.state != prev_state or now - _last_save_wall >= AUTOSAVE_INTERVAL_S:
-		_save()
+	_emit_entries(entries)
+	_emit_releases()
 
 
 ## Backgrounding (APPLICATION_PAUSED, FOCUS_OUT, close): advance to now and save. Idempotent.
@@ -175,6 +205,7 @@ func on_background() -> void:
 		return
 	var res: CatchUpResult = _live_sync(true)
 	_journal_transitions(res)
+	_record_events(res.events)
 	_foreground = false
 	_save()
 
@@ -186,10 +217,14 @@ func on_resume() -> CatchUpResult:
 	_foreground = true
 	var summary: CatchUpResult = _sync_to_clock()
 	_journal_transitions(summary)
+	var entries: Array[JournalEntry] = _record_events(summary.events)
+	_prepare_return(summary, false)
+	_collect_releases()
 	_save()
 	_emit_state()
 	resumed.emit(summary)
-	_emit_events(summary.events)
+	_emit_entries(entries)
+	_emit_releases()
 	return summary
 
 
@@ -197,6 +232,44 @@ func on_resume() -> CatchUpResult:
 func save_and_quit() -> void:
 	on_background()
 	get_tree().quit()
+
+
+## Debug builds only (tests and the dev overlay): saves, stops the timers and drops every seam and all game
+## state, so setup() and start() (or boot()) can run again in the same process. Does nothing in release.
+func shutdown() -> void:
+	if not OS.is_debug_build():
+		return
+	if _booted:
+		on_background()
+	for t: Timer in [_timer, _idle_timer]:
+		if t != null:
+			t.stop()
+			if t.is_inside_tree():
+				remove_child(t)
+			t.free()
+	_timer = null
+	_idle_timer = null
+	_clock = null
+	_store = null
+	_settings = null
+	_booted = false
+	_foreground = true
+	_time_travel = false
+	_recovered_this_launch = false
+	_released.clear()
+	_to_raise.clear()
+	_to_withdraw.clear()
+	_starter = StarterState.new()
+	_env = EnvironmentState.new()
+	_history = PlayerHistory.new()
+	_ledger = EventLedger.new()
+	_journal = []
+	_memorials = []
+	_meta = SaveMeta.new()
+	_last_summary = CatchUpResult.new()
+	_return = ReturnSummary.new()
+	_journal_uid = 0
+	_refresh()
 
 
 func _notification(what: int) -> void:
@@ -217,6 +290,7 @@ func apply(action: GameAction) -> ActionResult:
 	# 1. sync to grid(now)
 	var sync: CatchUpResult = _live_sync(true)
 	_journal_transitions(sync)
+	var sync_entries: Array[JournalEntry] = _record_events(sync.events)
 	action.at_unix = _clock.now_unix()
 	# 2. validate
 	var reason: StringName = action.validate(_starter, _env, _catalog)
@@ -226,21 +300,31 @@ func apply(action: GameAction) -> ActionResult:
 			reason = GameAction.REASON_EVENT
 	if reason != &"":
 		var rejected: ActionResult = ActionResult.rejected(action.kind, reason)
+		_collect_releases()
 		if sync.steps > 0:
 			_emit_state()
-		_emit_events(sync.events)
+		_emit_entries(sync_entries)
 		action_applied.emit(rejected)
+		_emit_releases()
 		return rejected
 	# 3. mutate
 	var before: StarterState = _starter.copy()
 	var derived_before: DerivedState = _derived
+	var env_before: EnvironmentState = _env
 	var result: ActionResult = ActionResult.accepted(action.kind)
-	var entry: JournalEntry = null
+	var entries: Array[JournalEntry] = []
+	var main_entry: JournalEntry = null
 	match action.kind:
 		&"feed":
 			var feed: FeedAction = action
+			_note_routine_hint(feed, before)
 			Sim.apply_feed(_starter, feed, _rng)
-			entry = _feed_entry(feed, before, derived_before)
+			if before.hooch >= CatchUp.HOOCH_VISIBLE:
+				var poured: bool = feed.hooch_choice != &"stir_in"
+				entries.append(_make_entry(&"hooch",
+					&"JOURNAL_LOG_HOOCH_POURED" if poured else &"JOURNAL_LOG_HOOCH_STIRRED",
+					{"hooch_choice": String(feed.hooch_choice), "hooch": before.hooch}))
+			main_entry = _feed_entry(feed, before, derived_before)
 		&"environment":
 			var move: SetEnvironmentAction = action
 			var e: EnvironmentState = move.env.copy()
@@ -248,34 +332,39 @@ func apply(action: GameAction) -> ActionResult:
 			e.humidity_pct = row[1]
 			e.changed_unix = _starter.sim_time_unix
 			_env = e
-			entry = _make_entry(&"environment", StringName("JOURNAL_LOG_MOVE_%s" % Keys.up(e.location)), move.to_dict())
+			main_entry = _make_entry(&"environment", StringName("JOURNAL_LOG_MOVE_%s" % Keys.up(e.location)),
+				move.to_dict())
 		&"smell":
 			var smell: SmellReadout = SmellModel.read(_starter, _env)
 			result.readout = smell
 			if smell.primary != &"" and not _seen_this_cycle(&"smell", "primary", String(smell.primary)):
-				entry = _make_entry(&"smell", &"JOURNAL_LOG_SMELL", {"primary": String(smell.primary)})
-				entry.args = {"smell": String(Keys.smell(smell.primary, "TITLE"))}
+				main_entry = _make_entry(&"smell", &"JOURNAL_LOG_SMELL", {"primary": String(smell.primary)})
+				main_entry.args = {"smell": String(Keys.smell(smell.primary, "TITLE"))}
 		&"inspect":
 			var inspect: InspectAction = action
 			var look: InspectionReadout = Inspection.read(_starter, _env, inspect.inspect_kind)
 			result.readout = look
 			if not _seen_this_cycle(&"inspect", "text_key", String(look.text_key)):
-				entry = _make_entry(&"inspect", look.text_key, {"inspect_kind": String(look.inspect_kind), "text_key": String(look.text_key)})
+				main_entry = _make_entry(&"inspect", look.text_key,
+					{"inspect_kind": String(look.inspect_kind), "text_key": String(look.text_key)})
 		&"rename":
 			var rename: RenameAction = action
 			_starter.name = rename.new_name.strip_edges()
-			entry = _make_entry(&"rename", &"JOURNAL_LOG_RENAME", rename.to_dict())
-			entry.args = {"name": _starter.name}
+			main_entry = _make_entry(&"rename", &"JOURNAL_LOG_RENAME", rename.to_dict())
+			main_entry.args = {"name": _starter.name}
 		&"ack_event":
 			var ack: AckEventAction = action
 			_ledger.remove_pending(ack.event_uid)
 		&"discard_starter":
 			var discard: DiscardStarterAction = action
-			entry = _discard_starter(discard)
+			main_entry = _discard_starter(discard)
+		&"adopt":
+			var adopt: AdoptStarterAction = action
+			_adopt(StarterPresets.make(&"new_game", action.at_unix), adopt.starter_name, adopt.path)
 	# 4. derive
 	_refresh()
 	# 5. history
-	_history.record_action(action, before, derived_before)
+	_history.record_action(action, before, derived_before, env_before)
 	if result.readout is SmellReadout:
 		var sm: SmellReadout = result.readout
 		for d: StringName in [sm.primary] + sm.secondary:
@@ -292,38 +381,37 @@ func apply(action: GameAction) -> ActionResult:
 		var ctx: EventContext = _context(before, derived_before, action)
 		result.events = EventRules.process(ctx, rules)
 	# A fridge move that fires off_to_nap is told by the event's own journal entry (game-copy §11).
-	if entry != null and entry.kind == &"environment":
+	if main_entry != null and main_entry.kind == &"environment":
 		for e: SimEvent in result.events:
 			if e.id == &"off_to_nap":
-				entry = null
+				main_entry = null
 				break
 	# 7. journal
-	if entry != null:
+	if main_entry != null:
+		entries.append(main_entry)
+		result.journal_entry = main_entry
+	if action.kind == &"feed" and not _history.onboarding_path.is_empty():
+		entries.append(_day_one_entry())
+	for entry: JournalEntry in entries:
 		_append_journal(entry)
-		result.journal_entry = entry
+	var event_entries: Array[JournalEntry] = _record_events(result.events)
+	_collect_releases()
 	# 8. save
 	_save()
 	# 9. signals
 	action_applied.emit(result)
 	_emit_state()
-	if entry != null:
-		journal_appended.emit(entry)
-	_emit_events(sync.events)
-	_emit_events(result.events)
+	_emit_entries(entries)
+	_emit_entries(sync_entries)
+	_emit_entries(event_entries)
+	_emit_releases()
 	return result
 
 
-## After the B6 demo or its skip: the real save is made from the demo's state (architecture §5.5).
+## After the B6 demo (Phase 4): the real save is made from the demo's state (architecture §5.5). The slice
+## names the gifted starter with apply(AdoptStarterAction) instead.
 func adopt_starter(state: StarterState, starter_name: String) -> void:
-	var now: int = _clock.now_unix()
-	_starter = state.copy()
-	_starter.name = starter_name.strip_edges()
-	if _starter.id == "":
-		_starter.id = _new_id()
-	_starter.rebase_to(now)
-	_history.recent_feed_unix.clear()
-	_first_run = false
-	_reset_session_clock(now)
+	_adopt(state, starter_name, &"tour")
 	_refresh()
 	_save()
 	_emit_state()
@@ -334,9 +422,10 @@ func is_booted() -> bool:
 	return _booted
 
 
-## No save existed at launch: the UI runs onboarding and the B6 demo, then calls adopt_starter().
+## The new-game start is still to do: the gifted starter has no name yet (M.'s note, then naming, then
+## AdoptStarterAction). True on the first launch, and again after a kill before naming finished.
 func is_first_run() -> bool:
-	return _first_run
+	return _starter.name.strip_edges().is_empty()
 
 
 func get_snapshot() -> StarterSnapshot:
@@ -363,14 +452,23 @@ func get_history() -> PlayerHistory:
 	return _history.copy()
 
 
+## The journal in uid order, which is the order things were written. Show it in this order: at_unix can run
+## backwards across a clock hold or re-anchor (architecture §5.3), so never sort by it.
 func get_journal() -> Array[JournalEntry]:
 	return _journal.duplicate()
+
+
+## This launch found saves but none could be read, so a new game began (D-024 quarantine). The UI shows a
+## calm notice once; is_first_run() is also true, so the new-game start names the new starter.
+func recovered_this_launch() -> bool:
+	return _recovered_this_launch
 
 
 func get_memorials() -> Array[Memorial]:
 	return _memorials.duplicate()
 
 
+## Every event still waiting (cards and sheets until acknowledged, deferred nudges), oldest first.
 func get_pending_events() -> Array[SimEvent]:
 	return _ledger.pending.duplicate()
 
@@ -398,14 +496,78 @@ func get_last_catch_up() -> CatchUpResult:
 	return _last_summary
 
 
+## The "while you were away" selection for the latest launch or resume. Built before session_ready and
+## resumed fire. `first_launch` is true on the very first launch.
+func get_return_summary() -> ReturnSummary:
+	return _return
+
+
 ## The current cycle's forecast (status tap during a rise phase).
 func get_forecast() -> PeakForecast:
 	return Forecast.peak_window(_starter, _env)
 
 
+## WINDOW_* for the status tap's FORECAST_LINE, or &"" when there is no forecast (hungry, dormant...).
+func get_forecast_window_key() -> StringName:
+	return ForecastWindow.for_forecast(get_forecast(), _starter.sim_time_unix, now_unix(), local_utc_offset_s())
+
+
 ## What a feed would do, for the feed sheet's schedule question. Changes nothing.
 func forecast_feed(feed: FeedAction) -> PeakForecast:
 	return Forecast.peak_window(_starter, _env, feed)
+
+
+## The feed sheet for a schedule answer (&"soon", &"later", &"tomorrow"): the preset that fits, its grams,
+## discard, forecast words, notes and hooch step. Changes nothing. Runs up to 3 forecasts (about 40 ms).
+func plan_feed(answer: StringName, flour_id: StringName, hooch_choice: StringName = &"pour_off") -> FeedPreview:
+	return FeedPlanner.plan(_starter, _env, _history, answer, flour_id, hooch_choice, now_unix(),
+		local_utc_offset_s())
+
+
+## The same preview for a feed the UI already has (an exact preset, or last_feed_action()). Changes nothing.
+func preview_feed(feed: FeedAction, answer: StringName = &"") -> FeedPreview:
+	return FeedPlanner.preview(_starter, _env, _history, feed, answer, now_unix(), local_utc_offset_s())
+
+
+## "Feed like last time" (AC-05.3): a new FeedAction equal to the last accepted feed field by field, or
+## 1:1:1 white_bread with Pour off before the first feed. Apply it as is for the 2-tap path.
+func last_feed_action() -> FeedAction:
+	var last: FeedAction = FeedAction.from_dict(_history.last_feed) if not _history.last_feed.is_empty() else null
+	return last if last != null else FeedAction.from_ratio(1.0, 1.0, &"white_bread")
+
+
+## The memorial page before the discard is committed (the starter must be moldy, else null). The same
+## numbers DiscardStarterAction will record.
+func preview_memorial() -> Memorial:
+	if not _starter.moldy:
+		return null
+	return _build_memorial(_clock.now_unix())
+
+
+## Which start the next discard gives: &"first_restart" (M.'s spare, RESTART_BODY_FIRST) or &"restart"
+## (a friend's spoonful, RESTART_BODY_LATER). Read it before applying DiscardStarterAction.
+func restart_preset() -> StringName:
+	return &"first_restart" if _memorials.is_empty() else &"restart"
+
+
+## The current starter's `starter_seed` (game-copy §1.4).
+func starter_seed() -> int:
+	return StarterState.seed_of(_starter.id)
+
+
+## The name field's suggestion after `presses` taps on "Suggest another" (narrative §6.1): NAME_SUGGEST_NN.
+func name_suggestion_key(presses: int) -> StringName:
+	return Keys.name_suggestion(starter_seed(), presses)
+
+
+## The shared night fade (D-043) for the session's "now": 0 day, 1 night. Follows the debug time scale.
+func get_night_factor() -> float:
+	return NightFade.at_unix(float(now_unix()), local_utc_offset_s())
+
+
+## Keys.format() with the device's UTC offset, so {time} and dates read in local time.
+func format_text(text_key: StringName, args: Dictionary = {}) -> String:
+	return Keys.format(text_key, args, local_utc_offset_s())
 
 
 func now_unix() -> int:
@@ -414,6 +576,48 @@ func now_unix() -> int:
 
 func local_utc_offset_s() -> int:
 	return _clock.local_utc_offset_s() if _clock != null else 0
+
+
+# ------------------------------------------------------------------ debug time (dev overlay, debug builds)
+## Debug builds only: runs sim time `scale` times faster, so mold_found and the memorial are reachable in one
+## sitting. Returns false (and does nothing) in release builds, where no DebugClock exists.
+## The first time travel saves the real state one last time at real time, then moves every later save to a
+## sandbox (`<save dir>_time_travel`) for the rest of the run, so a scaled timestamp never reaches the real
+## save. The next normal launch loads the real save and catches up as usual.
+func set_debug_time_scale(scale: float) -> bool:
+	if not _booted or not (_clock is DebugClock):
+		return false
+	var dc: DebugClock = _clock
+	if not is_equal_approx(scale, 1.0):
+		_enter_time_travel()
+	dc.set_time_scale(scale)
+	if _timer != null and _timer.is_inside_tree():
+		_schedule_timer()
+	return true
+
+
+func get_debug_time_scale() -> float:
+	if _clock is DebugClock:
+		var dc: DebugClock = _clock
+		return dc.get_time_scale()
+	return 1.0
+
+
+## Debug builds only: jumps `seconds` ahead as if the app had been closed that long (background, then
+## resume), so the return flow plays. Uses the time-travel sandbox like set_debug_time_scale().
+func debug_advance(seconds: int) -> CatchUpResult:
+	if not _booted or not (_clock is DebugClock) or seconds <= 0:
+		return CatchUpResult.empty(_starter.sim_time_unix)
+	_enter_time_travel()
+	on_background()
+	var dc: DebugClock = _clock
+	dc.advance(float(seconds))
+	return on_resume()
+
+
+## True once this run's saves go to the time-travel sandbox.
+func is_time_traveling() -> bool:
+	return _time_travel
 
 
 ## Writes the payload as pretty JSON, for fixtures and bug reports (debug).
@@ -446,14 +650,36 @@ func build_payload() -> Dictionary:
 
 
 # ------------------------------------------------------------------ internals
-func _finish_boot(summary: CatchUpResult) -> void:
+func _finish_boot(summary: CatchUpResult, first_launch: bool) -> void:
 	_booted = true
 	_foreground = true
 	_journal_transitions(summary)
+	var entries: Array[JournalEntry] = _record_events(summary.events)
+	_prepare_return(summary, first_launch)
+	_collect_releases()
 	_save()
 	_emit_state()
 	session_ready.emit(summary)
-	_emit_events(summary.events)
+	_emit_entries(entries)
+	_emit_releases()
+
+
+## Builds the return summary for a launch or resume. When it shows, the events it covers are told there (and
+## in the journal), so they never come back as toasts or cards: only the prompt is still raised.
+func _prepare_return(summary: CatchUpResult, first_launch: bool) -> void:
+	if first_launch:
+		_return = ReturnSummary.for_first_launch(summary.to_unix)
+	else:
+		_return = ReturnSummary.build(summary, _derived)
+	summary.play_time_lapse = _return.show and not summary.keyframes.is_empty() \
+		and (_settings == null or _settings.show_time_lapse)
+	if not _return.show:
+		return
+	for e: SimEvent in summary.events:
+		if e == _return.prompt:
+			continue
+		_released[e.uid] = true
+		_ledger.remove_pending(e.uid)
 
 
 ## Launch and resume: TimePolicy, then catch-up (app in the background for the whole window).
@@ -508,16 +734,64 @@ func _emit_state() -> void:
 	state_changed.emit(get_snapshot(), _visuals.copy())
 
 
-func _emit_events(events: Array[SimEvent]) -> void:
+## Journals newly admitted events (once, when admitted). Returns the entries; the caller emits
+## journal_appended after its other signals. Display is _collect_releases()'s job.
+func _record_events(events: Array[SimEvent]) -> Array[JournalEntry]:
+	var out: Array[JournalEntry] = []
 	for e: SimEvent in events:
-		var entry: JournalEntry = _make_entry(&"event", StringName("EVENT_%s_JOURNAL_TITLE" % Keys.up(e.id)),
-			{"event_id": String(e.id), "event_uid": e.uid})
+		var key: StringName = e.key_for("JOURNAL_TITLE")
+		var data: Dictionary = {"event_id": String(e.id), "event_uid": e.uid}
+		if e.id == &"peaked_while_away":
+			# events-catalog §3.2: the _AWAY_ peak lines double as the journal's peak log lines.
+			var word: String = str(e.payload.get("rise_word", ""))
+			if word.is_empty():
+				word = String(Inspection.peak_word(DictReader.float_of(e.payload.get("peak_rise", 0.0))))
+			key = StringName("EVENT_PEAKED_WHILE_AWAY_AWAY_%s" % word)
+		var entry: JournalEntry = _make_entry(&"event", key, data)
 		entry.at_unix = e.created_unix
 		# Rules put the copy's placeholder values in the payload (events-catalog.md).
 		entry.args = DictReader.canonical_dict(e.payload)
 		_append_journal(entry)
-		journal_appended.emit(entry)
+		out.append(entry)
+	return out
+
+
+## Decides which pending events to drop as stale and which to release now, and updates the ledger (so the
+## next save already has it). Returns true when the ledger changed. _emit_releases() sends the signals.
+func _collect_releases() -> bool:
+	var changed: bool = false
+	var now: int = _starter.sim_time_unix
+	for e: SimEvent in _ledger.pending.duplicate():
+		if EventScheduler.is_stale(e, _derived, now):
+			_ledger.remove_pending(e.uid)
+			changed = true
+			if _released.has(e.uid):
+				_to_withdraw.append(e.uid)
+	for e: SimEvent in _ledger.pending.duplicate():
+		if _released.has(e.uid) or e.not_before_unix > now:
+			continue
+		_released[e.uid] = true
+		_to_raise.append(e)
+		if e.tier == &"info":
+			_ledger.remove_pending(e.uid)
+			changed = true
+	return changed
+
+
+func _emit_releases() -> void:
+	var withdraw: Array[int] = _to_withdraw.duplicate()
+	var raise: Array[SimEvent] = _to_raise.duplicate()
+	_to_withdraw.clear()
+	_to_raise.clear()
+	for uid: int in withdraw:
+		event_withdrawn.emit(uid)
+	for e: SimEvent in raise:
 		event_raised.emit(e)
+
+
+func _emit_entries(entries: Array[JournalEntry]) -> void:
+	for e: JournalEntry in entries:
+		journal_appended.emit(e)
 
 
 func _context(prev: StarterState, prev_derived: DerivedState, action: GameAction) -> EventContext:
@@ -557,6 +831,23 @@ func _save() -> Error:
 	return err
 
 
+## The real save gets one last write at real time; every later save of this run goes to the sandbox.
+func _enter_time_travel() -> void:
+	if _time_travel:
+		return
+	var res: CatchUpResult = _live_sync(true)
+	_journal_transitions(res)
+	_record_events(res.events)
+	_save()
+	_time_travel = true
+	var sandbox := SaveStore.new(_store.base_dir + TIME_TRAVEL_SUFFIX)
+	sandbox.clock = _clock
+	_store = sandbox
+	_save()
+
+
+## The gifted, still unnamed starter of a brand-new game (and the fallback when every save failed). Private:
+## T3 reaches a new game through boot() (no save) and names it with AdoptStarterAction.
 func _begin_new_game(now: int, preset: StringName) -> void:
 	_starter = StarterPresets.make(preset, now)
 	_starter.id = _new_id()
@@ -577,28 +868,53 @@ func _begin_new_game(now: int, preset: StringName) -> void:
 	_refresh()
 
 
-func _discard_starter(action: DiscardStarterAction) -> JournalEntry:
-	var now: int = action.at_unix
+## Makes `state` the player's named starter, timestamped now (architecture §5.5). Keeps the gifted starter's
+## id, so the journal and seed stay with it.
+func _adopt(state: StarterState, starter_name: String, path: StringName) -> void:
+	var now: int = _clock.now_unix()
+	var id: String = _starter.id
+	_starter = state.copy()
+	_starter.id = id if not id.is_empty() else _new_id()
+	_starter.name = starter_name.strip_edges()
+	_starter.rebase_to(now)
+	_env = StarterPresets.environment_for(&"new_game", now)
+	_history.reset_for_new_starter()
+	_history.onboarding_path = path
+	_reset_session_clock(now)
+
+
+func _build_memorial(now: int) -> Memorial:
 	var m := Memorial.new()
 	m.starter_id = _starter.id
 	m.name = _starter.name
 	m.born_unix = _starter.born_unix
 	m.ended_unix = now
 	m.cause = &"mold"
+	var journal_feeds: int = 0
 	for e: JournalEntry in _journal:
 		if e.starter_id == _starter.id and e.kind == &"feed":
-			m.feeds_count += 1
+			journal_feeds += 1
+	# real_feeds is new in Phase 3; a Phase 2 save only has the journal count.
+	m.feeds_count = maxi(_history.real_feeds, journal_feeds)
+	m.peaks_count = _history.peaks
+	m.best_rise = _history.best_rise
+	@warning_ignore("integer_division")
+	m.unfed_days = _history.warm_unfed_s / 86400
+	return m
+
+
+func _discard_starter(action: DiscardStarterAction) -> JournalEntry:
+	var now: int = action.at_unix
+	var m: Memorial = _build_memorial(now)
 	var entry: JournalEntry = _make_entry(&"memorial", &"MEMORIAL_TITLE", m.to_dict())
 	entry.args = {"name": m.name}
-	var preset: StringName = &"first_restart" if _memorials.is_empty() else &"restart"
+	var preset: StringName = restart_preset()
 	_memorials.append(m)
 	_starter = StarterPresets.make(preset, now)
 	_starter.id = _new_id()
 	_starter.name = action.new_name.strip_edges()
 	_env = StarterPresets.environment_for(preset, now)
-	_history.consecutive_early_feeds = 0
-	_history.last_strong_peak_rise = 0.0
-	_history.recent_feed_unix.clear()
+	_history.reset_for_new_starter()
 	return entry
 
 
@@ -614,20 +930,36 @@ func _feed_entry(feed: FeedAction, before: StarterState, derived_before: Derived
 	data["had_hooch"] = before.hooch >= CatchUp.HOOCH_VISIBLE
 	data["feed_u"] = _starter.feed_u
 	var entry: JournalEntry = _make_entry(&"feed", key, data)
-	var r: Vector2 = feed.ratio()
 	# game-copy §11: ratio, flour (a key; Keys.format translates it) and grams kept.
-	var main_flour: StringName = &"white_bread"
-	var most: float = -1.0
-	for id: StringName in feed.flour_g:
-		if feed.flour_g[id] > most:
-			most = feed.flour_g[id]
-			main_flour = id
 	entry.args = {
-		"ratio": "1:%d:%d" % [roundi(r.x), roundi(r.y)],
-		"flour": String(Keys.flour(main_flour)),
+		"ratio": feed.ratio_text(),
+		"flour": String(Keys.flour(feed.main_flour())),
 		"grams": roundi(feed.kept_g),
 	}
 	return entry
+
+
+## The first feed after adoption closes the new-game start (narrative §8.2, B8): the Day one page.
+func _day_one_entry() -> JournalEntry:
+	var skip: bool = _history.onboarding_path == &"skip"
+	var entry: JournalEntry = _make_entry(&"milestone", &"JOURNAL_DAY_ONE_TITLE", {
+		"milestone": "day_one", "path": String(_history.onboarding_path),
+		"body_key": "JOURNAL_DAY_ONE_SKIP_BODY" if skip else "JOURNAL_DAY_ONE_BODY",
+	})
+	entry.args = {"name": _starter.name}
+	_history.onboarding_path = &""
+	return entry
+
+
+## The feed sheet showed FEED_ROUTINE_HINT for this feed if its conditions held; note when, so it shows at
+## most once a week (game-mechanics §2.2). The cheap history checks run before the forecast.
+func _note_routine_hint(feed: FeedAction, before: StarterState) -> void:
+	var probe := PeakForecast.new()
+	probe.has_window = true
+	if not FeedPlanner.routine_hint(_history, probe, feed.at_unix):
+		return
+	if FeedPlanner.routine_hint(_history, Forecast.peak_window(before, _env, feed), feed.at_unix):
+		_history.routine_hint_unix = feed.at_unix
 
 
 func _make_entry(kind: StringName, key: StringName, data: Dictionary) -> JournalEntry:

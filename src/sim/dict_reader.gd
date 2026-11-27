@@ -86,6 +86,30 @@ func list(key: String) -> Array:
 	return []
 
 
+# Optional fields (Phase 3 additions to schema v1). A missing key gives `fallback` and keeps `ok`, so every
+# v1 save and fixture written before the field existed still loads. A present key with the wrong type still
+# sets `ok` to false, like the required readers.
+
+func integer_or(key: String, fallback: int) -> int:
+	return integer(key) if _d.has(key) else fallback
+
+
+func num_or(key: String, fallback: float) -> float:
+	return num(key) if _d.has(key) else fallback
+
+
+func text_or(key: String, fallback: String) -> String:
+	return text(key) if _d.has(key) else fallback
+
+
+func flag_or(key: String, fallback: bool) -> bool:
+	return flag(key) if _d.has(key) else fallback
+
+
+func dict_or_empty(key: String) -> Dictionary:
+	return dict(key) if _d.has(key) else {}
+
+
 func num_map(key: String) -> Dictionary[StringName, float]:
 	var out: Dictionary[StringName, float] = {}
 	var src: Dictionary = dict(key)
