@@ -14,7 +14,7 @@ CATALOG = "src/i18n/en.csv"
 WORST = {
     "name": 16, "window": 18, "time": 8, "hours": 2, "days": 2,
     "start_date": 12, "end_date": 12, "grams": 3, "ratio": 5, "flour": 11,
-    "smell": 19, "note": 19, "word": 12, "hint": 34,
+    "smell": 19, "note": 19, "temp": 2, "word": 12, "hint": 34,
 }
 BANNED = [
     "safe", "safely", "probably fine", "should be ok", "scrape", "scraping", "salvage",
