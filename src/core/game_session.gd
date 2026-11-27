@@ -54,10 +54,10 @@ const IDLE_AFTER_S: float = 3.0
 const PAYLOAD_SECTIONS: Array[String] = [
 	"environment", "events", "history", "journal", "memorials", "meta", "rng", "starter",
 ]
-## D-042 fallback, in use since the slice rules landed: in the real app, a launch or resume catch-up of at
-## least this many steps (2 h) runs on a WorkerThreadPool thread. A 14-day catch-up with the 8 slice rules took
-## a median 259 ms on the Mac (estimate), over the 250 ms budget, and a phone is slower. Shorter ones take a
-## few milliseconds and stay on the main thread.
+## D-042 fallback: in the real app, a launch or resume catch-up of at least this many steps (2 h) runs on a
+## WorkerThreadPool thread. A 14-day catch-up with the 8 slice rules takes a median 229 to 230 ms on the Mac
+## (estimate, D-050), inside the 250 ms budget, but a phone is slower (unmeasured, D-004), so the first jar
+## frame never waits for it. Shorter catch-ups take a few milliseconds and stay on the main thread.
 const ASYNC_MIN_STEPS: int = 120
 
 
