@@ -39,6 +39,8 @@ var lid_mat: ShaderMaterial
 var quality: QualityTier
 var tier: QualityTier.Tier = QualityTier.Tier.A
 var visuals: VisualParams = VisualParams.new()
+var pops: BubblePops
+var lid_rest_y: float = JarGeometry.HEIGHT_M
 ## Contract problems found at bind time. Empty when the GLB matches.
 var contract_errors: PackedStringArray = PackedStringArray()
 
@@ -69,6 +71,12 @@ func bind(model: Node3D) -> PackedStringArray:
 	for e: String in contract_errors:
 		push_error("JarView contract: " + e)
 	_make_materials()
+	if covers.has(&"loose_lid"):
+		lid_rest_y = covers[&"loose_lid"].position.y
+	pops = BubblePops.new()
+	pops.name = "BubblePops"
+	pops.floor_y = floor_y
+	add_child(pops)
 	return contract_errors
 
 
@@ -145,17 +153,36 @@ func starter_materials() -> Array[ShaderMaterial]:
 	return [starter_mat, liner_mat]
 
 
-## Shows a VisualParams. The band sits at the fed level; the cover picks the visible lid node.
-func apply_visuals(p: VisualParams) -> void:
+## Shows a VisualParams. The band sits at the fed level (or at band_level_m while it snaps after a
+## feed); the cover picks the visible lid node.
+func apply_visuals(p: VisualParams, band_level_m: float = -1.0) -> void:
 	visuals = p
 	StarterUniforms.apply(p, starter_materials())
+	if pops != null:
+		pops.set_params(p)
 	if band != null:
-		band.position.y = floor_y + p.level_m
+		band.position.y = floor_y + (p.level_m if band_level_m < 0.0 else band_level_m)
 	for cover: StringName in covers:
 		covers[cover].visible = cover == p.cover
 	if counter_mat != null:
 		counter_mat.set_shader_parameter(&"starter_top", floor_y + p.level_m * p.rise)
 		counter_mat.set_shader_parameter(&"lid_on", 1.0 if p.cover == &"loose_lid" or p.cover == &"tight_lid" else 0.0)
+
+
+## Lid lift for feeds and the smell moment: 0 on, 1 lifted 8 mm and turned 10 degrees (§8).
+func set_lid_lift(k: float) -> void:
+	for cover: StringName in [&"loose_lid", &"tight_lid"]:
+		if covers.has(cover):
+			covers[cover].position.y = lid_rest_y + 0.008 * k
+			covers[cover].rotation.y = deg_to_rad(10.0) * k
+
+
+## Reduce motion turns off breathing and pops (ux-design.md §15).
+func set_motion(on: bool) -> void:
+	for m: ShaderMaterial in starter_materials():
+		m.set_shader_parameter(&"motion_k", 1.0 if on else 0.0)
+	if pops != null:
+		pops.motion_on = on
 
 
 ## Freezes or frees the shader clock (captures and tests use a fixed time).
