@@ -61,6 +61,10 @@ var last_feed: Dictionary = {}
 var onboarding_path: StringName = &""
 ## Real time the feed sheet last showed FEED_ROUTINE_HINT (at most once a week, game-mechanics §2.2).
 var routine_hint_unix: int = 0
+## Per player, never reset by a new starter: the state ids whose status pill "new" dot was already tapped
+## away (AC-08.7). Kept across a discard and restart, so the dot never comes back for a state the player
+## already knows. UI bookkeeping only: nothing in the sim or the events reads it.
+var seen_states: Dictionary[StringName, bool] = {}
 
 
 ## game-mechanics.md §2.4: early, on_time, late, very_late, rescue, or &"" (no feed when moldy).
@@ -141,8 +145,8 @@ func record_step(state: StarterState, derived: DerivedState, prev_derived: Deriv
 		warm_unfed_s += SimConstants.GRID_S
 
 
-## A new starter (adoption, or after a discard). Earned knowledge (smells, seen counts) and the feeding habit
-## stay; everything about the old starter's cycles goes.
+## A new starter (adoption, or after a discard). Earned knowledge (smells, seen counts, seen states) and the
+## feeding habit stay; everything about the old starter's cycles goes.
 func reset_for_new_starter() -> void:
 	consecutive_early_feeds = 0
 	last_strong_peak_rise = 0.0
@@ -187,7 +191,11 @@ func to_dict() -> Dictionary:
 	var days: Array = []
 	for b: DailyBucket in daily:
 		days.append(b.to_dict())
+	var states: Dictionary = {}
+	for k: StringName in seen_states:
+		states[String(k)] = seen_states[k]
 	return {
+		"seen_states": states,
 		"consecutive_early_feeds": consecutive_early_feeds,
 		"last_strong_peak_rise": last_strong_peak_rise,
 		"smelled_descriptors": smelled,
@@ -253,6 +261,8 @@ static func from_dict(d: Dictionary) -> PlayerHistory:
 	h.last_feed = DictReader.canonical_dict(r.dict_or_empty("last_feed"))
 	h.onboarding_path = StringName(r.text_or("onboarding_path", ""))
 	h.routine_hint_unix = r.integer_or("routine_hint_unix", 0)
+	if r.has("seen_states"):
+		h.seen_states = r.bool_map("seen_states")
 	if not h.onboarding_path.is_empty() and not ONBOARDING_PATHS.has(h.onboarding_path):
 		return null
 	return h if r.ok else null

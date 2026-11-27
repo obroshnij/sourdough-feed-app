@@ -66,6 +66,9 @@ Owner: director (the only writer). Teammates report by message. Last updated 202
 | Commit the discard at "Discard", make the empty jar a real state, start the new starter in its own step (D-047 caveat) | T1, tech-architect, QA |
 | OD-22: many quick place moves write one journal line each. Merge them? | game-designer, T1 |
 | OD-23: freeze the first save-migration fixture from the build the user plays at the Phase 3 exit | QA |
+| "Try inspecting the surface" for an ambiguous smell (ux §9): define a computable ambiguity rule first, since the docs disagree. The keys `SMELL_TRY_INSPECT` and `_BTN` are in the catalog, unused | scientist, then T1 and T3 |
+| Feed sheet on 390×844: flour chips, discard line and forecast sit below the fold. Compact the rows? Sparse note and memorial pages | ux, T3 |
+| `src/view/jar_view.gd` still looks up the removed `Backdrop_placeholder` (harmless) | T2 |
 | Copy and UX review of T1's choices: the schedule fit line, the `{window}` midpoint and OVERNIGHT, time-lapse length, the away summary moment rows | narrative, ux |
 | "6 ObjectDB instances were leaked at exit" on every gate run (unchanged since Phase 2) | T1, QA |
 | "Unicode parsing error ... Unexpected NUL character" on every fresh import. No tracked text file holds a NUL byte | QA |

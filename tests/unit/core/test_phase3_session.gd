@@ -154,6 +154,40 @@ func test_journal_entries_are_identical_after_a_reload() -> void:
 	reloaded.free()
 
 
+func test_seen_states_for_the_new_dot() -> void:
+	if not require(&"p3_contracts"):
+		return
+	var clock := FakeClock.new(T0)
+	var s: GameSession = _adopted("seen", clock)
+	s.apply(FeedAction.from_ratio(1.0, 1.0, &"white_bread"))
+	var state: StringName = s.get_snapshot().state
+	check(s.is_state_new(state) and s.is_state_new(&"moldy"), "every state starts new")
+	check(not s.is_state_new(&"not_a_state") and not s.mark_state_seen(&"not_a_state"), "only canonical ids")
+	var before_journal: int = s.get_journal().size()
+	var before: Dictionary = s.build_payload()
+	check(s.mark_state_seen(state) and not s.is_state_new(state), "marked: the dot goes")
+	check(not s.mark_state_seen(state), "idempotent")
+	var after: Dictionary = s.build_payload()
+	check_eq(s.get_journal().size(), before_journal, "no journal entry")
+	check_eq(after["starter"], before["starter"], "the starter is untouched (no time step, no sim change)")
+	check_eq(after["events"], before["events"], "no events")
+	check(s.is_state_new(&"hungry"), "other states stay new")
+	var reloaded := GameSession.new()
+	reloaded.setup(clock, SaveStore.new(s._store.base_dir))
+	reloaded.boot()
+	check(not reloaded.is_state_new(state), "saved: it survives a relaunch")
+	var moldy: GameSession = _from_fixture(reloaded, "seen_moldy", clock, {"moldy": true, "mold_risk": 1.0})
+	check(moldy.apply(DiscardStarterAction.new("Second")).ok, "discard and restart")
+	check(not moldy.is_state_new(state), "per player: a new starter doesn't bring the dot back")
+	var old: Dictionary = moldy.get_history().to_dict()
+	old.erase("seen_states")
+	var v1: PlayerHistory = PlayerHistory.from_dict(old)
+	check(v1 != null and v1.seen_states.is_empty(), "a v1 history without the field loads with an empty set")
+	s.free()
+	reloaded.free()
+	moldy.free()
+
+
 func test_moldy_locks_and_the_discard_flow() -> void:
 	if not require(&"p3_contracts"):
 		return
