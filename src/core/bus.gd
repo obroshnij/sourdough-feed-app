@@ -23,9 +23,24 @@ signal smell_moment_started()
 @warning_ignore("unused_signal")
 signal smell_moment_finished()
 
-## ui to view. step is one of &"discard", &"scoop", &"pour", &"stir".
+## ui to view. step is one of &"discard", &"scoop", &"pour", &"stir", plus (Phase 4, sound-designer) &"hooch"
+## before &"discard", only when the hooch step plays, and &"settle" after &"stir", the band-snap beat.
 @warning_ignore("unused_signal")
 signal feed_moment(step: StringName)
+
+## Phase 4 (D-056, D-059). ui to view and core: a feedback moment, such as &"tap" (buttons, the status pill,
+## a long-press popup), &"tick" (chips, steppers, the zoom limit), &"toggle_on", &"toggle_off", &"mix" (the
+## Mix tap), &"discard" (the mold discard ceremony), &"name" (the naming confirm), &"status" (each status
+## change in the B6 demo), &"poke" (a poke's pulse, no sound) or &"preview" (the volume slider's release, sound
+## only). T2 plays its sound (whatever the haptics setting says); Session plays its pulse through Haptics
+## (Haptics.PATTERNS, only when SettingsStore.haptics is on). Nothing else vibrates.
+@warning_ignore("unused_signal")
+signal feedback(moment: StringName)
+
+## Phase 4. ui to view: an event's toast, card or sheet is actually on screen now (not when Session raised it),
+## so the chime matches what the player sees and never plays during catch-up or behind an open sheet.
+@warning_ignore("unused_signal")
+signal event_presented(event_id: StringName, tier: StringName)
 
 ## ui to view. The free space between the HUD plate and the action bar, in UI units (pt), emitted on every
 ## layout change (text size, safe areas, rotation). The camera frames the jar to it (ux-design §2, §19.5).

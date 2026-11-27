@@ -19,6 +19,10 @@ const REASON_EVENT: StringName = &"REASON_EVENT"
 const REASON_NOT_MOLDY: StringName = &"REASON_NOT_MOLDY"
 ## AdoptStarterAction when the starter already has a name (a stale UI). Placeholder in pending_core.csv.
 const REASON_ADOPT: StringName = &"REASON_ADOPT"
+## Phase 4. StartAgainAction when the jar isn't empty (a stale UI): it already holds a named starter.
+const REASON_NOT_EMPTY: StringName = &"REASON_ADOPT"
+## Phase 4. Any action but StartAgainAction on an empty jar ("The jar is empty. Start again when you're ready.").
+const REASON_EMPTY_JAR: StringName = &"REASON_EMPTY_JAR"
 
 ## ux-design §18's name slot; every {name} string is length-checked at 16 (game-copy). data-models v0 said 24.
 const NAME_MAX_CHARS: int = 16

@@ -9,6 +9,10 @@ const UNIFORMS: Array[StringName] = [
 	&"hooch_depth", &"bubble_size", &"streak_amount", &"surface_dryness", &"sheen", &"tint",
 	&"fleck", &"dullness", &"mold", &"big_bubble", &"time_override",
 ]
+## Phase 4 fields that are real in the sim but not yet shader uniforms. T2 declares each in the starter
+## shaders, then T1 moves it into UNIFORMS in one small commit (T2's test_starter_uniforms checks every
+## UNIFORMS name against the shaders). copy() and to_dict() already carry them.
+const PENDING_UNIFORMS: Array[StringName] = [&"crack"]
 
 ## 0..0.042 m. Fed level above the starter floor at rise 1.0. Also the rubber band height.
 var level_m: float = 0.030
@@ -45,6 +49,9 @@ var mold: float = 0.0
 var big_bubble: float = 0.0
 ## -1 = use shader TIME. Tests and captures set a fixed value.
 var time_override: float = -1.0
+## Phase 4 (PENDING_UNIFORMS until T2's shaders declare it). 0..1, rye's fissured top (art-direction §6).
+## Invariant (tech-architect): crack > 0 only when Inspection.read(..., &"surface") lists `cracked`.
+var crack: float = 0.0
 ## Not a uniform: which lid node is visible.
 var cover: StringName = &"loose_lid"
 
@@ -52,6 +59,8 @@ var cover: StringName = &"loose_lid"
 func copy() -> VisualParams:
 	var v := VisualParams.new()
 	for u: StringName in UNIFORMS:
+		v.set(u, get(u))
+	for u: StringName in PENDING_UNIFORMS:
 		v.set(u, get(u))
 	v.cover = cover
 	return v
@@ -64,5 +73,7 @@ func to_dict() -> Dictionary:
 			d["tint"] = [tint.r, tint.g, tint.b, tint.a]
 		else:
 			d[String(u)] = get(u)
+	for u: StringName in PENDING_UNIFORMS:
+		d[String(u)] = get(u)
 	d["cover"] = String(cover)
 	return d

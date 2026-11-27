@@ -41,6 +41,11 @@ var play_time_lapse: bool = false
 var notable: Dictionary = {}
 
 
+## Phase 4: a fixed playback length in seconds, used by the onboarding demo (Demo.DURATION_S). 0 = the
+## time-lapse's own 3 to 6 s rule.
+var playback_s: float = 0.0
+
+
 static func empty(at_unix: int) -> CatchUpResult:
 	var r := CatchUpResult.new()
 	r.from_unix = at_unix
@@ -49,7 +54,10 @@ static func empty(at_unix: int) -> CatchUpResult:
 
 
 ## Seconds the time-lapse should take: 3 s for a 1 h absence, rising linearly to 6 s at 24 h and beyond.
+## The onboarding demo (Demo.playback, Phase 4) sets playback_s, which wins.
 func time_lapse_duration_s() -> float:
+	if playback_s > 0.0:
+		return playback_s
 	var span: float = float(TIME_LAPSE_FULL_AT_S - SimConstants.AWAY_SUMMARY_MIN_S)
 	var t: float = clampf(float(simulated_s - SimConstants.AWAY_SUMMARY_MIN_S) / span, 0.0, 1.0)
 	return lerpf(TIME_LAPSE_MIN_S, TIME_LAPSE_MAX_S, t)

@@ -13,7 +13,7 @@ const HOOCH_VISIBLE: float = 0.10
 static func run(state: StarterState, env: EnvironmentState, history: PlayerHistory, ledger: EventLedger,
 		catalog: SimCatalog, to_unix: int, utc_offset_s: int, app_foreground: bool) -> CatchUpResult:
 	return run_with_rules(state, env, history, ledger, catalog, to_unix, utc_offset_s, app_foreground,
-		EventRules.registry())
+		EventRules.step_registry(app_foreground))
 
 
 static func run_with_rules(state: StarterState, env: EnvironmentState, history: PlayerHistory,
@@ -22,6 +22,11 @@ static func run_with_rules(state: StarterState, env: EnvironmentState, history: 
 	var res := CatchUpResult.new()
 	res.from_unix = state.sim_time_unix
 	var target: int = Sim.grid(to_unix)
+	if state.empty:
+		# An empty jar (Phase 4) has nothing to step: time passes, nothing happens, no events.
+		state.sim_time_unix = maxi(state.sim_time_unix, target)
+		res.to_unix = state.sim_time_unix
+		return res
 	var total_steps: int = 0
 	if target > state.sim_time_unix:
 		@warning_ignore("integer_division")
@@ -48,6 +53,7 @@ static func run_with_rules(state: StarterState, env: EnvironmentState, history: 
 		ctx.prev_state = prev
 		ctx.state = state
 		ctx.env = env
+		ctx.prev_env = env
 		ctx.history = history
 		ctx.ledger = ledger
 		ctx.utc_offset_s = utc_offset_s
@@ -60,7 +66,7 @@ static func run_with_rules(state: StarterState, env: EnvironmentState, history: 
 		var hooch_before: float = state.hooch
 		Sim.step(state, env)
 		var d: DerivedState = StateDeriver.derive(state, env)
-		history.record_step(state, d, prev_d, app_foreground)
+		history.record_step(state, d, prev_d, app_foreground, utc_offset_s, env)
 		var changed: bool = d.state != prev_d.state
 		if changed:
 			res.transitions.append({

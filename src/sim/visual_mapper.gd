@@ -11,10 +11,24 @@ const LEVEL_M_MAX: float = 0.042
 ## Art-direction §6: moldy shows colonies at 0.75. The view fades them in over 2 s.
 const MOLD_SHOWN: float = 0.75
 const BIG_BUBBLE_U: float = 0.85
+## The least crack the jar shows once the top cracks (Inspection.shows_cracks).
+const CRACK_FLOOR: float = 0.2
 
 
 static func from_state(s: StarterState, env: EnvironmentState) -> VisualParams:
+	if s.empty:
+		return empty_jar(env)
 	return from_derived(s, env, StateDeriver.derive(s, env))
+
+
+## Phase 4: a washed, empty jar. level_m 0 and every look at rest; the view hides the starter (and the band)
+## when StarterSnapshot.empty_jar is true.
+static func empty_jar(env: EnvironmentState) -> VisualParams:
+	var v := VisualParams.new()
+	v.level_m = 0.0
+	v.rise = 1.0
+	v.cover = env.cover if env != null else &"loose_lid"
+	return v
 
 
 static func from_derived(s: StarterState, env: EnvironmentState, d: DerivedState) -> VisualParams:
@@ -32,6 +46,11 @@ static func from_derived(s: StarterState, env: EnvironmentState, d: DerivedState
 	if rye >= 0.5 and s.rise >= 1.3:
 		dome *= 0.3
 	v.dome = clampf(dome, -1.0, 1.0)
+	# Phase 4: rye's cracked top (spec v1.1 §14). Above 0 exactly when Inspection lists `cracked` or
+	# `sunken_cracked` (Inspection.shows_cracks), with a visible floor at the thresholds so the jar and the text
+	# always agree (tech-architect, hard rule 2). Floor and ramp ends are first values for art-director to tune.
+	if Inspection.shows_cracks(s, d):
+		v.crack = CRACK_FLOOR + (1.0 - CRACK_FLOOR) * smoothstep(0.5, 0.7, rye) * smoothstep(1.3, 1.45, s.rise)
 	v.activity = 0.0 if s.moldy else d.activity
 	v.bubble_density = 0.0 if s.moldy else clampf(0.05 + 0.85 * d.activity, 0.0, 1.0)
 	v.bubble_size = clampf(0.1 + 0.7 * up + 0.3 * fallen, 0.0, 1.0)

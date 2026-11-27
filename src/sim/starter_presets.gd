@@ -5,8 +5,11 @@ extends RefCounted
 ##   new_game       at_peak, maturity 0.2, counter
 ##   first_restart  dormant (cold), maturity 0.2, temp_c about 4: fed, 1 h out, then 14 d in the fridge
 ##   restart        at_peak, maturity 0.2, counter
+##   demo_start     freshly_fed ("just mixed", game-design B1), maturity 0.2, counter: the onboarding demo's
+##                  start (Phase 4). Stepped at the counter until at_peak it equals new_game field for field,
+##                  so the tour and skip paths adopt the same starter (game-mechanics §8.1).
 
-const IDS: Array[StringName] = [&"new_game", &"first_restart", &"restart"]
+const IDS: Array[StringName] = [&"new_game", &"first_restart", &"restart", &"demo_start"]
 const PRESET_MATURITY: float = 0.2
 
 static var _cache: Dictionary[StringName, StarterState] = {}
@@ -38,10 +41,15 @@ static func _build(preset_id: StringName) -> StarterState:
 			Sim.step(s, counter)
 		for i: int in SimConstants.CATCH_UP_CAP_STEPS:
 			Sim.step(s, fridge)
-	else:
-		for i: int in 48 * 60:
-			if StateDeriver.derive(s, counter).rise_phase == &"at_peak":
-				break
-			Sim.step(s, counter)
+		s.maturity = PRESET_MATURITY
+		return s
+	# Phase 4: maturity is set before stepping, so new_game and restart are exactly demo_start run to at_peak
+	# (the onboarding demo's end state). Maturity changes rates a little, so the order matters.
 	s.maturity = PRESET_MATURITY
+	if preset_id == &"demo_start":
+		return s
+	for i: int in 48 * 60:
+		if StateDeriver.derive(s, counter).rise_phase == &"at_peak":
+			break
+		Sim.step(s, counter)
 	return s

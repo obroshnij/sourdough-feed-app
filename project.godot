@@ -16,6 +16,10 @@ run/main_scene="res://src/main/main.tscn"
 config/quit_on_go_back=false
 config/features=PackedStringArray("4.7", "Mobile")
 
+[audio]
+
+general/ios/mix_with_others=true
+
 [autoload]
 
 Bus="*res://src/core/bus.gd"

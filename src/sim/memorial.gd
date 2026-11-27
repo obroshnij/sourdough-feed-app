@@ -19,6 +19,9 @@ var best_rise: float = 0.0
 ## Whole days since the last feed spent at 11 C or warmer before mold ({days} in MEMORIAL_CAUSE_UNFED).
 ## Fridge days don't count (narrative §9.3).
 var unfed_days: int = 0
+## Phase 4, optional on load (&""). The trait revealed before the loss (Traits.IDS), or &"" if none.
+## MEMORIAL_STAT_TRAIT shows TRAIT_<ID>_NAME, and the epitaph uses MEMORIAL_EPITAPH_<ID>.
+var trait_id: StringName = &""
 
 
 ## MEMORIAL_STAT_DAYS: whole days from adoption to the discard.
@@ -29,6 +32,8 @@ func days_together() -> int:
 
 ## narrative §9.3: the trait epitaph when a trait was revealed (P1), else MEMORIAL_EPITAPH_<1 + seed % 3>.
 func epitaph_key() -> StringName:
+	if trait_id != &"":
+		return StringName("MEMORIAL_EPITAPH_%s" % String(trait_id).to_upper())
 	return StringName("MEMORIAL_EPITAPH_%d" % (1 + posmod(StarterState.seed_of(starter_id), 3)))
 
 
@@ -49,7 +54,7 @@ func to_dict() -> Dictionary:
 	return {
 		"starter_id": starter_id, "name": name, "born_unix": born_unix, "ended_unix": ended_unix,
 		"feeds_count": feeds_count, "cause": String(cause), "peaks_count": peaks_count, "best_rise": best_rise,
-		"unfed_days": unfed_days,
+		"unfed_days": unfed_days, "trait_id": String(trait_id),
 	}
 
 
@@ -65,4 +70,7 @@ static func from_dict(d: Dictionary) -> Memorial:
 	m.peaks_count = r.integer_or("peaks_count", 0)
 	m.best_rise = r.num_or("best_rise", 0.0)
 	m.unfed_days = r.integer_or("unfed_days", 0)
+	m.trait_id = StringName(r.text_or("trait_id", ""))
+	if m.trait_id != &"" and not Traits.IDS.has(m.trait_id):
+		return null
 	return m if r.ok else null

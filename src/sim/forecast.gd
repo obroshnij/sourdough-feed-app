@@ -6,6 +6,42 @@ extends RefCounted
 const HORIZON_STEPS: int = 48 * 60
 const JITTERS: Array[float] = [0.95, 1.05]
 const NO_WINDOW_STATES: Array[StringName] = [&"dormant", &"unhealthy", &"moldy", &"hungry"]
+## spec §14.1 `warm_and_quick`: the reference run is the same feed at 22 C.
+const REFERENCE_TEMP_C: float = 22.0
+
+
+## warm_and_quick's reference (spec §14.1, T4): seconds from a feed to its first at_peak step if the jar sat
+## at the counter (22 C) the whole time. `after_feed` is the post-feed state, copied with its own feed_jitter
+## and temp_c set to 22. -1 when there is no at_peak within HORIZON_STEPS (or the state is moldy or empty).
+static func reference_at_peak_s(after_feed: StarterState) -> int:
+	if after_feed.moldy or after_feed.empty:
+		return -1
+	var s: StarterState = after_feed.copy()
+	s.temp_c = REFERENCE_TEMP_C
+	var counter: EnvironmentState = EnvironmentState.at_location(&"counter")
+	for i: int in HORIZON_STEPS:
+		if StateDeriver.derive(s, counter).rise_phase == &"at_peak":
+			return i * SimConstants.GRID_S
+		Sim.step(s, counter)
+	return -1
+
+
+## The "warning signs" forecast (D-057): seconds until mold_risk reaches the warning threshold (the state
+## turns unhealthy, spec §12.2) if nothing changes, stepping a copy in `env` for at most `max_steps` (14 days,
+## the catch-up cap). 0 when it already has; -1 when it never does in time, or the starter is moldy or empty.
+## Only Sim.step runs (no derivation), so 14 days take about a third of a catch-up.
+static func warning_signs_after_s(state: StarterState, env: EnvironmentState,
+		max_steps: int = SimConstants.CATCH_UP_CAP_STEPS) -> int:
+	if state.moldy or state.empty:
+		return -1
+	if state.mold_risk >= SimConstants.MOLD_WARN:
+		return 0
+	var s: StarterState = state.copy()
+	for i: int in max_steps:
+		Sim.step(s, env)
+		if s.mold_risk >= SimConstants.MOLD_WARN:
+			return (i + 1) * SimConstants.GRID_S
+	return -1
 
 
 ## With `feed`, forecasts the state after that feed (feed_u is irrelevant: both jitters are simulated).

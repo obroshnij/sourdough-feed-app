@@ -5,6 +5,8 @@ extends RefCounted
 ## list and its order). Rules are pure and keep no state between calls, so one list serves every caller.
 
 static var _registry: Array[EventRule] = []
+## step_registry() caches: [background steps, foreground steps].
+static var _step_lists: Array = []
 
 
 ## Every slice rule, in RuleIndex order (the tie-break when two fire on one step). Built once, then shared.
@@ -12,6 +14,25 @@ static func registry() -> Array[EventRule]:
 	if _registry.is_empty():
 		_registry = RuleIndex.all()
 	return _registry
+
+
+## The rules a plain grid step can fire (Phase 4, PERF-03): registry() without the action-only rules
+## (on_steps false) and, for a background step, without the foreground-only ones (background false). Exact,
+## because those rules return null on such steps anyway; it only saves their per-step call. Same order as
+## registry(). Built once on the main thread (Session builds it before a worker catch-up), then shared.
+static func step_registry(app_foreground: bool) -> Array[EventRule]:
+	if _step_lists.is_empty():
+		var back: Array[EventRule] = []
+		var front: Array[EventRule] = []
+		for rule: EventRule in registry():
+			if not rule.on_steps:
+				continue
+			front.append(rule)
+			if rule.background:
+				back.append(rule)
+		_step_lists = [back, front]
+	var out: Array[EventRule] = _step_lists[1] if app_foreground else _step_lists[0]
+	return out
 
 
 ## Every rule's raw output for this context, in registry order. Nothing is admitted here.

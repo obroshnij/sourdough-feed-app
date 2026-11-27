@@ -16,3 +16,9 @@ var is_warning: bool = false
 var meaning_key: StringName = &""
 ## Every descriptor's intensity after cold damping, for tests and the journal.
 var intensities: Dictionary[StringName, float] = {}
+## Phase 4 (spec v1.1 §13.1): &"musty", &"faint" or &"". When not empty, the smell card offers "Try inspecting
+## the surface" (SMELL_TRY_INSPECT_BTN, which opens the surface inspection). Only &"faint" shows the "Hard to
+## say" line (SMELL_TRY_INSPECT); musty keeps its warning meaning instead.
+var check: StringName = &""
+## With check &"faint": &"cold" (ferm(temp_c) < 0.30, a fridge-cold jar) or &"mild". Else &"".
+var faint_cause: StringName = &""
