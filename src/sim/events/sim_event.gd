@@ -1,6 +1,18 @@
 class_name SimEvent
 extends RefCounted
 ## One event (data-models.md §5). Text keys come from the id (events-catalog.md), never stored here.
+## How the UI shows it follows from the tier (events-catalog §1, ux-design §12): see `presentation()`.
+## Payload conventions (agreed with T4): `time_unix` (sim time, int) fills {time}; warning_signs has
+## `began_unix`; peaked_while_away has `peak_rise` (float) and `rise_word` (SMALL, NEAR, DOUBLE, BIG).
+## After a load, floats in the payload are D-040 hex strings: read them with DictReader.float_of().
+
+## info: a toast live, or a line in the return summary. No buttons. Session releases it once and drops it
+## from the pending list, so the UI never acknowledges a toast.
+const PRESENT_TOAST: StringName = &"toast"
+## nudge: a card above the action bar with one action and a dismiss. Pending until acknowledged.
+const PRESENT_CARD: StringName = &"card"
+## attention: a half sheet that must be acknowledged. Pending until acknowledged; never more than 1.
+const PRESENT_SHEET: StringName = &"sheet"
 
 var uid: int = 0
 ## Rule id, for example &"peak_now".
@@ -20,6 +32,22 @@ var expires_if: StringName = &""
 var not_before_unix: int = 0
 ## &"pending", &"shown", &"acked" or &"expired".
 var status: StringName = &"pending"
+
+
+## PRESENT_TOAST, PRESENT_CARD or PRESENT_SHEET, from the tier.
+func presentation() -> StringName:
+	match tier:
+		&"attention":
+			return PRESENT_SHEET
+		&"nudge":
+			return PRESENT_CARD
+	return PRESENT_TOAST
+
+
+## The events-catalog key for one part of this event, for example key_for("TOAST") is EVENT_FIRST_RISE_TOAST.
+## Parts: TOAST, TITLE, BODY, BTN, DISMISS, AWAY, JOURNAL_TITLE, JOURNAL_BODY (and event-specific ones).
+func key_for(part: String) -> StringName:
+	return StringName("EVENT_%s_%s" % [String(id).to_upper(), part])
 
 
 func copy() -> SimEvent:
