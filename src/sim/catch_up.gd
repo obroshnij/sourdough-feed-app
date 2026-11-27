@@ -39,16 +39,24 @@ static func run_with_rules(state: StarterState, env: EnvironmentState, history: 
 		first_frame = TimeLapseKeyframe.make(state.sim_time_unix, VisualMapper.from_derived(state, env, prev_d),
 			prev_d, false)
 	var ctx: EventContext = null
+	# The state one step earlier, for the rules. One buffer, overwritten each step (no per-step allocation).
+	var prev: StarterState = null
 	if has_rules:
+		prev = StarterState.new()
+		# Fields that stay the same object for the whole run are set once.
 		ctx = EventContext.new()
+		ctx.prev_state = prev
+		ctx.state = state
 		ctx.env = env
 		ctx.history = history
 		ctx.ledger = ledger
 		ctx.utc_offset_s = utc_offset_s
 		ctx.app_foreground = app_foreground
 		ctx.catalog = catalog
+		ctx.last_action = null
 	for i: int in steps:
-		var prev: StarterState = state.copy() if has_rules else null
+		if has_rules:
+			prev.copy_from(state)
 		var hooch_before: float = state.hooch
 		Sim.step(state, env)
 		var d: DerivedState = StateDeriver.derive(state, env)
@@ -66,14 +74,11 @@ static func run_with_rules(state: StarterState, env: EnvironmentState, history: 
 		if hooch_before < HOOCH_VISIBLE and state.hooch >= HOOCH_VISIBLE and not res.notable.has("hooch_first_unix"):
 			res.notable["hooch_first_unix"] = state.sim_time_unix
 		if has_rules:
-			ctx.prev_state = prev
 			ctx.prev_derived = prev_d
-			ctx.state = state
 			ctx.derived = d
 			ctx.now_unix = state.sim_time_unix
 			ctx.local_minute_of_day = LocalDay.minute_of_day(state.sim_time_unix, utc_offset_s)
-			ctx.last_action = null
-			res.events.append_array(EventRules.process(ctx, rules))
+			EventRules.process_into(ctx, rules, res.events)
 		var sample: bool = (i + 1) % every == 0 or i == steps - 1
 		var with_transition: bool = changed and transition_frames < CatchUpResult.MAX_TRANSITION_FRAMES
 		if sample or with_transition:
