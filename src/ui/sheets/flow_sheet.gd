@@ -86,6 +86,8 @@ func close() -> void:
 # ------------------------------------------------------------------ pages
 func _show(next: StringName, away_lines: Array[String] = []) -> void:
 	page = next
+	# Naming needs the keyboard's room; every other page is a half sheet with the jar visible above it.
+	height_kind = Sheet.Height.FULL if next == &"naming" else Sheet.Height.HALF
 	clear_content()
 	_reason = null
 	name_field = null
@@ -136,6 +138,8 @@ func _show(next: StringName, away_lines: Array[String] = []) -> void:
 			_buttons(&"RESTART_BTN_YES", &"", &"")
 	if not is_open():
 		open()
+	else:
+		set_insets(_insets)
 
 
 func _memorial_page() -> void:

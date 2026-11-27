@@ -55,7 +55,10 @@ func test_every_fixture_drives_the_pill_and_hint() -> void:
 		check_eq(shown, expected, file + " sim state matches the fixture name")
 		check_eq(_ui.hud.status_pill.state_id, snap.state, file + " pill shows the session state")
 		check_eq(_ui.hud.status_pill.text, tr(Keys.status_word(snap.state, snap.dormant_cause)), file + " pill word")
-		check_eq(_ui.hud.hint_label.text, tr(Keys.status_hint(snap.state, snap.dormant_cause)), file + " hint")
+		var hint: String = _ui._forecast_hint(snap)
+		if hint == "":
+			hint = tr(Keys.status_hint(snap.state, snap.dormant_cause))
+		check_eq(_ui.hud.hint_label.text, hint, file + " hint (the forecast right after a feed, ux §8)")
 		check_eq(_ui.hud.name_label.text, "Bramble", file + " name")
 		check_eq(_ui.hud.bar_button(&"feed").locked_reason_key != &"", snap.state == &"moldy", file + " feed lock")
 		seen[snap.state] = true

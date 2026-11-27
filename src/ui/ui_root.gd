@@ -116,6 +116,7 @@ func _ready() -> void:
 	_ready_poll.timeout.connect(_refresh_ready)
 	add_child(_ready_poll)
 	skip_pill.pressed.connect(_on_skip)
+	toast.link_opened.connect(func() -> void: open_sheet(&"journal"))
 	_tap_catcher = Control.new()
 	_tap_catcher.name = "TimeLapseTapCatcher"
 	_tap_catcher.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -289,7 +290,8 @@ func _on_flow_finished(outcome: StringName) -> void:
 
 # ------------------------------------------------------------------ events (ux §12)
 func _present_event_toast(e: SimEvent) -> void:
-	toast.show_text(session.format_text(e.key_for("TOAST"), e.payload))
+	# Every info event is journaled, so its toast links to the journal (ux §12).
+	toast.show_text(session.format_text(e.key_for("TOAST"), e.payload), &"", true)
 
 
 func _present_event_card(e: SimEvent) -> void:
@@ -335,6 +337,8 @@ func _on_event_withdrawn(uid: int) -> void:
 # ------------------------------------------------------------------ test and driver seams
 func apply_snapshot(snapshot: StarterSnapshot) -> void:
 	hud.set_snapshot(snapshot)
+	hud.set_hint_override(_forecast_hint(snapshot))
+	hud.status_pill.show_new_dot = _is_state_new(snapshot.state)
 	if card.is_shown() and card.kind == &"explainer":
 		_show_explainer()
 
@@ -495,7 +499,28 @@ func _on_sheet_closed(sheet_id: StringName) -> void:
 
 
 # ------------------------------------------------------------------ status explainer
+## ux §8: after a feed, the forecast becomes the hint ({window} words, no digits). Only while freshly fed,
+## so the rise phases keep narrative's own hints (open decision for ux).
+const FORECAST_HINT_STATES: Array[StringName] = [&"freshly_fed"]
+
+
+func _forecast_hint(snapshot: StarterSnapshot) -> String:
+	if session == null or not session.is_booted() or not FORECAST_HINT_STATES.has(snapshot.state):
+		return ""
+	var window: StringName = session.get_forecast_window_key()
+	return session.format_text(&"FORECAST_LINE", {"window": String(window)}) if window != &"" else ""
+
+
+## AC-08.7: the pill's "new" dot, the first time a state shows, until tapped, from the Session's saved
+## seen-state record (per player, so a restart doesn't bring it back).
+func _is_state_new(state_id: StringName) -> bool:
+	return session != null and session.is_state_new(state_id)
+
+
 func _on_status_pressed() -> void:
+	# The HUD already hid the dot on tap; the Session records it so it never comes back for this state.
+	if _is_state_new(hud.status_pill.state_id):
+		session.mark_state_seen(hud.status_pill.state_id)
 	if card.is_shown() and card.kind == &"explainer":
 		card.dismiss()
 		return

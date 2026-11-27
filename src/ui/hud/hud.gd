@@ -28,6 +28,7 @@ const MOLDY_LOCKS: Dictionary[StringName, StringName] = {
 @onready var action_bar: PanelContainer = $ActionBar
 
 var snapshot: StarterSnapshot = null
+var _hint_override: String = ""
 var _insets: SafeInsets = SafeInsets.new()
 
 
@@ -119,8 +120,15 @@ func set_open_action(action_id: StringName) -> void:
 		b.is_open = b.action_id == action_id
 
 
+## ux §8: the forecast line stands in for the hint after a feed. Empty goes back to the state's hint.
+func set_hint_override(text: String) -> void:
+	_hint_override = text
+	if snapshot != null:
+		_apply_hint()
+
+
 func _apply_hint() -> void:
-	hint_label.text = tr(Keys.status_hint(snapshot.state, snapshot.dormant_cause))
+	hint_label.text = _hint_override if _hint_override != "" else tr(Keys.status_hint(snapshot.state, snapshot.dormant_cause))
 
 
 func _on_status_pressed() -> void:
