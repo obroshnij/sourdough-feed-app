@@ -92,6 +92,7 @@ Owner: director (the only writer). Teammates report by message. Last updated 202
 
 - Play the Phase 3 build on the Mac (MAN-S0 to S5 in test-plan §6), then review `phase-3-slice` for merging.
 - The kitchen wall shape: keep the curved sweep, or a straight backsplash with side walls (D-049).
+- iOS simulator note (2026-11-27): the boot check (`tools/build/export_ios_sim.sh --run`) now builds, launches and loads `main.tscn` with 0 script errors, then crashes about a frame later with SIGSEGV in Godot's `RasterizerCanvasGLES3::_render_items`. The simulator's OpenGL can't compile shaders or allocate buffers (D-044), and Phase 3's larger UI now hits an engine crash where Phase 2 only showed a blank screen. The translation loads (`en.en.translation`). The export's "Failed loading resource: res://src/i18n/en.csv" line is exporter noise. Real iPhones use Metal (Phase 5). `tools/build/README.md` (T1) still says "screen stays blank".
 - Before Phase 5: the bundle id and Apple Team ID, and whether to download the Metal Toolchain (about 0.7 GB, unverified) for iOS shader baking.
 
 ## Later phases
