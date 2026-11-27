@@ -12,7 +12,9 @@ const BACKDROP_SHADER: String = "res://src/view/shaders/backdrop.gdshader"
 const SIDE_MASK: String = "res://assets/textures/starter_side_bubbles.png"
 const TOP_MASK: String = "res://assets/textures/starter_top_pits.png"
 const LINER_MASK: String = "res://assets/textures/starter_liner_streaks.png"
-const WALL_TEX: String = "res://assets/textures/kitchen_backdrop.png"
+const WALL_TEX: String = "res://assets/textures/kitchen_wall.png"
+const WALL_NIGHT_TEX: String = "res://assets/textures/kitchen_wall_night.png"
+const WALL_NODE: StringName = &"Kitchen_Wall"
 const COUNTER_DETAIL: String = "res://assets/textures/counter_oak_detail.png"
 const LID_DETAIL: String = "res://assets/textures/lid_oak_detail.png"
 
@@ -118,8 +120,9 @@ func _make_materials() -> void:
 		backdrop_mat = ShaderMaterial.new()
 		backdrop_mat.shader = load(BACKDROP_SHADER) as Shader
 		backdrop_mat.set_shader_parameter(&"wall_tex", load(WALL_TEX) as Texture2D)
-		backdrop.material_override = backdrop_mat
-		backdrop.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		backdrop_mat.set_shader_parameter(&"night_tex", load(WALL_NIGHT_TEX) as Texture2D)
+		# The old card sits on the wall's back plane and would z-fight (art-direction.md §18.5).
+		backdrop.visible = false
 	if covers.has(&"loose_lid"):
 		lid_mat = ShaderMaterial.new()
 		lid_mat.shader = load(LID_WOOD_SHADER) as Shader
@@ -146,6 +149,23 @@ func _standard(color: Color, roughness: float) -> StandardMaterial3D:
 	m.albedo_color = color
 	m.roughness = roughness
 	return m
+
+
+## The wide kitchen wall (kitchen_wall.glb, §18.2): the backdrop material on Kitchen_Wall.
+func bind_wall(wall_root: Node3D) -> bool:
+	var wall: MeshInstance3D = wall_root.find_child(String(WALL_NODE), true, false) as MeshInstance3D
+	if wall == null or backdrop_mat == null:
+		push_error("JarView: no Kitchen_Wall to bind")
+		return false
+	wall.material_override = backdrop_mat
+	wall.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return true
+
+
+## Night factor for the wall (D-043), 0 day to 1 night.
+func set_wall_night(n: float) -> void:
+	if backdrop_mat != null:
+		backdrop_mat.set_shader_parameter(&"night", n)
 
 
 ## The starter-shaped materials that take VisualParams uniforms.
@@ -214,6 +234,10 @@ func apply_look(look: ViewLook, key_dir: Vector3, rim_dir: Vector3) -> void:
 	starter_mat.set_shader_parameter(&"hooch_dark_lift", look.hooch_dark_lift)
 	if backdrop_mat != null:
 		backdrop_mat.set_shader_parameter(&"energy", look.backdrop_energy)
+		backdrop_mat.set_shader_parameter(&"night_gain", look.wall_night_gain)
+		backdrop_mat.set_shader_parameter(&"night_keep_hue", look.wall_keep_hue)
+		backdrop_mat.set_shader_parameter(&"lamp_color", look.wall_lamp_color)
+		backdrop_mat.set_shader_parameter(&"night_floor", Color("#1A1310") * look.wall_floor_mul)
 	if counter_mat != null:
 		counter_mat.set_shader_parameter(&"grade_value", look.dressing_value)
 		counter_mat.set_shader_parameter(&"key_dir", key_dir)
