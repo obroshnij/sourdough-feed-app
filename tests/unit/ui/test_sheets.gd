@@ -35,12 +35,15 @@ func test_every_sheet_fits_at_every_size() -> void:
 			await H.settle(_tree)
 			for s: Sheet in _ui.sheets.sheets():
 				_ui.sheets.open(s.sheet_id)
-				await _wait(0.35)
+				# Poll for the end of the open animation instead of a fixed wait, so a loaded machine
+				# can't fail it (the 360 x 640 @ 125% flake).
+				await _until(func() -> bool: return absf(s.panel.get_global_rect().position.y - s.open_top()) < 0.5, 2.0)
+				await _tree.process_frame
 				var tag: String = "%s @%d%% %s" % [device, roundi(scale * 100), s.sheet_id]
 				check_eq(_ui.sheets.current_id(), s.sheet_id, tag + " is the open sheet")
 				_check_sheet(tag, s, H.device_size(device), H.device_insets(device))
 				s.close()
-				await _wait(0.3)
+				await _until(func() -> bool: return not s.visible, 2.0)
 				check(not s.visible, tag + " hides after closing")
 			await after_each()
 
@@ -137,6 +140,13 @@ func test_sheet_heights_follow_the_spec() -> void:
 	check_close(_ui.sheets.sheet(&"feed").sheet_height(), 844.0 * 0.60, 0.0, EPS, "half 60%")
 	check_close(_ui.sheets.sheet(&"journal").sheet_height(), 844.0 - insets.top - 12.0, 0.0, EPS, "full")
 	check(844.0 - _ui.sheets.sheet(&"feed").sheet_height() >= 0.40 * 844.0 - EPS, "a half sheet's top stays below 40%")
+
+
+## Waits until `cond` is true, at most `max_s` seconds.
+func _until(cond: Callable, max_s: float) -> void:
+	var end_ms: int = Time.get_ticks_msec() + int(max_s * 1000.0)
+	while not cond.call() and Time.get_ticks_msec() < end_ms:
+		await _tree.process_frame
 
 
 func _wait(seconds: float) -> void:

@@ -43,6 +43,8 @@ const FIRST_FEED_STRETCH: float = 6.0 / 4.2
 @onready var feed_sheet: FeedSheet = $Sheets/Feed
 @onready var inspect_sheet: InspectSheet = $Sheets/Inspect
 @onready var place_sheet: PlaceSheet = $Sheets/Environment
+@onready var journal_sheet: JournalSheet = $Sheets/Journal
+@onready var flow_sheet: FlowSheet = $Sheets/Flow
 
 var session: GameSession = null
 var settings: SettingsStore = SettingsStore.new("")
@@ -50,6 +52,12 @@ var palette: UiPalette = UiPalette.new()
 var text_scale: float = 1.0
 var smell_running: bool = false
 var feed_running: bool = false
+## The return flow (time-lapse, then the away card) holds events until it's done (ux §12).
+var return_running: bool = false
+var presenter: EventPresenter = null
+## Safety net if the view never reports the time-lapse's end (T2 owns playback).
+const TIME_LAPSE_WAIT_MAX_S: float = 12.0
+const READY_POLL_S: float = 0.1
 
 var _insets: SafeInsets = SafeInsets.new()
 var _insets_override: SafeInsets = null
@@ -58,6 +66,13 @@ var _region: Rect2 = Rect2()
 var _base_region: Rect2 = Rect2()
 var _clock: Timer = null
 var _feed_skipped: bool = false
+var _ready_poll: Timer = null
+var _nudge_uid: int = 0
+var _prompt_uid: int = 0
+var _prompt_lines: Array[String] = []
+var _time_lapse_done: bool = false
+## During the time-lapse a tap anywhere skips it (ux §12), so a full-screen catcher sits under the pill.
+var _tap_catcher: Control = null
 
 
 func _ready() -> void:
@@ -80,7 +95,38 @@ func _ready() -> void:
 	inspect_sheet.feed_requested.connect(func() -> void: open_sheet(&"feed"))
 	place_sheet.refused.connect(func(k: StringName) -> void: toast.show_key(k))
 	card.dismissed.connect(_on_card_dismissed)
-	skip_pill.pressed.connect(func() -> void: _feed_skipped = true)
+	flow_sheet.look_first.connect(func() -> void: inspect_sheet.open_to(&"surface", true))
+	flow_sheet.feed_now.connect(func() -> void: open_sheet(&"feed"))
+	flow_sheet.finished.connect(_on_flow_finished)
+	flow_sheet.camera_focus.connect(func(t: StringName) -> void: _bus_emit(&"camera_focus_requested", t))
+	flow_sheet.camera_release.connect(func() -> void: _bus_emit(&"camera_focus_released"))
+	presenter = EventPresenter.new()
+	presenter.name = "EventPresenter"
+	presenter.is_busy = func() -> bool: return not is_idle()
+	presenter.card_up = func() -> bool: return card.is_shown()
+	presenter.sheet_up = func() -> bool: return sheets.has_open_sheet()
+	presenter.toast_up = func() -> bool: return toast.is_shown()
+	presenter.present_toast.connect(_present_event_toast)
+	presenter.present_card.connect(_present_event_card)
+	presenter.present_sheet.connect(_present_event_sheet)
+	presenter.withdraw_shown.connect(_on_event_withdrawn)
+	add_child(presenter)
+	_ready_poll = Timer.new()
+	_ready_poll.wait_time = READY_POLL_S
+	_ready_poll.timeout.connect(_refresh_ready)
+	add_child(_ready_poll)
+	skip_pill.pressed.connect(_on_skip)
+	_tap_catcher = Control.new()
+	_tap_catcher.name = "TimeLapseTapCatcher"
+	_tap_catcher.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_tap_catcher.mouse_filter = Control.MOUSE_FILTER_STOP
+	_tap_catcher.visible = false
+	_tap_catcher.gui_input.connect(func(ev: InputEvent) -> void:
+		var mb: InputEventMouseButton = ev as InputEventMouseButton
+		if mb != null and mb.button_index == MOUSE_BUTTON_LEFT and not mb.pressed:
+			_on_skip())
+	skip_pill.get_parent().add_child(_tap_catcher)
+	skip_pill.get_parent().move_child(_tap_catcher, skip_pill.get_index())
 	skip_pill.visible = false
 	resized.connect(_relayout)
 	settings_sheet.sync_from(text_scale, UiMotion.reduce)
@@ -91,6 +137,8 @@ func _ready() -> void:
 	var bus: Node = get_node_or_null(^"/root/Bus")
 	if bus != null and bus.has_signal(&"starter_tapped"):
 		bus.connect(&"starter_tapped", func(_where: StringName) -> void: _dismiss_card_on_action())
+	if bus != null and bus.has_signal(&"time_lapse_finished"):
+		bus.connect(&"time_lapse_finished", func() -> void: _time_lapse_done = true)
 	var s: GameSession = get_node_or_null(^"/root/Session") as GameSession
 	if s != null:
 		bind_session(s)
@@ -103,6 +151,7 @@ func _notification(what: int) -> void:
 			if is_node_ready():
 				_relayout()
 				_refresh_night()
+				_refresh_ready.call_deferred()
 		NOTIFICATION_WM_GO_BACK_REQUEST:
 			# Android back: closes the open sheet first; with none open, save and quit (AC-12.11).
 			if sheets.has_open_sheet():
@@ -122,27 +171,165 @@ func bind_session(s: GameSession) -> void:
 	s.session_ready.connect(_on_session_ready)
 	s.resumed.connect(_on_session_ready)
 	s.save_failed.connect(func(reason: StringName) -> void: toast.show_key(reason))
+	presenter.bind(s)
 	if s.is_booted():
 		_on_session_ready(s.get_last_catch_up())
 
 
-func _on_session_ready(_summary: CatchUpResult) -> void:
+func _on_session_ready(summary: CatchUpResult) -> void:
 	var store: SettingsStore = session.get_settings()
 	if store != null:
 		settings = store
 	apply_settings()
 	apply_snapshot(session.get_snapshot())
 	_refresh_night()
+	_refresh_ready()
 	_clock.start()
+	_start_return_flow(summary)
 
 
 func _on_state_changed(snapshot: StarterSnapshot, _visuals: VisualParams) -> void:
 	apply_snapshot(snapshot)
+	_refresh_ready()
 
 
-## True when nothing holds the screen: no sheet, no smell moment, no feed sequence (ux §12 queue rule).
+## True when nothing holds the screen: no sheet, no smell moment, no feed sequence, no return flow
+## (ux §12 queue rule).
 func is_idle() -> bool:
-	return not sheets.has_open_sheet() and not smell_running and not feed_running
+	return not sheets.has_open_sheet() and not smell_running and not feed_running and not return_running
+
+
+## D-050: while a long catch-up runs on its worker thread, the saved state shows and apply() would refuse.
+## The action bar stays disabled and quiet (no toast) until the Session is ready.
+func _refresh_ready() -> void:
+	var ready: bool = session == null or (session.is_booted() and not session.is_catching_up())
+	hud.set_actions_enabled(ready)
+	if ready:
+		_ready_poll.stop()
+	elif _ready_poll.is_stopped():
+		_ready_poll.start()
+
+
+# ------------------------------------------------------------------ launch and return (ux §12, §14)
+func _start_return_flow(result: CatchUpResult) -> void:
+	if session.recovered_this_launch():
+		card.present(&"notice", tr(&"RECOVERED_TITLE"), tr(&"RECOVERED_BODY"), "", [], true, CARD_HOLD_S)
+	if session.is_first_run():
+		flow_sheet.start_new_game()
+		return
+	var rs: ReturnSummary = session.get_return_summary()
+	if rs.show and rs.prompt != null:
+		# A pending attention event: no away card; its rows go on top of the attention sheet (ux §12).
+		_prompt_uid = rs.prompt.uid
+		_prompt_lines = _away_lines(rs)
+	elif rs.show:
+		if result != null and result.play_time_lapse and settings.show_time_lapse:
+			await _wait_for_time_lapse()
+		_present_away(rs)
+	_show_discard_card_if_moldy()
+
+
+## The time-lapse is T2's: hide the HUD, offer Skip, wait for Bus.time_lapse_finished.
+func _wait_for_time_lapse() -> void:
+	return_running = true
+	_time_lapse_done = false
+	hud.visible = false
+	skip_pill.visible = true
+	_tap_catcher.visible = true
+	var end_ms: int = Time.get_ticks_msec() + int(TIME_LAPSE_WAIT_MAX_S * 1000.0 * UiMotion.time_scale)
+	while not _time_lapse_done and Time.get_ticks_msec() < end_ms:
+		await get_tree().process_frame
+	skip_pill.visible = false
+	_tap_catcher.visible = false
+	hud.visible = true
+	return_running = false
+
+
+func _away_lines(rs: ReturnSummary) -> Array[String]:
+	var lines: Array[String] = []
+	for line: ReturnLine in rs.lines:
+		lines.append(session.format_text(line.text_key, line.args))
+	return lines
+
+
+func _present_away(rs: ReturnSummary) -> void:
+	var snap: StarterSnapshot = session.get_snapshot()
+	var now: String = session.format_text(&"STATUS_A11Y", {
+		"word": String(Keys.status_word(snap.state, snap.dormant_cause)),
+		"hint": String(Keys.status_hint(snap.state, snap.dormant_cause))})
+	card.present(&"away", tr(rs.title_key), "\n".join(_away_lines(rs)), now)
+
+
+## After "Not yet" (or on a launch while moldy, with no mold sheet waiting): a card that stays above the bar
+## until the discard starts (narrative §9.2).
+func _show_discard_card_if_moldy() -> void:
+	if session == null or session.get_snapshot().can_feed:
+		return
+	for e: SimEvent in session.get_pending_events():
+		if e.id == &"mold_found":
+			return
+	var discard := SdButton.new(&"MOLD_BTN_DISCARD", SdButton.Variant.PRIMARY)
+	discard.name = "DiscardIt"
+	discard.pressed.connect(func() -> void:
+		card.dismiss(true)
+		flow_sheet.start_discard())
+	card.present(&"discard", tr(&"STATUS_MOLDY_WORD"), tr(&"STATUS_MOLDY_HINT"), "", [discard], false)
+
+
+func _on_flow_finished(outcome: StringName) -> void:
+	match outcome:
+		&"adopted":
+			toast.show_text(session.format_text(&"NAME_DONE_TOAST", {"name": session.get_starter().name}))
+		&"discarded":
+			card.dismiss(true)
+			toast.show_key(&"MOLD_DONE_TOAST")
+		&"deferred":
+			_show_discard_card_if_moldy()
+
+
+# ------------------------------------------------------------------ events (ux §12)
+func _present_event_toast(e: SimEvent) -> void:
+	toast.show_text(session.format_text(e.key_for("TOAST"), e.payload))
+
+
+func _present_event_card(e: SimEvent) -> void:
+	_nudge_uid = e.uid
+	var act := SdButton.new(e.key_for("BTN"), SdButton.Variant.PRIMARY)
+	act.name = "EventAct"
+	act.pressed.connect(func() -> void:
+		_ack_nudge(&"act")
+		card.dismiss(true)
+		if e.id == &"hungry_again":
+			open_sheet(&"feed"))
+	var later := SdButton.new(e.key_for("DISMISS"), SdButton.Variant.TEXT)
+	later.name = "EventLater"
+	later.pressed.connect(func() -> void:
+		_ack_nudge(&"dismiss")
+		card.dismiss(true))
+	card.present(&"nudge", tr(e.key_for("TITLE")), session.format_text(e.key_for("BODY"), e.payload), "",
+		[later, act], true)
+
+
+func _ack_nudge(choice: StringName) -> void:
+	if _nudge_uid > 0 and session != null:
+		session.apply(AckEventAction.new(_nudge_uid, choice))
+	_nudge_uid = 0
+
+
+func _present_event_sheet(e: SimEvent) -> void:
+	var lines: Array[String] = []
+	if e.uid == _prompt_uid:
+		lines = _prompt_lines
+	_prompt_uid = 0
+	_prompt_lines = []
+	card.dismiss(true)
+	flow_sheet.show_event(e, lines)
+
+
+func _on_event_withdrawn(uid: int) -> void:
+	if card.is_shown() and card.kind == &"nudge" and _nudge_uid == uid:
+		_nudge_uid = 0
+		card.dismiss(true)
 
 
 # ------------------------------------------------------------------ test and driver seams
@@ -286,6 +473,9 @@ func _dismiss_card_on_action() -> void:
 func _on_card_dismissed(kind: StringName) -> void:
 	if kind == &"explainer":
 		_bus_emit(&"camera_focus_released")
+	elif kind == &"nudge":
+		# A swipe or tap away counts as "Later" (ux §12).
+		_ack_nudge(&"dismiss")
 
 
 func _on_sheet_opened(sheet_id: StringName) -> void:
@@ -409,6 +599,15 @@ func _sleep(seconds: float) -> void:
 	var end_ms: int = Time.get_ticks_msec() + int(seconds * UiMotion.time_scale * 1000.0)
 	while Time.get_ticks_msec() < end_ms and not (feed_running and _feed_skipped):
 		await get_tree().process_frame
+
+
+## Skip ends the feed sequence, or asks the view to end the time-lapse (it then sends time_lapse_finished).
+func _on_skip() -> void:
+	if feed_running:
+		_feed_skipped = true
+	elif return_running:
+		# The view ends playback and then sends time_lapse_finished; the away card waits for that.
+		_bus_emit(&"time_lapse_skip_requested")
 
 
 # ------------------------------------------------------------------ settings

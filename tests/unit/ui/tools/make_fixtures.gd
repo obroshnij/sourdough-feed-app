@@ -9,6 +9,8 @@ extends SceneTree
 const OUT_DIR: String = "res://tests/unit/ui/fixtures"
 const MAX_STEPS: int = 60 * 24 * 21
 const NAME: String = "Bramble"
+## Adopted 20 days before FakeClock's default start, so memorial dates read like a real game.
+const BORN_UNIX: int = 1795651200 - 20 * 86400
 
 
 func _initialize() -> void:
@@ -29,6 +31,7 @@ func _walk(location: StringName, found: Dictionary[StringName, bool]) -> void:
 	var s: StarterState = SimFixtures.mature()
 	SimFixtures.feed_ratio(s)
 	s.name = NAME
+	s.born_unix = BORN_UNIX
 	var env: EnvironmentState = EnvironmentState.at_location(location)
 	for i: int in MAX_STEPS:
 		var d: DerivedState = StateDeriver.derive(s, env)
@@ -50,6 +53,7 @@ func _recover(found: Dictionary[StringName, bool]) -> void:
 	var s: StarterState = SimFixtures.mature()
 	SimFixtures.feed_ratio(s)
 	s.name = NAME
+	s.born_unix = BORN_UNIX
 	var env: EnvironmentState = EnvironmentState.at_location(&"counter")
 	for i: int in 80 * 60:
 		Sim.step(s, env)

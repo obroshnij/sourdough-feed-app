@@ -187,10 +187,11 @@ func _build_popup() -> void:
 
 func _draw() -> void:
 	var down: bool = is_pressed() and get_draw_mode() in [DRAW_PRESSED, DRAW_HOVER_PRESSED]
-	var ink: Color = get_theme_color(&"font_pressed_color" if down else &"font_color")
+	var ink: Color = get_theme_color(&"font_disabled_color" if disabled else (&"font_pressed_color" if down else &"font_color"))
 	var ir: Rect2 = icon_rect()
 	if _icon != null:
-		draw_texture_rect(_icon, ir, false, get_theme_color(&"icon_pressed_color" if down else &"icon_normal_color"))
+		var tint: StringName = &"icon_disabled_color" if disabled else (&"icon_pressed_color" if down else &"icon_normal_color")
+		draw_texture_rect(_icon, ir, false, get_theme_color(tint))
 	var font: Font = get_theme_font(&"font")
 	var fsize: int = get_theme_font_size(&"font_size")
 	var lr: Rect2 = label_rect()

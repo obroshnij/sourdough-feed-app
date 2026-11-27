@@ -59,7 +59,12 @@ func is_shown() -> bool:
 
 
 func show_key(key: StringName, args: Dictionary = {}, icon_id: StringName = &"") -> void:
-	label.text = tr(key).format(args)
+	show_text(tr(key).format(args), icon_id)
+
+
+## Text already rendered (Session.format_text() for event toasts with a {time}).
+func show_text(text: String, icon_id: StringName = &"") -> void:
+	label.text = text
 	icon_rect.visible = icon_id != &""
 	if icon_id != &"":
 		icon_rect.texture = UiIcon.texture(icon_id)

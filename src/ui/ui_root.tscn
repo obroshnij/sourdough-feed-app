@@ -16,6 +16,8 @@
 [ext_resource type="Script" path="res://src/ui/sheets/inspect_sheet.gd" id="14_inspect"]
 [ext_resource type="Script" path="res://src/ui/sheets/place_sheet.gd" id="15_place"]
 [ext_resource type="Script" path="res://src/ui/components/sd_button.gd" id="16_sd"]
+[ext_resource type="Script" path="res://src/ui/sheets/journal_sheet.gd" id="17_journal"]
+[ext_resource type="Script" path="res://src/ui/sheets/flow_sheet.gd" id="18_flow"]
 
 [node name="UI" type="CanvasLayer"]
 layer = 10
@@ -192,10 +194,11 @@ script = ExtResource("15_place")
 
 [node name="Journal" type="Control" parent="Root/Sheets"]
 layout_mode = 1
-script = ExtResource("11_sheet")
-sheet_id = &"journal"
-title_key = &"JOURNAL_SCREEN_TITLE"
-height_kind = 2
+script = ExtResource("17_journal")
+
+[node name="Flow" type="Control" parent="Root/Sheets"]
+layout_mode = 1
+script = ExtResource("18_flow")
 
 [node name="Settings" type="Control" parent="Root/Sheets"]
 layout_mode = 1
