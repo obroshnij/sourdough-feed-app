@@ -15,3 +15,6 @@ func _ready() -> void:
 		win.size = Vector2i(roundi(w * scale), roundi(h * scale))
 	win.content_scale_factor = scale
 	Session.start()
+	# Debug builds only (architecture §3.2): the F3 dev overlay with the debug time scale.
+	if OS.is_debug_build():
+		add_child(DevOverlay.new())
