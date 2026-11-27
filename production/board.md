@@ -28,13 +28,15 @@ Owner: director (the only writer). Teammates report by message. Last updated 202
 
 | Step | Owner | Status |
 |---|---|---|
-| Contracts commit: actions, events, return summary, time-lapse feed, journal API, new game and naming, night fade, settings fields, stable `project.godot` | `t1-sim-core` | in progress |
-| Slice event rules: `first_rise`, `peaked_while_away` and `peak_now`, `hungry_again`, `hooch_forming`, `back_to_strength`, `warning_signs`, `mold_found` (D-032 T4 split) | `t4-events` | in progress |
-| Wider curved backdrop for yaw beyond ±15° | `art-director` | in progress |
-| AC-01 to AC-12 harness, manual checklists, look probe rows R12 and R13, the 411×914 profile, the flaky sheet test | `qa-engineer` | in progress |
-| Wire rules into catch-up and live steps, return summary classes, catch-up budget | `t1-sim-core` | after contracts |
-| Live easing, transitions, bubbles, wisps, inspection cameras, time-lapse, evening light | `t2-view` | after contracts |
-| Feed, place, smell and inspect sheets, event cards, away summary, journal, naming, moldy locks, settings | `t3-ui` | after contracts |
+| Contracts commit: actions, events, return summary, time-lapse feed, journal API, new game and naming, night fade, settings fields, stable `project.godot` | `t1-sim-core` | done (131b3fe, time-lapse Bus signals 364baea) |
+| Slice event rules: `first_rise`, `peaked_while_away` and `peak_now`, `hungry_again`, `hooch_forming`, `back_to_strength`, `warning_signs`, `mold_found` (D-032 T4 split, D-048) | `t4-events` | done (e4fd38c, 44 tests) |
+| Wider kitchen wall for the whole ±70° orbit (D-049) | `art-director` | done (76595bf). Wall shape waits on the user |
+| AC harness, traceability (107 rows), play-session checklists MAN-S0 to S5, import retry | `qa-engineer` | done (3aca626) |
+| Rules wired, catch-up 230 ms with 8 rules and on a worker thread (D-050), F3 dev overlay | `t1-sim-core` | done (6bacb19) |
+| Easing, breathing, bubble pops, feed and smell visuals | `t2-view` | done (ef6fcf6) |
+| Kitchen wall and its `.import` files, inspection and mold cameras, time-lapse, day and night light, R12 and R13, performance | `t2-view` | in progress |
+| Feed, place, smell and inspect sheets, event cards, away summary, journal, naming, moldy locks, restart (D-047), settings, 411×914 profile, flaky sheet test | `t3-ui` | in progress |
+| Architecture and data-model docs brought up to date | `tech-architect` | in progress |
 | Exit: AC-01 to AC-12 green under `--strict` on a fresh clone, and the user plays on the Mac and the Android emulator | director | |
 
 ## Phase 3 backlog (vertical slice), carried from Phase 2
@@ -57,7 +59,20 @@ Owner: director (the only writer). Teammates report by message. Last updated 202
 | A flaky test seen once: `test_sheets.gd::test_every_sheet_fits_at_every_size` on 360×640 at 125% | T3, QA |
 | Performance re-measure after the shader and texture changes (Mac estimates) | T2 |
 
+## Phase 4 follow-ups raised in Phase 3
+
+| Item | Owner |
+|---|---|
+| Commit the discard at "Discard", make the empty jar a real state, start the new starter in its own step (D-047 caveat) | T1, tech-architect, QA |
+| OD-22: many quick place moves write one journal line each. Merge them? | game-designer, T1 |
+| OD-23: freeze the first save-migration fixture from the build the user plays at the Phase 3 exit | QA |
+| Copy and UX review of T1's choices: the schedule fit line, the `{window}` midpoint and OVERNIGHT, time-lapse length, the away summary moment rows | narrative, ux |
+| "6 ObjectDB instances were leaked at exit" on every gate run (unchanged since Phase 2) | T1, QA |
+| "Unicode parsing error ... Unexpected NUL character" on every fresh import. No tracked text file holds a NUL byte | QA |
+
 ## Waiting on the user
+
+- The kitchen wall shape: keep the curved sweep, or a straight backsplash with side walls (D-049).
 
 - Review and merge PR #1 (Phase 2). Phase 3 builds on top of it and is approved.
 - Before Phase 5: the bundle id and Apple Team ID, and whether to download the Metal Toolchain (about 0.7 GB, unverified) for iOS shader baking.

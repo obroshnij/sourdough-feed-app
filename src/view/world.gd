@@ -7,6 +7,8 @@ extends Node3D
 ## maps on both renderers (see ViewLook.key_shadow); the counter shader draws the drop shadow.
 
 const KEY_DIR: Vector3 = Vector3(-0.557, 0.766, 0.321)
+## Night (art-direction.md §18.6): the drop shadow points toward the under-cabinet lamp.
+const NIGHT_SHADOW_DIR: Vector3 = Vector3(-0.23, 0.77, -0.59)
 const RIM_DIR: Vector3 = Vector3(0.7, 0.3, -0.65)
 const SKY_SHADER: String = "res://src/view/shaders/kitchen_sky.gdshader"
 ## How much of the screen each sheet covers from the bottom (ux-design.md §3).
@@ -22,6 +24,7 @@ const SHEET_COVER: Dictionary[StringName, float] = {
 @onready var world_env: WorldEnvironment = $WorldEnvironment
 @onready var key_light: DirectionalLight3D = $KeyLight
 @onready var rim_light: DirectionalLight3D = $RimLight
+@onready var night_lamp: OmniLight3D = $NightLamp
 
 var renderer: String = ""
 var look: ViewLook
@@ -35,12 +38,18 @@ var wisps: SmellWisps
 var dust: CPUParticles3D
 var _band_from: float = -1.0
 var _lid_tween: Tween
+## Shared night factor (D-043), 0 day to 1 night. Lights, wall and sky follow it.
+var night: float = 0.0
+var time_lapse: TimeLapsePlayer
+var _night_poll: float = 0.0
+var _sky_mat: ShaderMaterial
 
 
 func _ready() -> void:
 	renderer = RenderingServer.get_current_rendering_method()
 	look = ViewLook.for_renderer(renderer)
 	jar.bind($Jar/Model as Node3D)
+	jar.bind_wall($Wall as Node3D)
 	_place_lights()
 	apply_look(look)
 	set_reduce_effects(false)
@@ -57,11 +66,14 @@ func _ready() -> void:
 		bus.connect(&"feed_moment", _on_feed_moment)
 		bus.connect(&"smell_moment_started", _on_smell_started)
 		bus.connect(&"smell_moment_finished", _on_smell_finished)
+		if bus.has_signal(&"time_lapse_skip_requested"):
+			bus.connect(&"time_lapse_skip_requested", skip_time_lapse)
 	if follow_session:
 		var session: GameSession = get_node_or_null(^"/root/Session") as GameSession
 		if session != null:
 			session.state_changed.connect(_on_state_changed)
 			session.session_ready.connect(_on_session_ready)
+			session.resumed.connect(_on_resumed)
 			if session.is_booted():
 				_on_session_ready(null)
 
@@ -75,9 +87,9 @@ func _place_lights() -> void:
 
 func apply_look(p_look: ViewLook) -> void:
 	look = p_look
-	var sky_mat := ShaderMaterial.new()
-	sky_mat.shader = load(SKY_SHADER) as Shader
-	world_env.environment = look.make_environment(sky_mat)
+	_sky_mat = ShaderMaterial.new()
+	_sky_mat.shader = load(SKY_SHADER) as Shader
+	world_env.environment = look.make_environment(_sky_mat)
 	key_light.light_energy = look.key_energy
 	key_light.light_color = look.key_color
 	key_light.shadow_blur = look.shadow_blur
@@ -86,6 +98,31 @@ func apply_look(p_look: ViewLook) -> void:
 	rim_light.light_energy = look.rim_energy
 	rim_light.light_color = look.rim_color
 	jar.apply_look(look, KEY_DIR.normalized(), RIM_DIR.normalized())
+	set_night(night)
+
+
+## Day to night on one factor (art-direction.md §18.6). The darkness comes from the lights, never
+## the exposure: key to 15%, rim to 35%, sky to 30% with the window off, glass reflection to 50%,
+## the lamp on, and the drop shadow turned toward the lamp. The jar stays lit.
+func set_night(n: float) -> void:
+	night = clampf(n, 0.0, 1.0)
+	key_light.light_energy = look.key_energy * lerpf(1.0, 0.15, night)
+	rim_light.light_energy = look.rim_energy * lerpf(1.0, 0.35, night)
+	night_lamp.visible = night > 0.001
+	night_lamp.light_energy = look.lamp_energy * night
+	night_lamp.light_color = look.lamp_color
+	if _sky_mat != null:
+		_sky_mat.set_shader_parameter(&"energy", look.sky_energy * lerpf(1.0, 0.3, night))
+		_sky_mat.set_shader_parameter(&"window_energy", 0.6 * (1.0 - night))
+	if jar.quality != null:
+		jar.quality.set_shared(&"reflection_strength", look.glass_reflection * lerpf(1.0, 0.5, night))
+	if jar.counter_mat != null:
+		jar.counter_mat.set_shader_parameter(&"key_dir", KEY_DIR.normalized().lerp(NIGHT_SHADOW_DIR.normalized(), night).normalized())
+	jar.set_wall_night(night)
+	# Under the warm lamp the tonemapper lifts the cream's saturation in the darker range (N1, §18.6).
+	for m: ShaderMaterial in jar.starter_materials():
+		if m != null:
+			m.set_shader_parameter(&"grade_saturation", look.starter_saturation * (1.0 - look.night_desat * night))
 
 
 func set_reduce_effects(on: bool) -> void:
@@ -122,6 +159,10 @@ func follow_visuals(p: VisualParams) -> void:
 
 
 func _process(delta: float) -> void:
+	if time_lapse != null:
+		_play_time_lapse(delta)
+		return
+	_poll_night(delta)
 	var was_active: bool = feed.active()
 	feed.step(delta)
 	if feed.dust and dust != null and not reduce_effects:
@@ -149,6 +190,7 @@ func _show(p: VisualParams) -> void:
 
 func _set_starter_for_camera(p: VisualParams) -> void:
 	rig.starter_level_m = p.level_m
+	rig.starter_mid_y = jar.floor_y + 0.55 * p.level_m * p.rise
 	rig.starter_top_y = jar.floor_y + JarGeometry.surface_top_m(p.level_m, p.rise, p.dome)
 
 
@@ -164,12 +206,70 @@ func _read_settings() -> void:
 		set_reduce_motion(settings.reduce_motion)
 
 
-func _on_session_ready(_summary: CatchUpResult) -> void:
+func _on_session_ready(summary: CatchUpResult) -> void:
 	_read_settings()
 	var session: GameSession = get_node(^"/root/Session") as GameSession
 	var v: VisualParams = session.get_visuals()
 	if v != null:
 		set_visuals(v)
+	set_night(session.get_night_factor())
+	start_time_lapse(summary)
+
+
+func _on_resumed(summary: CatchUpResult) -> void:
+	start_time_lapse(summary)
+
+
+## Plays the catch-up time-lapse if the sim asks for one (CatchUpResult.play_time_lapse).
+## 3D input is off while it plays; Bus.time_lapse_started and time_lapse_finished bracket it.
+func start_time_lapse(summary: CatchUpResult) -> bool:
+	if not TimeLapsePlayer.can_play(summary):
+		return false
+	time_lapse = TimeLapsePlayer.new(summary.keyframes, summary.time_lapse_duration_s(), reduce_motion)
+	rig.set_input_enabled(false)
+	_bus_emit(&"time_lapse_started")
+	_play_time_lapse(0.0)
+	return true
+
+
+## Skip (T3's SkipPill or a tap): jump to the end, which restores the live visuals and night and
+## emits time_lapse_finished.
+func skip_time_lapse() -> void:
+	if time_lapse != null:
+		time_lapse.t = time_lapse.duration
+
+
+func _play_time_lapse(delta: float) -> void:
+	time_lapse.advance(delta)
+	var session: GameSession = get_node_or_null(^"/root/Session") as GameSession
+	var offset: int = session.local_utc_offset_s() if session != null else 0
+	set_night(NightFade.at_unix(time_lapse.unix_now(), offset))
+	jar.apply_visuals(time_lapse.sample())
+	if time_lapse.done():
+		time_lapse = null
+		if session != null and session.get_visuals() != null:
+			set_visuals(session.get_visuals())
+			set_night(session.get_night_factor())
+		rig.set_input_enabled(true)
+		_bus_emit(&"time_lapse_finished")
+
+
+func _poll_night(delta: float) -> void:
+	_night_poll -= delta
+	if _night_poll > 0.0 or not follow_session:
+		return
+	_night_poll = 1.0
+	var session: GameSession = get_node_or_null(^"/root/Session") as GameSession
+	if session != null and session.is_booted():
+		var n: float = session.get_night_factor()
+		if absf(n - night) > 0.001:
+			set_night(n)
+
+
+func _bus_emit(sig: StringName) -> void:
+	var bus: Node = get_node_or_null(^"/root/Bus")
+	if bus != null and bus.has_signal(sig):
+		bus.emit_signal(sig)
 
 
 func _on_state_changed(_snapshot: StarterSnapshot, visuals: VisualParams) -> void:

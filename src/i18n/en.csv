@@ -71,7 +71,7 @@ EVENT_HUNGRY_AGAIN_AWAY,It ran out of food and fell back.
 EVENT_HUNGRY_AGAIN_BODY,It has eaten everything and fallen back. A sour smell is normal now. Feed it whenever it suits you.
 EVENT_HUNGRY_AGAIN_BTN,Feed it
 EVENT_HUNGRY_AGAIN_DISMISS,Later
-EVENT_HUNGRY_AGAIN_JOURNAL_BODY,"The food ran out around {time}. It fell back and turned sour, right on cue."
+EVENT_HUNGRY_AGAIN_JOURNAL_BODY,"It’s been hungry since about {time}. It fell back and turned sour, right on cue."
 EVENT_HUNGRY_AGAIN_JOURNAL_TITLE,Hungry again
 EVENT_HUNGRY_AGAIN_TITLE,Ready for a feed
 EVENT_MOLD_FOUND_AWAY,Mold appeared on the surface.

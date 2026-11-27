@@ -200,6 +200,31 @@ func test_ec_25_discard_survives_a_kill_and_leaves_one_memorial() -> void:
 	check_eq(fed.journal_entry.starter_id if fed.journal_entry != null else "", s.id, "new entries use the new id")
 
 
+## EC-25 and D-047: discarding and naming the new starter are one atomic save. The memorial page
+## (preview_memorial) is shown and the player is naming when the app is killed: nothing was saved, so
+## the relaunch is the moldy jar again, with no memorial, and the flow can run again.
+func test_ec_25_kill_before_the_name_is_confirmed_keeps_the_moldy_jar() -> void:
+	if not ready_for_integration() or not require(&"p3_contracts"):
+		return
+	var h: SliceHarness = mature_phone("discard_unconfirmed", SliceHarness.seed_for_draw(0.5))
+	h.apply(feed_111())
+	h.reopen_at(T0 + 225 * HOUR)
+	if not check_eq(h.state(), &"moldy", "moldy at 225 h"):
+		return
+	var bytes_before: PackedByteArray = h.bytes_of(SaveStore.FILE_MAIN)
+	var preview: Memorial = h.session.preview_memorial()
+	check(preview != null and preview.name == SliceHarness.STARTER_NAME, "the memorial page previews the old starter")
+	check_eq(h.bytes_of(SaveStore.FILE_MAIN), bytes_before, "showing the memorial page saves nothing")
+	h.kill()
+	h.launch()
+	check_eq(h.state(), &"moldy", "the relaunch is the moldy jar")
+	check_eq(h.session.get_starter().id, SliceHarness.STARTER_ID, "the same starter")
+	check_eq(h.session.get_memorials().size(), 0, "no memorial yet")
+	check_eq(h.journal_of(&"memorial").size(), 0, "no memorial journal entry")
+	check(h.apply(DiscardStarterAction.new("Juniper")).ok, "the discard flow can run again")
+	check_eq(h.session.get_memorials().size(), 1, "and then leaves exactly one memorial")
+
+
 # ------------------------------------------------------------------ helpers
 
 ## The snapshot states carried by every state_changed, in order.

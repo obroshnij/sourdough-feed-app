@@ -109,7 +109,7 @@ The `_AWAY_` peak lines double as the journal's peak log lines, so peaks read th
 | `EVENT_HUNGRY_AGAIN_DISMISS` | Later | 18 |
 | `EVENT_HUNGRY_AGAIN_AWAY` | It ran out of food and fell back. | 44 |
 | `EVENT_HUNGRY_AGAIN_JOURNAL_TITLE` | Hungry again | 26 |
-| `EVENT_HUNGRY_AGAIN_JOURNAL_BODY` | The food ran out around {time}. It fell back and turned sour, right on cue. | 200 |
+| `EVENT_HUNGRY_AGAIN_JOURNAL_BODY` | It's been hungry since about {time}. It fell back and turned sour, right on cue. | 200 |
 
 ### 3.4 `hooch_forming`
 

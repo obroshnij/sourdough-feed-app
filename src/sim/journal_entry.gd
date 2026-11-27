@@ -15,6 +15,9 @@ extends RefCounted
 ## - milestone: the Day one page after the first feed (JOURNAL_DAY_ONE_TITLE, body in data.body_key).
 ## - memorial: MEMORIAL_TITLE with {name}. The page itself reads Session.get_memorials().
 ## - environment, smell, inspect, rename, state_change: one log line each.
+##
+## `data` and `args` hold their saved form from the moment Session appends the entry: whole numbers are ints,
+## other floats are D-040 hex strings. Read numbers with DictReader.float_of(), never as raw floats.
 
 const CAP: int = 400
 const KINDS: Array[StringName] = [
