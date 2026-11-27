@@ -201,12 +201,12 @@ func test_info_toast_links_to_the_journal() -> void:
 	ui.presenter.enqueue(event(&"first_rise", &"info", 9501))
 	await wait(0.4)
 	check(ui.toast.is_shown(), "the toast shows")
-	check(ui.toast.get_node(^"Row/Chevron").visible, "with a › chevron")
+	check((ui.toast.get_node(^"Row/Chevron") as Control).visible, "with a › chevron")
 	check_eq(ui.toast.accessibility_description, tr(&"TOAST_A11Y_MORE"), "and says it opens the entry")
 	var release := InputEventMouseButton.new()
 	release.button_index = MOUSE_BUTTON_LEFT
 	release.pressed = false
-	ui.toast.gui_input.emit(release)
+	ui.toast._gui_input(release)
 	await wait(0.4)
 	check(ui.journal_sheet.is_open(), "a tap opens the journal")
 
@@ -224,18 +224,15 @@ func test_place_cards_show_the_temperature() -> void:
 
 func test_new_state_dot_when_the_api_exists() -> void:
 	await boot("active")
-	if not session.has_method(&"is_state_new"):
-		skip("waits for T1's seen-state API (is_state_new, mark_state_seen)")
-		return
 	var pill: StatusPill = ui.hud.status_pill
-	var was_new: bool = session.call(&"is_state_new", &"active") == true
+	var was_new: bool = session.is_state_new(&"active")
 	check_eq(pill.show_new_dot, was_new, "the dot follows the Session's seen-state record")
 	if was_new:
 		check(pill.accessibility_description.ends_with(tr(&"STATUS_NEW_A11Y")), "and the description says so")
 		pill.pressed.emit()
 		await wait(0.2)
 		check(not pill.show_new_dot, "a tap clears it")
-		check(session.call(&"is_state_new", &"active") != true, "once per state")
+		check(not session.is_state_new(&"active"), "once per state")
 
 
 ## D-043: the palette and the lights share one curve, NightFade, through Session.get_night_factor().
