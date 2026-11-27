@@ -36,7 +36,7 @@ Only commands that have actually been run go here.
 /Applications/Godot.app/Contents/MacOS/Godot --version      # 4.7.2.stable.official.ed1daf0bf
 /Applications/Blender.app/Contents/MacOS/Blender --version  # Blender 5.3.0
 
-# Reference simulation: checks test vectors V1 to V20 against the spec (about 3 s)
+# Reference simulation: checks test vectors V1 to V21 against the spec (about 3 s)
 python3 -I tools/sim-reference/sim.py vectors   # ends "Checks: 269 run, 0 failed", exit 0; exit 1 on any miss (spec v1.1)
 
 # Full test gate: imports first, runs every Godot test plus 5 lints; --strict fails on any skip (D-041).
