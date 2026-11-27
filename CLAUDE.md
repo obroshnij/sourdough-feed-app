@@ -26,7 +26,7 @@ A cozy 3D virtual pet for iOS and Android. The player keeps a living sourdough s
 | Android SDK | `~/Library/Android/sdk` | Missing platform 36, build-tools 36.1.0 and the NDK. Deferred to the Android phase (D-054) |
 | ffmpeg | `/opt/homebrew/bin/ffmpeg` | 9.0.2. Needed by the audio lint (`art/audio/scripts/verify_audio.py`) and the Ogg room loops |
 
-Godot 4.7.2 export templates are installed in `~/Library/Application Support/Godot/export_templates/4.7.2.stable/`, checksum-verified against the official SHA512-SUMS (2026-11-26). There is no physical test phone yet: performance numbers from the Mac or simulators are estimates and must be labeled that way.
+Godot 4.7.2 export templates are installed in `~/Library/Application Support/Godot/export_templates/4.7.2.stable/`, checksum-verified against the official SHA512-SUMS (2026-11-26). The physical test phone is the user's iPhone 13 Pro (D-058), built and installed with `tools/build/export_ios_device.sh --run`. Numbers from it are labeled "iPhone 13 Pro (device)". Numbers from the Mac or simulators are estimates and must be labeled that way.
 
 ## Verified commands
 
@@ -55,8 +55,13 @@ python3 -I tools/i18n/build_catalog.py . --check   # "OK, up to date", exit 0 (d
 /Applications/Godot.app/Contents/MacOS/Godot --path . res://src/main/main.tscn   # Metal, Forward Mobile, 0 errors
 
 # Builds (see tools/build/README.md): Android debug APK on a running emulator; iOS simulator is boot-check only
-tools/build/export_android_debug.sh --run
-tools/build/export_ios_sim.sh --run
+tools/build/export_android_debug.sh --run   # Android phase (D-054)
+tools/build/export_ios_sim.sh --run          # boot check only; crashes in the GLES3 canvas renderer since Phase 3
+
+# iPhone build, install and launch (D-058; signing from the keychain or tools/build/local.env, never committed).
+# Phone unlocked and connected. "renderer: Metal 4.0 - Forward Mobile ... Apple A15 GPU", 0 script errors (2026-11-27)
+tools/build/export_ios_device.sh --run
+tools/build/export_ios_device.sh --verify   # unsigned build only, proves export and compile
 
 # Jar GLB contract and triangle budgets: "PASS: contract nodes ..." and exit 0
 python3 -I art/blender/scripts/verify_glb.py assets/3d/jar_v0.glb

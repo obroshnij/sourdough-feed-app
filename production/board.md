@@ -9,7 +9,7 @@ iOS first (D-054). No screen-reader work and no Godot 4.8 (D-055). Audio from a 
 | Step | Owner | Status |
 |---|---|---|
 | Contracts: P1 sim content (4 flours, hydration 60/100/125, `window_sill`, `proofing_box`, traits, `consistency` and `development`), empty jar state and discard at "Discard", onboarding demo seam, journal merge of quick place moves (OD-22), `Notifier` wrapper, haptics hook | `t1-sim-core` | in progress |
-| iOS device build script (signing from a gitignored local file), first run on the iPhone | `t1-toolchain` | in progress |
+| iOS device build script (signing from a gitignored local file), first run on the iPhone | `t1-toolchain` | done (8432052). First device run 2026-11-27 on the iPhone 13 Pro (iOS 26.6): Metal 4.0, Forward Mobile, Apple A15 GPU; 0 script errors, 0 shader errors, 1 engine error (`mouse_get_position()` from inside Godot, harmless, to find and silence: T2/T3); engine start to `main.tscn` loaded 4.7 s on the phone clock with `--verbose` |
 | The 8 remaining events: `first_acetone`, `off_to_nap`, `waking_up`, `fed_before_peak`, `warm_and_quick`, `big_bubble`, `getting_stretchy`, `trait_revealed` | `t4-events` | in progress |
 | Phase 4 acceptance criteria and the iPhone play checklist | `qa-engineer` | in progress |
 | Audio direction and the sound set (synthesized, CC0 only where needed) | `sound-designer` | in progress |
