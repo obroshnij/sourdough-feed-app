@@ -77,6 +77,27 @@ No string is ever picked with a free random call (CLAUDE.md rule 1).
 
 `feed_count` is the starter's total number of feeds, saved. `DESCRIPTOR_ORDER` is vision.md's list order: `wet_flour`, `mildly_fruity`, `fresh_yeasty`, `yogurt`, `pleasantly_tangy`, `strongly_acidic`, `alcohol`, `acetone`, `cheesy`, `musty`. Inspection has one line per cell, so it needs no pick.
 
+### 1.5 Time and date parts
+
+Used to build `{time}` and `{start_date}`/`{end_date}` (§1.3) in US English. Worst cases stay true: `{time}` "11:30 PM" is 8 characters, the date "Nov 26, 2026" is 12.
+
+| Key | Text | Max |
+|---|---|---|
+| `TIME_AM` | AM | 2 |
+| `TIME_PM` | PM | 2 |
+| `MONTH_SHORT_01` | Jan | 3 |
+| `MONTH_SHORT_02` | Feb | 3 |
+| `MONTH_SHORT_03` | Mar | 3 |
+| `MONTH_SHORT_04` | Apr | 3 |
+| `MONTH_SHORT_05` | May | 3 |
+| `MONTH_SHORT_06` | Jun | 3 |
+| `MONTH_SHORT_07` | Jul | 3 |
+| `MONTH_SHORT_08` | Aug | 3 |
+| `MONTH_SHORT_09` | Sep | 3 |
+| `MONTH_SHORT_10` | Oct | 3 |
+| `MONTH_SHORT_11` | Nov | 3 |
+| `MONTH_SHORT_12` | Dec | 3 |
+
 ## 2. Status
 
 The pill shows an icon plus the word, never color alone. The hint is always shown under it. Tapping the status shows the tap line, plus the forecast during a rise (§9).
@@ -161,6 +182,7 @@ The status pill's `accessibility_name` is the status word itself (12, within 40)
 | `REASON_ENVIRONMENT` | That place isn't available. | 60 |
 | `REASON_INSPECT_KIND` | That one can't be inspected yet. | 60 |
 | `REASON_NAME` | A name needs 1 to 16 characters. | 60 |
+| `REASON_ADOPT` | It already has a name. | 60 |
 | `REASON_EVENT` | That note is already gone. | 60 |
 | `REASON_SAVE_FAILED` | Couldn't save just now. Trying again soon. | 60 |
 | `REASON_NOT_READY` | One moment. Still getting ready. | 60 |
