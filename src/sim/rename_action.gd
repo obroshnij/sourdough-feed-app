@@ -1,6 +1,6 @@
 class_name RenameAction
 extends GameAction
-## Rename the starter (data-models.md §4). 1 to 24 characters after trimming.
+## Rename the starter (data-models.md §4). 1 to 16 characters after trimming (GameAction.NAME_MAX_CHARS, D-063).
 
 var new_name: String = ""
 

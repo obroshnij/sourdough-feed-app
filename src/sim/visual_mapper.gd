@@ -11,8 +11,8 @@ const LEVEL_M_MAX: float = 0.042
 ## Art-direction §6: moldy shows colonies at 0.75. The view fades them in over 2 s.
 const MOLD_SHOWN: float = 0.75
 const BIG_BUBBLE_U: float = 0.85
-## The least crack the jar shows once the top cracks (Inspection.shows_cracks).
-const CRACK_FLOOR: float = 0.2
+## The least crack the jar shows once the top cracks (Inspection.shows_cracks), art-direction §20.2.
+const CRACK_FLOOR: float = 0.35
 
 
 static func from_state(s: StarterState, env: EnvironmentState) -> VisualParams:
@@ -43,28 +43,32 @@ static func from_derived(s: StarterState, env: EnvironmentState, d: DerivedState
 	v.rise = clampf(s.rise, SimConstants.RISE_MIN, SimConstants.RISE_MAX)
 	var dome: float = 0.1 + 0.7 * up - 1.2 * fallen * clampf((s.peak_rise - 1.0) / 0.5, 0.0, 1.0)
 	var rye: float = s.flour_mix.get(&"rye", 0.0)
-	if rye >= 0.5 and s.rise >= 1.3:
-		dome *= 0.3
+	# art-direction §20.2: per-flour dome, and firmness from the effective hydration (spec §5's h_eff): a stiff
+	# paste is duller and lumpier, a loose one glossier and flatter. One rule covers the 60/100/125% presets.
+	var firm: float = clampf((100.0 - _h_eff(s)) / 40.0, -0.6, 1.0)
+	var stiff: float = maxf(firm, 0.0)
+	var loose: float = maxf(-firm, 0.0)
+	dome *= _blend(s, SimCatalog.DOME_K) * (1.0 - 0.4 * loose)
 	v.dome = clampf(dome, -1.0, 1.0)
 	# Phase 4: rye's cracked top (spec v1.1 §14). Above 0 exactly when Inspection lists `cracked` or
 	# `sunken_cracked` (Inspection.shows_cracks), with a visible floor at the thresholds so the jar and the text
 	# always agree (tech-architect, hard rule 2). Floor and ramp ends are first values for art-director to tune.
 	if Inspection.shows_cracks(s, d):
-		v.crack = CRACK_FLOOR + (1.0 - CRACK_FLOOR) * smoothstep(0.5, 0.7, rye) * smoothstep(1.3, 1.45, s.rise)
+		v.crack = CRACK_FLOOR + (1.0 - CRACK_FLOOR) * smoothstep(0.5, 0.8, rye) * smoothstep(1.3, 1.5, s.rise)
 	v.activity = 0.0 if s.moldy else d.activity
 	v.bubble_density = 0.0 if s.moldy else clampf(0.05 + 0.85 * d.activity, 0.0, 1.0)
-	v.bubble_size = clampf(0.1 + 0.7 * up + 0.3 * fallen, 0.0, 1.0)
+	v.bubble_size = clampf((0.1 + 0.7 * up + 0.3 * fallen) * _blend(s, SimCatalog.SIZE_K), 0.0, 1.0)
 	v.peak_line = s.peak_rise if s.peak_rise > 1.0 else 0.0
 	# art-direction §6: about 0.8 while collapsing, 0.5 once hungry (the residue dries over about 6 h from
 	# hunger onset, near 5 weighted starved hours at the counter), 0.6 at unhealthy and moldy (crusted).
 	# Continuous, so a step never pops (PROP-10).
 	var streak: float = 0.8 - 0.3 * clampf((s.starved_h - 5.0) / 6.0, 0.0, 1.0) + 0.1 * dull
 	v.streak_amount = streak * clampf((s.peak_rise - s.rise) / 0.3, 0.0, 1.0)
-	v.lumps = clampf(0.15 + 0.7 * fresh, 0.0, 1.0)
+	v.lumps = clampf((0.15 + 0.7 * fresh + 0.25 * stiff) * (1.0 - 0.5 * loose), 0.0, 1.0)
 	v.hooch_depth = clampf(s.hooch, 0.0, 1.0)
 	v.surface_dryness = clampf(s.dryness, 0.0, 1.0)
 	v.dullness = dull
-	v.sheen = clampf((0.35 + 0.35 * up) * (1.0 - 0.85 * dull), 0.0, 1.0)
+	v.sheen = clampf((0.35 + 0.35 * up) * (1.0 - 0.85 * dull) * (1.0 - 0.35 * stiff + 0.25 * loose), 0.0, 1.0)
 	v.tint = _tint(s)
 	v.fleck = _fleck(s)
 	v.mold = MOLD_SHOWN if s.moldy else 0.0
@@ -84,6 +88,25 @@ static func _tint(s: StarterState) -> Color:
 		c.g += t.g * w
 		c.b += t.b * w
 	return c
+
+
+## A per-flour factor (SimCatalog.DOME_K, SIZE_K) weighted by flour_mix. 1.0 for an unknown flour.
+static func _blend(s: StarterState, table: Dictionary) -> float:
+	var k: float = 0.0
+	for id: StringName in s.flour_mix:
+		var x: float = table.get(id, 1.0)
+		k += x * s.flour_mix[id]
+	return k
+
+
+## spec §5: h_eff = culture_hydration / the mix's absorption.
+static func _h_eff(s: StarterState) -> float:
+	var ab: float = 0.0
+	for id: StringName in s.flour_mix:
+		var row: Array = SimConstants.FLOURS[id]
+		var absorb: float = row[2]
+		ab += s.flour_mix[id] * absorb
+	return s.culture_hydration / ab if ab > 0.0 else s.culture_hydration
 
 
 static func _fleck(s: StarterState) -> float:

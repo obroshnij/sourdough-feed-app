@@ -3,14 +3,20 @@ extends RefCounted
 ## Profiles by id (data-models.md §3). Session builds it once and passes it in; the sim never loads files.
 ## `builtin()` builds the catalog in code from SimConstants, so tests and the sim need no files.
 
-## Placeholder tints until art-director's per-flour values land (art-direction.md §2.1).
+## art-direction §20.2 (Phase 4, art-director, directions checked by the scientist): sRGB tints that read
+## apart once lit, bran flecks, and per-flour dome and bubble-size factors. VisualMapper blends all of them by
+## flour_mix, so a mix sits between its flours.
 const TINTS: Dictionary = {
-	&"white_bread": Color(0.96, 0.92, 0.84),
-	&"whole_wheat": Color(0.84, 0.72, 0.56),
-	&"rye": Color(0.74, 0.62, 0.50),
-	&"spelt": Color(0.92, 0.85, 0.72),
+	&"white_bread": Color(0.961, 0.922, 0.839),
+	&"whole_wheat": Color(0.847, 0.741, 0.596),
+	&"rye": Color(0.667, 0.576, 0.475),
+	&"spelt": Color(0.937, 0.863, 0.675),
 }
-const FLECKS: Dictionary = {&"white_bread": 0.0, &"whole_wheat": 0.6, &"rye": 0.35, &"spelt": 0.2}
+const FLECKS: Dictionary = {&"white_bread": 0.0, &"whole_wheat": 0.6, &"rye": 0.3, &"spelt": 0.15}
+## How high the dome stands (spec §4: whole grain and spelt lower, rye barely domes).
+const DOME_K: Dictionary = {&"white_bread": 1.0, &"whole_wheat": 0.7, &"rye": 0.3, &"spelt": 0.7}
+## Bubble size (rye holds gas poorly, so smaller, spec §4).
+const SIZE_K: Dictionary = {&"white_bread": 1.0, &"whole_wheat": 0.9, &"rye": 0.75, &"spelt": 1.0}
 const _COVER_NODES: Dictionary = {
 	&"loose_lid": &"Jar_Lid_Loose", &"tight_lid": &"Jar_Lid_Tight", &"cloth": &"Cloth_Cover",
 }

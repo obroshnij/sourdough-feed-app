@@ -110,9 +110,12 @@ class CatchUpJob:
 	## Built on the main thread (_step_rules): none for a nameless starter (EC-26).
 	var rules: Array[EventRule] = []
 	var result: CatchUpResult = null
+	var elapsed_us: int = 0
 
 	func run() -> void:
+		var t0: int = Time.get_ticks_usec()
 		result = CatchUp.run_with_rules(starter, env, history, ledger, catalog, to_unix, utc_offset_s, false, rules)
+		elapsed_us = Time.get_ticks_usec() - t0
 
 
 ## The decoded payload, before it is applied.
@@ -168,6 +171,10 @@ var async_catch_up: bool = true
 var _timer: Timer = null
 var _idle_timer: Timer = null
 var _flags: DevFlags = DevFlags.new()
+## Debug builds of the real app (start()) print one line per launch or resume catch-up and per notification
+## forecast, with steps and milliseconds, so device numbers can be read from the log (QA, D-063). Tests never
+## call start(), so their output stays quiet.
+var _log_timings: bool = false
 var _notifier: Notifier = Notifier.new()
 var _haptics: Haptics = Haptics.new()
 ## The onboarding demo's sandbox (begin_demo() to adoption or end_demo()). Never saved.
@@ -210,6 +217,7 @@ func setup(clock: Clock, store: SaveStore, settings: SettingsStore = null,
 func start() -> void:
 	if _booted:
 		return
+	_log_timings = OS.is_debug_build()
 	if _clock == null:
 		var clock: Clock = SystemClock.new()
 		if OS.is_debug_build():
@@ -1055,6 +1063,7 @@ func _finish_job() -> void:
 	_last_mono_ms = job.mono_ms
 	_refresh()
 	_last_summary = job.result
+	_log_timing("catch-up (%s, worker thread)" % job.kind, job.result.steps, job.elapsed_us)
 	if job.kind == &"boot":
 		_finish_boot(job.result, job.first_launch)
 	else:
@@ -1075,8 +1084,10 @@ func _sync_to_clock() -> CatchUpResult:
 	elif decision.action == &"hold":
 		summary = CatchUpResult.empty(_starter.sim_time_unix)
 	else:
+		var t0: int = Time.get_ticks_usec()
 		summary = CatchUp.run_with_rules(_starter, _env, _history, _ledger, _catalog, now,
 			_clock.local_utc_offset_s(), false, _step_rules(false))
+		_log_timing("catch-up (main thread)", summary.steps, Time.get_ticks_usec() - t0)
 	_reset_session_clock(now)
 	_refresh()
 	_last_summary = summary
@@ -1391,7 +1402,19 @@ func _merge_move(entry: JournalEntry) -> JournalEntry:
 ## Plans the warning-signs notification from the current state (D-057). Not for an unnamed gifted starter.
 func _update_notification() -> void:
 	var enabled: bool = _settings != null and _settings.notifications and not is_first_run()
-	_notifier.update(_starter, _env, _clock.now_unix(), _clock.local_utc_offset_s(), enabled, _starter.name)
+	var t0: int = Time.get_ticks_usec()
+	var fire: int = _notifier.update(_starter, _env, _clock.now_unix(), _clock.local_utc_offset_s(), enabled,
+		_starter.name)
+	if enabled:
+		_log_timing("notification forecast (fires at %d)" % fire, -1, Time.get_ticks_usec() - t0)
+
+
+## One debug line for device timings (Mac numbers are estimates, D-004). Silent in tests and release builds.
+func _log_timing(what: String, steps: int, elapsed_us: int) -> void:
+	if not _log_timings:
+		return
+	var step_text: String = "" if steps < 0 else " %d steps," % steps
+	print("[timing] %s:%s %.1f ms" % [what, step_text, float(elapsed_us) / 1000.0])
 
 
 func _feed_entry(feed: FeedAction, before: StarterState, derived_before: DerivedState) -> JournalEntry:
@@ -1551,6 +1574,8 @@ func _apply_parts(parts: Parts) -> void:
 	_starter = parts.starter
 	_env = parts.env
 	_history = parts.history
+	if not _history.had_unlocks:
+		_history.grant_legacy_unlocks(_starter)
 	_ledger = parts.ledger
 	_journal = parts.journal
 	_memorials = parts.memorials

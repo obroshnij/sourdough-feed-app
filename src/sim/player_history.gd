@@ -87,6 +87,9 @@ var feed_ref_at_peak_s: int = -1
 var unlocks: Dictionary[StringName, int] = {}
 ## Not saved: unlocks opened since Session last journaled them (take_new_unlocks()).
 var _new_unlocks: Array[StringName] = []
+## Not saved: false when the loaded history predates Phase 4 (no "unlocks" key), so Session grants the P1
+## unlocks its starter already earned (OD-29, D-063).
+var had_unlocks: bool = true
 ## Not saved: the LocalDay.day_index of the newest bucket in `daily`, -1 = not looked up yet.
 var _day_index: int = -1
 ## Not saved: the newest bucket and the Unix range [_cur_from, _cur_to) of its local day at _cur_offset.
@@ -234,6 +237,17 @@ func reset_for_new_starter() -> void:
 
 ## The skip path ("I've kept a starter before", game-design §3): every earned unlock at once, at `at_unix`.
 ## No journal lines (take_new_unlocks() stays empty).
+## OD-29 (D-063): a save from before Phase 4 gets, silently (no journal lines), the unlocks its starter has
+## already earned: whole_wheat (the slice offered it from the start), and the rest from its maturity and a
+## fridge wake. A nameless or empty starter earns nothing here.
+func grant_legacy_unlocks(state: StarterState) -> void:
+	had_unlocks = true
+	if state.empty or state.name.strip_edges().is_empty():
+		return
+	for id: StringName in Unlocks.due(unlocks, state.maturity, true, fridge_left_unix > 0):
+		unlocks[id] = state.sim_time_unix
+
+
 func open_all_unlocks(at_unix: int) -> void:
 	for id: StringName in Unlocks.EARNED:
 		if not unlocks.has(id):
@@ -446,6 +460,8 @@ static func from_dict(d: Dictionary) -> PlayerHistory:
 	h.feed_ref_at_peak_s = r.integer_or("feed_ref_at_peak_s", -1)
 	if r.has("unlocks"):
 		h.unlocks = r.int_map("unlocks")
+	else:
+		h.had_unlocks = false
 	for k: StringName in h.unlocks:
 		if not Unlocks.EARNED.has(k):
 			return null

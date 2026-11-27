@@ -395,6 +395,34 @@ func test_v11_readouts_use_catalog_keys() -> void:
 	check(missing.is_empty(), "keys missing from the catalog: " + ", ".join(missing))
 
 
+## OD-29 (D-063): a save from before Phase 4 has no unlocks. It gets what its starter already earned, silently.
+func test_od_29_old_saves_get_the_unlocks_they_earned() -> void:
+	if not require(&"p4_contracts"):
+		return
+	var clock := FakeClock.new(T0)
+	var s: GameSession = _session(fresh_dir("od29"), clock)
+	s.apply(AdoptStarterAction.new("Bramble", &"tour"))
+	var payload: Dictionary = s.build_payload()
+	var history: Dictionary = payload["history"]
+	history.erase("unlocks")
+	var starter: Dictionary = payload["starter"]
+	starter["maturity"] = 0.4
+	var fixture: String = fresh_dir("od29_fixture") + "/fixture.json"
+	write_text(fixture, JSON.stringify(payload))
+	s.free()
+	var m := GameSession.new()
+	m.setup(clock, SaveStore.new(fresh_dir("od29_run")))
+	m.boot_from_fixture(fixture)
+	check(m.is_unlocked(&"whole_wheat"), "the slice offered whole wheat")
+	for id: StringName in [&"window_sill", &"rye", &"hydration", &"consistency", &"development"]:
+		check(m.is_unlocked(id), "steady earned %s" % id)
+	check(not m.is_unlocked(&"spelt") and not m.is_unlocked(&"proofing_box"), "not mature yet")
+	for e: JournalEntry in m.get_journal():
+		check(str(e.data.get("milestone", "")) != "unlock", "no unlock lines for old news")
+	check(m.get_history().take_new_unlocks().is_empty(), "nothing queued to journal")
+	m.free()
+
+
 func test_trait_reveal_reaches_the_snapshot_and_memorial() -> void:
 	if not require(&"p4_contracts"):
 		return
