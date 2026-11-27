@@ -20,6 +20,9 @@ extends RefCounted
 ## other floats are D-040 hex strings. Read numbers with DictReader.float_of(), never as raw floats.
 
 const CAP: int = 400
+## The journal's share of save.json's 128 KB budget. The rest of the payload (starter, environment, history,
+## a ledger with at most 20 pending events, memorials, meta) needs a few KB.
+const BYTE_CAP: int = 100 * 1024
 const KINDS: Array[StringName] = [
 	&"feed", &"environment", &"smell", &"inspect", &"event", &"state_change", &"milestone", &"rename", &"memorial",
 	&"hooch",
@@ -34,15 +37,30 @@ var state_id: StringName = &""
 var text_key: StringName = &""
 ## Primitives the UI formats into the translated text.
 var args: Dictionary = {}
-## Facts, for example a feed's grams, ratio and hydration.
+## Facts, for example a feed's grams (FeedAction.journal_facts()), timing and feed_u.
 var data: Dictionary = {}
+## Cached saved size in bytes; -1 until saved_bytes() computes it. Not saved.
+var _saved_bytes: int = -1
 
 
-## Appends and trims to `cap`: the oldest state_change first, then the oldest inspect or smell, then the
-## oldest of any other kind. memorial and milestone entries are never dropped.
-static func append_capped(list: Array[JournalEntry], entry: JournalEntry, cap: int = CAP) -> void:
+## About how many bytes this entry adds to save.json (its JSON, as saved, plus a comma). Computed once.
+func saved_bytes() -> int:
+	if _saved_bytes < 0:
+		_saved_bytes = JSON.stringify(to_dict()).to_utf8_buffer().size() + 1
+	return _saved_bytes
+
+
+## Appends, then trims while the list is over `cap` entries or over `byte_cap` saved bytes: the oldest
+## state_change first, then the oldest inspect or smell, then the oldest of any other kind. memorial and
+## milestone entries are never dropped. The byte cap keeps save.json inside its 128 KB budget in long play
+## (architecture §11, SAVE-13): 400 entries of the heavier kinds alone came to about 146 KB.
+static func append_capped(list: Array[JournalEntry], entry: JournalEntry, cap: int = CAP,
+		byte_cap: int = BYTE_CAP) -> void:
 	list.append(entry)
-	while list.size() > cap:
+	var total: int = 0
+	for e: JournalEntry in list:
+		total += e.saved_bytes()
+	while list.size() > cap or total > byte_cap:
 		var drop: int = _first_index(list, [&"state_change"])
 		if drop < 0:
 			drop = _first_index(list, [&"inspect", &"smell"])
@@ -50,6 +68,7 @@ static func append_capped(list: Array[JournalEntry], entry: JournalEntry, cap: i
 			drop = _first_index(list, [&"feed", &"hooch", &"environment", &"event", &"rename"])
 		if drop < 0:
 			return
+		total -= list[drop].saved_bytes()
 		list.remove_at(drop)
 
 

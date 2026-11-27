@@ -301,6 +301,37 @@ func test_memorial_page_values() -> void:
 	check_eq(StarterState.seed_of("not hex!"), 0, "a non-hex id gives seed 0")
 
 
+func test_journal_is_capped_by_bytes_too() -> void:
+	if not require(&"p3_contracts"):
+		return
+	var list: Array[JournalEntry] = []
+	var keep := JournalEntry.new()
+	keep.kind = &"memorial"
+	keep.text_key = &"MEMORIAL_TITLE"
+	JournalEntry.append_capped(list, keep)
+	for i: int in 1000:
+		var e := JournalEntry.new()
+		e.uid = i + 2
+		e.kind = &"event" if i % 2 == 0 else &"feed"
+		e.starter_id = "0123456789abcdef"
+		e.text_key = &"JOURNAL_LOG_FEED"
+		e.data = DictReader.saved_form({"feed_u": 0.37, "flour_g": {"white_bread": 60}, "note": "x".repeat(300)})
+		JournalEntry.append_capped(list, e)
+	var total: int = 0
+	for e: JournalEntry in list:
+		total += e.saved_bytes()
+	check(total <= JournalEntry.BYTE_CAP, "saved bytes %d within the %d cap" % [total, JournalEntry.BYTE_CAP])
+	check(list.size() < JournalEntry.CAP, "heavy entries hit the byte cap before the count cap (%d)" % list.size())
+	check(list[0] == keep, "a memorial is never dropped")
+	check_eq(list[-1].uid, 1001, "the newest entry stays")
+	var facts: Dictionary = FeedAction.from_ratio(2.0, 2.0, &"whole_wheat").journal_facts()
+	check(not facts.has("ratio_flour") and not facts.has("hydration_pct") and not facts.has("kind"),
+		"feed facts keep only what can't be derived")
+	var back: FeedAction = FeedAction.from_dict(facts)
+	check(back != null and back.ratio_text() == "1:2:2" and back.hydration_pct() == 100.0,
+		"ratio and hydration still follow from the grams")
+
+
 func test_flour_profiles_match_sim_constants() -> void:
 	if not require(&"m2_sim"):
 		return

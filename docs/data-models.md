@@ -215,13 +215,13 @@ Every `*_unix` field is grid-aligned sim time (0 = never) unless it says "real t
 | `state_id` | StringName | State at that moment |
 | `text_key` | StringName | A tr key: `JOURNAL_LOG_FEED` (or `_AT_PEAK`, `_RESCUE`), `JOURNAL_LOG_HOOCH_POURED` or `_STIRRED`, `JOURNAL_LOG_MOVE_<LOCATION>`, `JOURNAL_LOG_SMELL`, the readout's `INSPECT_..._OBS`, `JOURNAL_LOG_RENAME`, `EVENT_<ID>_JOURNAL_TITLE` (or `EVENT_PEAKED_WHILE_AWAY_AWAY_<WORD>`), `STATUS_<STATE>_WORD`, `JOURNAL_DAY_ONE_TITLE`, `MEMORIAL_TITLE` |
 | `args` | Dictionary | ints, Strings and bools for every placeholder. No decimals (§1). A feed sends `{"ratio": "1:5:5", "flour": "FLOUR_WHITE_BREAD", "grams": 14}`. UI renders with `Session.format_text(text_key, args)`, which is `Keys.format(text_key, args, utc_offset_s)`: an arg that is itself a key is translated first, `time_unix` becomes a local `{time}`, and `start_unix` and `end_unix` become `{start_date}` and `{end_date}`. So the save stores keys and times, never text in one language. An `event` entry copies the whole event payload into `args`, so it can also hold floats no placeholder uses (`peak_rise`, stored as a hex string). Never put such a value in copy |
-| `data` | Dictionary | Facts. A feed stores `FeedAction.to_dict()` (`kept_g`, `flour_g`, `water_g`, `hooch_choice`, `ratio_flour`, `ratio_water`, `hydration_pct`) plus `timing`, `had_hooch` and `feed_u`. A `hooch` entry stores `hooch_choice` and the `hooch` level before the feed. A Day one `milestone` stores `milestone`, `path` and `body_key`. Read numbers with `DictReader.float_of()` (§1) |
+| `data` | Dictionary | Facts. A feed stores `FeedAction.journal_facts()` (`kept_g`, `flour_g`, `water_g`, `hooch_choice`: only what can't be derived; ratio and hydration follow from the grams, SAVE-13) plus `timing`, `had_hooch` and `feed_u`. A `hooch` entry stores `hooch_choice` and the `hooch` level before the feed. A Day one `milestone` stores `milestone`, `path` and `body_key`. Read numbers with `DictReader.float_of()` (§1) |
 
 `body_key()` gives the expanded text: `data.body_key` when set, `EVENT_<ID>_JOURNAL_BODY` for an `event`, else `&""` (one line only).
 
 What the slice writes (the class comment in `journal_entry.gd` is the full list): a feed line, preceded by a `hooch` line when hooch was visible (>= 0.10) at the feed; one line per admitted event; the Day one `milestone` after the first feed following adoption; `MEMORIAL_TITLE` at a discard; and one line each for move, smell, inspect, rename and state change.
 
-Cap: 400 entries. On overflow, drop the oldest `state_change` entries first, then `inspect` and `smell`, then the oldest `feed`, `hooch`, `environment`, `event` or `rename`. Never drop `memorial` or `milestone`. Smell and inspect entries also follow the dedupe rule in `game-mechanics.md` §4 (once per descriptor per rise cycle).
+Cap: **400 entries or 100 KB of saved bytes** (`JournalEntry.CAP`, `BYTE_CAP`), whichever comes first (T1, 9551f26, SAVE-13). 100 KB is the journal's share of the 128 KB save budget. Each entry's saved size is computed once and cached (`saved_bytes()`). On overflow, drop the oldest `state_change` entries first, then `inspect` and `smell`, then the oldest `feed`, `hooch`, `environment`, `event` or `rename`. Never drop `memorial` or `milestone`. Why the byte cap: in long play the count cap alone left only the heavier entries, and QA measured 146,561 bytes at day 120. Smell and inspect entries also follow the dedupe rule in `game-mechanics.md` §4 (once per descriptor per rise cycle).
 
 ### `Memorial` (saved list, never trimmed)
 | Field | Type | Notes |
@@ -394,8 +394,7 @@ For readability, floats below are shown as decimals. The real file writes each o
               "seen_counts": {"smell.fresh_yeasty": 2}, "smelled_descriptors": {"fresh_yeasty": true}},
   "journal": [{"args": {"flour_g": 50, "ratio": "1:1:1"}, "at_unix": 1795622411,
                "data": {"feed_u": 0.7, "flour_g": {"white_bread": 50}, "had_hooch": false,
-                        "hooch_choice": "pour_off", "hydration_pct": 100, "kept_g": 50, "kind": "feed",
-                        "ratio_flour": 1, "ratio_water": 1, "timing": "late", "water_g": 50},
+                        "hooch_choice": "pour_off", "kept_g": 50, "timing": "late", "water_g": 50},
                "kind": "feed", "starter_id": "a3f09c1e5b7d2468", "state_id": "collapsing",
                "text_key": "JOURNAL_LOG_FEED", "uid": 7}],
   "memorials": [],
@@ -413,4 +412,4 @@ For readability, floats below are shown as decimals. The real file writes each o
 }
 ```
 
-Size estimate: about 150 B per journal entry, times 400, gives about 60 KB. Budget 128 KB (`architecture.md` §11).
+Size, measured (T1, 9551f26, SAVE-13 probe through a real `Session`: 3 check-ins a day, 2 feeds, a smell and an inspection daily): `save.json` stays at about **104.6 KB** from day 60 to day 365 (104,646, 104,588 and 104,683 bytes at days 60, 120 and 365), against the 128 KB budget (`architecture.md` §11). The journal fills its 100 KB share; the rest of the payload is about 2.3 KB. A feed entry is about 364 B (421 B before `journal_facts()`).

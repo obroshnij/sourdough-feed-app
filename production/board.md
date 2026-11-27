@@ -68,7 +68,8 @@ Owner: director (the only writer). Teammates report by message. Last updated 202
 | OD-23: freeze the first save-migration fixture from the build the user plays at the Phase 3 exit | QA |
 | "Try inspecting the surface" for an ambiguous smell (ux §9): define a computable ambiguity rule first, since the docs disagree. The keys `SMELL_TRY_INSPECT` and `_BTN` are in the catalog, unused | scientist, then T1 and T3 |
 | Feed sheet on 390×844: flour chips, discard line and forecast sit below the fold. Compact the rows? Sparse note and memorial pages | ux, T3 |
-| `src/view/jar_view.gd` still looks up the removed `Backdrop_placeholder` (harmless) | T2 |
+| Inspect meanings also fade after 3 views (mechanics §5): give the inspect sheet its own "What it means" button (reuse `SMELL_MEANING_BTN`) | T3 |
+| Forecast as the status hint: how long it lasts (today only while `freshly_fed`), and `FORECAST_LINE` reaching 44 characters in the 34-character hint slot (it wraps) | ux, narrative, T3 |
 | Copy and UX review of T1's choices: the schedule fit line, the `{window}` midpoint and OVERNIGHT, time-lapse length, the away summary moment rows | narrative, ux |
 | "6 ObjectDB instances were leaked at exit" on every gate run (unchanged since Phase 2) | T1, QA |
 | "Unicode parsing error ... Unexpected NUL character" on every fresh import. No tracked text file holds a NUL byte | QA |
