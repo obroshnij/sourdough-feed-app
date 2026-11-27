@@ -17,7 +17,7 @@ iOS first (D-054). No screen-reader work and no Godot 4.8 (D-055). Audio from a 
 | UX pass: onboarding screens, compact feed sheet, forecast hint length and duration, inspect "What it means", empty-jar screen | `ux-designer` | in progress |
 | Set dressing and light for `window_sill` and `proofing_box`, the flour looks | `art-director` | in progress |
 | Places, flour looks, VFX, transitions, audio playback, battery (idle frame cap, low-processor mode) | `t2-view` | after contracts |
-| Onboarding B1 to B8 with skip, P1 UI, empty-jar screen, compact feed sheet, inspect "What it means" | `t3-ui` | after contracts |
+| Onboarding B1 to B8 with skip, P1 UI, empty-jar screen, compact feed sheet, inspect "What it means". Also wire spec v1.1 copy (D-060): the smell card picks `SMELL_FAINT_*` or `SMELL_FAINT_MILD_*` by `faint_cause`; "Try inspecting the surface" for `faint` only; the Inspect button for `faint` and `musty`; the rye surface keys (`INSPECT_SURFACE_RISING_RYE_OBS`, `_AT_PEAK_RYE_OBS`, `_SUNKEN_RYE_OBS`) and `_RYE_` consistency keys for `airy_pasty`; `INSPECT_ANY_DORMANT_RISEN_MEAN` | `t3-ui` | after contracts |
 | Exit: Phase 4 acceptance rows green under `--strict` on a fresh clone, the build runs on the user's iPhone, and the user plays it | director | |
 
 ## Phase 3 exit (branch `phase-3-slice`, 2f7645b): merged into `main` (PR #2)
