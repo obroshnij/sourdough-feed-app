@@ -75,6 +75,8 @@ EVENT_HUNGRY_AGAIN_JOURNAL_BODY,"The food ran out around {time}. It fell back an
 EVENT_HUNGRY_AGAIN_JOURNAL_TITLE,Hungry again
 EVENT_HUNGRY_AGAIN_TITLE,Ready for a feed
 EVENT_MOLD_FOUND_AWAY,Mold appeared on the surface.
+EVENT_MOLD_FOUND_JOURNAL_BODY,"Mold appeared on the surface. It can’t be fixed. Don’t use or taste it. Discard all of it, even the parts that look clean, then wash the jar well."
+EVENT_MOLD_FOUND_JOURNAL_TITLE,Mold appeared
 EVENT_OFF_TO_NAP_ENERGETIC,Into the fridge. It seems mildly offended.
 EVENT_OFF_TO_NAP_JOURNAL_BODY,"Into the fridge around {time}. The cold slows it nearly to a stop, so it can wait days or weeks. When it comes out, a feed or two will wake it."
 EVENT_OFF_TO_NAP_JOURNAL_TITLE,Off for a nap
@@ -380,6 +382,18 @@ MOLD_FEED_BLOCKED,Feeding can’t fix mold. Please discard it.
 MOLD_SHEET_BODY,"There’s fuzzy growth on the surface. That’s mold. A moldy starter can’t be saved. Mold reaches deeper than it shows, so discard all of it, even the parts that look clean. Please don’t use it or taste it. Then wash the jar well. This happens, even to careful bakers."
 MOLD_SHEET_BODY_TINT,"There’s fuzzy growth on the surface. That’s mold, and the pink or orange color is spoilage too. A moldy starter can’t be saved. Discard all of it, even the parts that look clean. Please don’t use it or taste it. Then wash the jar well. This happens, even to careful bakers."
 MOLD_SHEET_TITLE,This is mold
+MONTH_SHORT_01,Jan
+MONTH_SHORT_02,Feb
+MONTH_SHORT_03,Mar
+MONTH_SHORT_04,Apr
+MONTH_SHORT_05,May
+MONTH_SHORT_06,Jun
+MONTH_SHORT_07,Jul
+MONTH_SHORT_08,Aug
+MONTH_SHORT_09,Sep
+MONTH_SHORT_10,Oct
+MONTH_SHORT_11,Nov
+MONTH_SHORT_12,Dec
 NAME_BODY,Plenty of bakers name their starter. It’s easier to care about a name than a jar.
 NAME_BTN_CONFIRM,That’s its name
 NAME_BTN_SUGGEST,Suggest another
@@ -461,6 +475,7 @@ REACT_MOVE_COOL,A cooler spot. Things will slow down a little.
 REACT_MOVE_COUNTER,Back on the counter. Its usual pace.
 REACT_MOVE_PROOFING,Into the proofing box. Warm and steady.
 REACT_MOVE_WARM,"Somewhere warmer. A faster rise, and hungry sooner."
+REASON_ADOPT,It already has a name.
 REASON_ENVIRONMENT,That place isn’t available.
 REASON_EVENT,That note is already gone.
 REASON_FLOUR,Pick a flour to feed with.
@@ -592,6 +607,8 @@ STATUS_SHOW_ME_BTN,Show me
 STATUS_UNHEALTHY_HINT,"Warning signs. Look, then feed"
 STATUS_UNHEALTHY_TAP,"Musty, run down. No mold yet. Fuzz or color on top means discard. If none, feed it."
 STATUS_UNHEALTHY_WORD,At risk
+TIME_AM,AM
+TIME_PM,PM
 TOAST_A11Y_MORE,Opens the journal entry
 TRAIT_ENERGETIC_JOURNAL_BODY,"Keen on everything: a feed, a warm spot, a bit of attention. It greets each feed like good news. This won’t change how it rises, only how it carries itself."
 TRAIT_ENERGETIC_JOURNAL_TITLE,The energetic type

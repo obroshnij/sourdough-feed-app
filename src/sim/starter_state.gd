@@ -50,6 +50,15 @@ func rebase_to(now_unix: int) -> void:
 	born_unix = now_unix
 
 
+## The `starter_seed` of game-copy §1.4 (name suggestions, epitaph): a non-negative int from the starter's
+## 16-hex id, fixed for the starter's life. 0 for an empty or non-hex id.
+static func seed_of(starter_id: String) -> int:
+	var head: String = starter_id.substr(0, 7)
+	if head.is_empty() or not head.is_valid_hex_number():
+		return 0
+	return head.hex_to_int()
+
+
 ## Replaces flour_mix with the same entries in sorted key order.
 func set_flour_mix(mix: Dictionary[StringName, float]) -> void:
 	var names: PackedStringArray = []

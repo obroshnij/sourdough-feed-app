@@ -32,6 +32,7 @@ func test_ac_11_corrupt_save_json_falls_back_to_prev_and_catches_up() -> void:
 		check(q[0].ends_with("_" + SaveStore.FILE_MAIN), "it is save.json (%s)" % q[0])
 		check_eq(QaTemp.read(h.path(SaveStore.QUARANTINE_DIR).path_join(q[0])), bad, "quarantined byte for byte")
 	check_eq(h.disk_meta().get("recovered_from", "?"), "", "a fallback is not a recovery")
+	check(not h.session.recovered_this_launch(), "and shows no recovery notice")
 
 
 ## AC-11.1 (SAVE-03, the cost): when the corrupt save.json held a feed, save.prev is one save behind,
@@ -54,8 +55,9 @@ func test_ac_11_corrupt_save_json_loses_at_most_the_last_action() -> void:
 
 
 ## AC-11.1 (SAVE-06 through Session): save.json, save.tmp and save.prev are all bad. All three are
-## quarantined unchanged, a new starter begins, the save says it was recovered, and it is not treated
-## as a first run (so no onboarding replays).
+## quarantined unchanged, a new starter begins, and the save says it was recovered. The new starter
+## has no name, so is_first_run() is true and T3 runs M.'s note and naming (p3_contracts, OD-21);
+## recovered_this_launch() drives the calm notice, for this launch only.
 func test_ac_11_every_file_bad_starts_a_new_starter_calmly() -> void:
 	if not ready_for_integration():
 		return
@@ -71,7 +73,8 @@ func test_ac_11_every_file_bad_starts_a_new_starter_calmly() -> void:
 		QaTemp.write(h.path(file_name), garbage[file_name])
 	h.launch()
 	check_ne(h.session.get_starter().id, SliceHarness.STARTER_ID, "a new starter")
-	check(not h.session.is_first_run(), "not a first run: no onboarding")
+	check(h.session.is_first_run(), "the unnamed new starter goes through naming")
+	check(h.session.recovered_this_launch(), "the calm recovery notice shows this launch")
 	check_eq(h.disk_meta().get("recovered_from", ""), "quarantine", "the save records the recovery")
 	var q: PackedStringArray = h.quarantined()
 	check_eq(q.size(), 3, "all three files quarantined")
@@ -82,6 +85,9 @@ func test_ac_11_every_file_bad_starts_a_new_starter_calmly() -> void:
 				found = QaTemp.read(h.path(SaveStore.QUARANTINE_DIR).path_join(f)) == garbage[file_name]
 		check(found, file_name + " quarantined byte for byte")
 	check(h.disk_starter() != null, "a valid save.json exists again")
+	if require(&"p3_contracts"):
+		h.reopen_at(h.clock.now_unix() + MIN)
+		check(not h.session.recovered_this_launch(), "the next launch shows no recovery notice")
 
 
 ## AC-11.2: a running game is killed inside the save of a move, at each fault point. The relaunch

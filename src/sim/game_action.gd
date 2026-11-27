@@ -17,6 +17,8 @@ const REASON_INSPECT_KIND: StringName = &"REASON_INSPECT_KIND"
 const REASON_NAME: StringName = &"REASON_NAME"
 const REASON_EVENT: StringName = &"REASON_EVENT"
 const REASON_NOT_MOLDY: StringName = &"REASON_NOT_MOLDY"
+## AdoptStarterAction when the starter already has a name (a stale UI). Placeholder in pending_core.csv.
+const REASON_ADOPT: StringName = &"REASON_ADOPT"
 
 ## ux-design §18's name slot; every {name} string is length-checked at 16 (game-copy). data-models v0 said 24.
 const NAME_MAX_CHARS: int = 16

@@ -158,10 +158,12 @@ func test_ec_07_moldy_stays_moldy_whatever_the_player_tries() -> void:
 	var readout: InspectionReadout = look.readout as InspectionReadout
 	check(readout != null and readout.observations.has(&"fuzzy_spots"), "the surface shows the fuzz")
 	check(readout != null and readout.is_warning, "the surface reading is a warning")
+	bytes_before = h.bytes_of(SaveStore.FILE_MAIN)
 	var sniff: ActionResult = h.apply(SmellAction.new())
-	var smell: SmellReadout = sniff.readout as SmellReadout
-	check(smell != null and smell.primary == &"musty" and smell.secondary.is_empty(),
-		"the sim's smell of a moldy starter is musty only (the UI locks Smell, D-043)")
+	check(not sniff.ok and sniff.reason_key == GameAction.REASON_MOLDY_LOCKED,
+		"Smell is refused with REASON_MOLDY_LOCKED (D-043)")
+	check(sniff.readout == null, "and gives no smell readout")
+	check_eq(h.bytes_of(SaveStore.FILE_MAIN), bytes_before, "and writes no save")
 	h.reopen_at(T0 + 226 * HOUR)
 	check_eq(h.state(), &"moldy", "still moldy after a relaunch")
 	h.reopen_at(T0 + 224 * HOUR - 2 * DAY)
