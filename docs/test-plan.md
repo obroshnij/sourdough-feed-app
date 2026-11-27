@@ -859,7 +859,7 @@ Each check time below sits at least 0.3 h inside its window, to absorb jitter an
 | EC-22 | Android split screen or a resized window | Height down to 50% | No crash. Layout follows the safe area. | manual (Phase 5) |
 | EC-23 | Low power mode or a hot phone | Device | The frame cap still applies. No sim or visual difference. | manual (device) |
 | EC-24 | Taps the starter 100 times | INT-08 | The sim is byte-unchanged. | auto |
-| EC-25 | Kills the app during the discard ceremony | After `DiscardStarterAction` is applied | Relaunch shows the new starter, and the memorial exists exactly once. | auto |
+| EC-25 | Kills the app during the discard ceremony | (a) After the new name is confirmed (`DiscardStarterAction` applied). (b) Before it: the memorial page or naming is showing. | (a) Relaunch shows the new starter, and the memorial exists exactly once. (b) Nothing was saved (D-047: discard and adopt are one atomic save), so the relaunch is the moldy jar with no memorial, and the flow runs again. `int/ac04::ec_25_discard_survives_a_kill_and_leaves_one_memorial`, `::ec_25_kill_before_the_name_is_confirmed_keeps_the_moldy_jar`. | auto |
 
 ---
 
