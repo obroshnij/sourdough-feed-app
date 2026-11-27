@@ -107,6 +107,26 @@ func test_bt_8_rescue_at_the_warning() -> void:
 	check(peaks.any(func(p: float) -> bool: return p >= STRONG * healthy), "normal within 3 feeds: %s vs %.3f" % [str(peaks), healthy])
 
 
+## L-3: three days unfed at the counter gives dormant (starved), and normal rise (85% of the healthy peak)
+## comes back within 3 feeds.
+func test_l_3_three_days_unfed_recovers_within_three_feeds() -> void:
+	if not _ready():
+		return
+	var h: SliceHarness = _mature_phone("l3")
+	h.apply(feed_111())
+	h.reopen_at(T0 + 12 * HOUR)
+	var healthy: float = h.session.get_starter().peak_rise
+	h.reopen_at(T0 + 80 * HOUR)
+	check_eq(h.state(), &"dormant", "dormant after 3 days unfed")
+	check_eq(h.session.get_snapshot().dormant_cause, &"starved", "from neglect, not cold")
+	var peaks: Array[float] = []
+	for k: int in 3:
+		h.apply(feed_111())
+		h.reopen_at(T0 + (80 + 12 * (k + 1)) * HOUR)
+		peaks.append(h.session.get_starter().peak_rise)
+	check(peaks.any(func(p: float) -> bool: return p >= STRONG * healthy), "normal within 3 feeds: %s vs %.3f" % [str(peaks), healthy])
+
+
 ## BT-10: the same save and inputs give the same state, events and return summary, byte for byte.
 func test_bt_10_same_inputs_same_everything() -> void:
 	if not _ready():
