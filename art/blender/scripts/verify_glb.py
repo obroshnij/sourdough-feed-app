@@ -1,5 +1,5 @@
-"""Check a GLB against its mesh contract in docs/art-direction.md: the jar (§12) or, when the file
-holds a Kitchen_Wall node, the kitchen wall (§18).
+"""Check a GLB against its mesh contract in docs/art-direction.md: the jar (§12), or, when the file
+holds a Kitchen_Wall node, the kitchen wall (§18), or, with a Place_Proofing_Box node, the places (§19).
 
 Plain Python 3, no dependencies:
     python3 art/blender/scripts/verify_glb.py [path/to/file.glb]
@@ -175,11 +175,103 @@ def verify_wall(path, g, binary):
     print("PASS: kitchen wall node, identity transform, one surface, inward normals, atlas UVs, extras, budgets")
 
 
+# Places (§19): places.glb holds the proofing box. The jar root never moves, so the box must stand
+# on the counter around the jar without touching it, under the visible budget with the jar and wall.
+BOX_TRI_BUDGET = 1500
+BOX_EXTRAS = ("texture", "inner_half_width_m", "inner_back_z_m", "front_z_m", "wall_top_m", "floor_top_m",
+              "footprint_m", "night_mult")
+JAR_CLEAR_R = 0.055        # nothing of the box above its heat plate comes closer to the jar axis
+PLATE_TOP_MAX = 0.002      # the jar root stays at y = 0: the plate under it is at most 2 mm
+
+
+def verify_places(path, g, binary):
+    errors = []
+    by_name = {n.get("name"): n for n in g["nodes"]}
+    extra = sorted(set(by_name) - {"Place_Proofing_Box"})
+    if extra:
+        errors.append("unexpected nodes: " + ", ".join(extra))
+    n = by_name["Place_Proofing_Box"]
+    if any(k in n for k in ("rotation", "scale", "matrix")):
+        errors.append("Place_Proofing_Box has rotation/scale/matrix (must be identity)")
+    if any(abs(c) > 1e-9 for c in n.get("translation", [0.0, 0.0, 0.0])):
+        errors.append("Place_Proofing_Box origin must be (0, 0, 0), the jar axis on the counter top")
+    ex = n.get("extras", {})
+    for k in BOX_EXTRAS:
+        if k not in ex:
+            errors.append("Place_Proofing_Box extras has no " + k)
+    prims = g["meshes"][n["mesh"]]["primitives"]
+    if len(prims) != 1:
+        errors.append("Place_Proofing_Box has %d surfaces, expected 1 (one draw call)" % len(prims))
+    p = prims[0]
+    a = p["attributes"]
+    mat = g["materials"][p["material"]]["name"] if "material" in p else None
+    if mat != "M_Proofing_Box":
+        errors.append("material is %s, expected M_Proofing_Box" % mat)
+    if g.get("images") or g.get("textures"):
+        errors.append("the GLB embeds images; the box texture ships as a separate PNG")
+    for attr in ("NORMAL", "TEXCOORD_0"):
+        if attr not in a:
+            errors.append("Place_Proofing_Box has no " + attr)
+    tris = g["accessors"][p["indices"]]["count"] // 3
+    if tris > BOX_TRI_BUDGET:
+        errors.append("Place_Proofing_Box has %d tris, budget %d" % (tris, BOX_TRI_BUDGET))
+    pos = read_floats(g, binary, a["POSITION"])
+    uv = read_floats(g, binary, a["TEXCOORD_0"])
+    if min(c for t in uv for c in t) < -1e-6 or max(c for t in uv for c in t) > 1 + 1e-6:
+        errors.append("UV0 outside 0..1")
+    ymin = min(q[1] for q in pos)
+    if ymin < -1e-6:
+        errors.append("the box reaches below the counter top (y %.4f)" % ymin)
+    plate_top = float(ex.get("floor_top_m", 1.0))
+    near = [q for q in pos if q[1] > plate_top + 1e-4 and (q[0] ** 2 + q[2] ** 2) ** 0.5 < JAR_CLEAR_R]
+    if near:
+        errors.append("%d vertices above the floor within %.3f m of the jar axis" % (len(near), JAR_CLEAR_R))
+    # The floor the jar stands on is the heat plate: every vertex near the axis at floor height.
+    under = [q[1] for q in pos if (q[0] ** 2 + q[2] ** 2) ** 0.5 < 0.30 and q[1] < 0.005 and q[2] < 0.06]
+    if under and max(under) > plate_top + 1e-4 and max(under) > PLATE_TOP_MAX:
+        errors.append("geometry under the jar reaches %.4f m" % max(under))
+    if plate_top > PLATE_TOP_MAX:
+        errors.append("the floor under the jar is %.4f m high; the jar root stays at 0" % plate_top)
+    lo = [min(q[i] for q in pos) for i in range(3)]
+    hi = [max(q[i] for q in pos) for i in range(3)]
+    print("file:", path, os.path.getsize(path), "bytes")
+    print("Place_Proofing_Box: %d verts, %d tris, material %s, bounds x %.3f..%.3f, y %.4f..%.3f, z %.3f..%.3f, "
+          "floor under the jar %.4f m" % (len(pos), tris, mat, lo[0], hi[0], lo[1], hi[1], lo[2], hi[2], plate_top))
+    print("extras: " + ", ".join("%s=%s" % (k, ex[k]) for k in BOX_EXTRAS if k in ex))
+    jar = os.path.abspath(DEFAULT)
+    wall = os.path.join(os.path.dirname(jar), "kitchen_wall.glb")
+    if os.path.exists(jar) and os.path.exists(wall):
+        jg, _ = load(jar)
+        jn = {nd.get("name"): nd for nd in jg["nodes"]}
+        wg, _ = load(wall)
+
+        def node_tris(gg, nodes, name):
+            if name not in nodes:
+                return 0
+            return sum(gg["accessors"][pr["indices"]]["count"] // 3 for pr in gg["meshes"][nodes[name]["mesh"]]["primitives"])
+        base = sum(node_tris(jg, jn, nm) for nm in VISIBLE_BASE)
+        wall_tris = node_tris(wg, {nd.get("name"): nd for nd in wg["nodes"]}, "Kitchen_Wall")
+        worst = base + max(node_tris(jg, jn, c) for c in COVERS) + wall_tris + tris
+        print("visible scene in the proofing box (jar, heaviest cover, wall, box): %d tris (budget %d)"
+              % (worst, VISIBLE_BUDGET))
+        if worst > VISIBLE_BUDGET:
+            errors.append("visible scene with the box is %d tris, over %d" % (worst, VISIBLE_BUDGET))
+    if errors:
+        print("FAIL")
+        for e in errors:
+            print("  -", e)
+        sys.exit(1)
+    print("PASS: places node, identity transform, one surface, UVs, extras, clear of the jar, budgets")
+
+
 def main():
     path = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else DEFAULT)
     g, binary = load(path)
     if any(n.get("name") == "Kitchen_Wall" for n in g["nodes"]):
         verify_wall(path, g, binary)
+        return
+    if any(n.get("name") == "Place_Proofing_Box" for n in g["nodes"]):
+        verify_places(path, g, binary)
         return
     acc = g["accessors"]
     errors = []

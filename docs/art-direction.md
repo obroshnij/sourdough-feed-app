@@ -1,6 +1,6 @@
 # Art direction
 
-Owner: art-director. Status: Phase 3. Look-dev jar v0 is built and verified (§12). Phase 2 added the real-time starter look for T2, with masks and a reference board (§16, D-037), and the production icons (§11, D-034). New in Phase 3: the curved kitchen wall that holds over the whole orbit, the night look, and the `bubbles` camera height (§18).
+Owner: art-director. Status: Phase 4. Look-dev jar v0 is built and verified (§12). Phase 2 added the real-time starter look for T2, with masks and a reference board (§16, D-037), and the production icons (§11, D-034). Phase 3 added the curved kitchen wall that holds over the whole orbit, the night look, and the `bubbles` camera height (§18). New in Phase 4: the `window_sill` and `proofing_box` places with T2's hand-off (§19), the four flour looks (§20), and what may change on the iPhone 13 Pro (§21).
 
 Source of truth for the jar: `art/blender/scripts/build_jar.py`. Change a parameter, re-run, and the .blend, GLB and previews all follow. Never hand-edit `jar_v0.blend` or the GLB.
 
@@ -21,10 +21,10 @@ Source of truth for the jar: `art/blender/scripts/build_jar.py`. Change a parame
 
 | Role | Hex | Notes |
 |---|---|---|
-| Starter, white_bread | `#F0E3C9` | Warm ivory. The anchor color of the game |
-| Starter, whole_wheat | `#DCC29C` | Tan, plus bran flecks `#8A6A48` |
-| Starter, rye | `#BE9F7E` | Cocoa-latte. Warm, never gray |
-| Starter, spelt | `#E3CCA6` | Golden cream |
+| Starter, white_bread | `#F5EBD6` | Warm ivory. The anchor color of the game. This is the value the signed-off look runs on (`SimCatalog.TINTS`, the shader's `TINT_WHITE`); the Phase 1 `#F0E3C9` only ever lived in the Blender previews |
+| Starter, whole_wheat | `#D8BD98` | Oatmeal tan, plus bran flakes `#7E5E3E` (§20) |
+| Starter, rye | `#AA9379` | Warm taupe, gray-brown leaning. Never gray, never pinkish (§20) |
+| Starter, spelt | `#EFDCAC` | Golden cream (§20) |
 | Bubble pocket | `#D3BF9E` | Inside a bubble seen through glass. Only a little darker than the starter |
 | Hooch | `#8A7860` | Gray-brown, glossy |
 | Hooch, long-sitting | `#5A5045` | `unhealthy` and dark hooch |
@@ -39,6 +39,9 @@ Source of truth for the jar: `art/blender/scripts/build_jar.py`. Change a parame
 | Tiles | `#A3B69F` / `#97AB91`, grout `#DCD4C4` | Sage glaze, out of focus. Authored greener because warm light pulls it toward khaki |
 | World ambient | `#F3E8D8` top, `#5A554E` bottom | Near-neutral floor. A brown floor turned the starter's shadow side caramel |
 | Mold, halo / ring / core / spores | `#F4F4EE` / `#8FB0A2` / `#2F7465` / `#1F2A27` | `moldy` only |
+| `window_sill`: frames / sill paint | `#ECE7DD` / `#D3CABB`, `#C2B8A6` | Warm white paint. The sill is the counter recolored (§19.2) |
+| `window_sill`: curtain / garden / sky | linen `#E6DCCA` with the sage stripe, foliage `#9AA887`, sky `#DCE5EB` | Baked into `place_window_sill.png`, soft focus |
+| `proofing_box`: outside / inside / floor / heat pad | `#A6B59E` / `#CDBEA4` / `#D2C6B1` / `#C4BEB3` | Muted sage shell, warm tan inside, so the cream paste reads against it. Baked into `place_proofing_box.png` |
 
 ### 2.2 UI (agreed with ux-designer, ratios in `ux-design.md` §16.1)
 
@@ -111,11 +114,7 @@ The HUD plate cross-fades from surface to surface_night on the same blend factor
 
 **Phase 3 (§18.6):** the slice runs two looks, day and night, on the one shared night factor (D-043). The night values and sign-off rows are in §18.6. Dropping `morning` for the slice is an open item (§15).
 
-**Locations** (one kitchen scene, camera moves and light presets, per game-designer):
-- `counter`: as built.
-- `warm_spot`: next to the kettle or oven. Key 10% warmer, a faint heat shimmer is optional.
-- `fridge`: cool top key `#DCE8F2`, lower saturation (-20%), glass shader `fog` 0.3 for condensation. P1 adds frost at the base.
-- `window_sill` and `proofing_box`: P1.
+**Locations:** §19. The jar never moves. Each place is a light preset plus, for `window_sill` and `proofing_box`, a set around the jar. §19.5 has the preset table for all five places.
 
 ## 4. Materials, Blender to Godot
 
@@ -178,7 +177,9 @@ Values are look-dev targets for `VisualMapper`. Previews exist for the eight sta
 | `unhealthy` R | 0.95 | -0.05 | 0.35 | 0.03 | 0.2 | as stored | 0.6 | 0.4 | 0.85 | 0.1 | 1.0 | 0 | 0.05 | Dull dry skin with fine crackle, thick dark hooch, flat, almost no bubbles. **Never fuzz, never pink, orange or red** |
 | `moldy` R | 0.95 | -0.05 | 0.4 | 0.02 | 0.2 | as stored | 0.6 | 0 | 0.7 | 0.1 | 1.0 | 0.75 | 0 | Fuzzy colonies: frayed white halo, gray-green ring, blue-green core, dark spores. Raised on the surface and on the glass up to about 2 cm above it. The only state with any colony or fuzz |
 
-Flour: `tint` from §2.1. `fleck` 0.6 for whole_wheat, 0.35 for rye. Rye at rise 1.3 or more cracks instead of doming: `dome` x 0.3, crackle at 0.5, matching the scientist's `cracked` shape.
+Flour: §20 (tint, bran, dome, firmness and rye's cracks). The values above are white_bread at 100% hydration.
+
+**Empty jar (D-059, agreed with ux-designer).** A clean, washed, empty jar with the lid on, in its current place. No starter, no liner residue (`streak_amount` 0), no rubber band. T2 hides `Starter_Body`, `Starter_Liner` and `Rubber_Band`. No new asset.
 
 **Mold in Godot.** `moldy` is terminal and rare, so it may cost more:
 - Tier B: 6 shells of the top cap, offset 0.4 mm apart along the normal, alpha scissor on a hair-noise channel. Plus colonies in the liner shader, face-on behind the glass.
@@ -223,7 +224,10 @@ The jar is alive at all times, but calm. Nothing snaps except the band.
 | Bubble life | Side bubbles grow over 3 to 8 s and drift up 1 to 3 mm. Top pops at `activity * 0.4` per second, each a 0.25 s ring ripple in the starter shader. No particles inside the glass (D-009) |
 | Real rise | 1:1 clock, effectively invisible. Fine |
 | Catch-up on return | Time-lapse from `snapshots`, 1.5 to 3 s total, ease-in-out cubic |
-| Feed | Level drops for the discard (0.6 s ease-in), then flour and water: level rises with a damped wobble (spring, 0.8 s, 2 oscillations, max 1.5 mm), lumps jump to the fed value |
+| Feed | Follows ux-design §8's beats and the sound-designer's files (audio-direction §3, §6). Level drops for the discard (0.6 s ease-in), then flour and water: level rises with a damped wobble (spring, 0.8 s, 2 oscillations, max 1.5 mm), lumps jump to the fed value |
+| Lid during a feed (Phase 4) | Lifts at the first beat that reaches into the jar: `hooch` when there is hooch, otherwise `discard` (was `scoop`). Same motion as a cover change. Lowers at `settle` |
+| Discard ceremony (Phase 4, matches `mold_discard.wav`, 2.3 s) | 0 to 0.62 s the spoon scrapes and the level drops (ease-in). 0.72 s the jar is empty (the drop sound). 1.0 to 2.25 s the rinse clears the glass: residue and any colonies fade out. 2.3 s it rests on the clean empty jar (§6). Reduce motion: a 0.4 s cross-fade to the clean jar, sounds kept |
+| Place change (Phase 4) | The jar lifts 18 mm and sets down while the set cross-fades behind it, 1.3 s. Timing in §19.4 |
 | Band snap | After a feed, the band moves to the new `level_m` in 0.35 s, ease-out back, 6% overshoot, with a soft rubber "tick" sound |
 | Cover change | Lid lifts 8 mm and rotates 10 degrees, 0.5 s ease-in-out. Cloth fades and scales 0.97 to 1.0 in 0.4 s |
 | Camera | Rotate and zoom with inertia, damping 6 per second, zoom 0.35 to 0.8 m |
@@ -251,7 +255,7 @@ Budget: at most 64 particles on screen, 2 systems at once, 2 overdraw layers. Ev
 |---|---|
 | Smell wisps | 2 or 3 soft ribbon quads (128 x 256 gradient sprite) rise from the mouth when the cover is off. 2.5 s. Tint by family: warm cream (yeasty, fruity, yogurt), pale straw (tangy, acidic, alcohol), pale cool gray (acetone), gray-green (musty). Never red, orange or pink |
 | Bubble pops | In the starter shader, not particles (see §8) |
-| Flour dust | 20 to 40 beige quads, 2 to 4 mm, on the feed pour, falling and fading over 1.2 s |
+| Flour dust | 20 to 40 quads, 2 to 4 mm, falling and fading over 1.2 s. **Starts when the flour lands: `scoop` + 0.45 s** (ux §8 beat 3, `feed_scoop.wav`), not at `pour`, which is water. Tint by the flour fed (the dry flour, not the starter): white_bread `#F4EFE6`, whole_wheat `#D9C6A6`, rye `#C8B9A5`, spelt `#EDE1C6`. A mix uses the weighted average |
 | Steam (warm_spot) | P1, 8 quads |
 
 ## 10. Environment
@@ -322,12 +326,15 @@ All variants: 18,584 tris (budget 30k). **Visible set** (base + one cover, `arch
 - **Textures:** 1024 px max, ASTC or ETC2, 8 MB VRAM for the whole scene. Prefer procedural shader detail over big maps.
 - **Draw calls:** the jar is under 10 draw surfaces (`architecture.md` §11): glass 4 (2 surfaces x 2 passes), starter, liner, band, cover 1 or 2. The counter and the kitchen wall (one surface) are 2 more.
 - **Kitchen set textures:** `kitchen_wall.png` about 0.5 MB (ASTC 4x4), `kitchen_wall_night.png` 0.13 MB or less, counter 0.35 MB, lid 0.09 MB. About 1.1 MB in all.
+- **Place textures (§19):** `place_window_sill.png` about 0.5 MB, its night map 0.13 MB or less, `place_proofing_box.png` 0.25 MB (512 x 512, ASTC 4x4). About 0.9 MB more. With the masks (1.75 MB) the scene stays under 4 MB of the 8 MB budget.
+- **Places in the budgets:** `window_sill` adds no mesh and no draw call (it swaps the wall's textures). `proofing_box` adds one mesh, one surface, one draw call. The heaviest visible set (jar, cloth cover, wall, box) is checked by `verify_glb.py` against 16k.
 
 ## 14. Placeholders
 
 | Asset | Why it's a placeholder | Replaced by |
 |---|---|---|
 | All GLB materials | By design | Godot shaders (§4) |
+| `M_Proofing_Box` (`places.glb`) | By design | The unshaded box shader (§19.3) |
 | `M_Mold_Fuzz_preview` | Blender-only hair | Godot shells (§6) |
 
 ## 15. Open items
@@ -341,6 +348,11 @@ All variants: 18,584 tris (budget 30k). **Visible set** (base + one cover, `arch
 - **Mask import (T2):** confirm on first import that a gray + alpha PNG samples as (L, L, L, A) in 4.7.2 on both renderers (§16.3).
 - Pink or orange mold tint: not in v0. sourdough-scientist agrees this is the conservative choice for safety: text already teaches "fuzz, pink or orange means discard". A visual variant can come later as an optional P1 item. Either way, the hard rule stays: never pink, orange or red outside `moldy`.
 - `moldy` from the default pose relies on glass colonies. Consider an automatic `surface` close-up on entering `moldy` (game-designer and ux-designer).
+- **Phase 4 (§19 to §21):**
+  - `warm_spot` and `fridge` are light-only, as designed in Phase 1. With the place sets of §19, a fridge shelf or a soft-focus kettle in a third wall atlas would read more clearly. Not built: scope is the director's call.
+  - Onboarding B1 note under the band (ux-designer): about 50 tris, one draw call, no texture. It can carry pencil scribbles but no readable words, because every player-facing string goes through `tr()`. It needs a slot in the jar GLB contract. Not built.
+  - Place card illustrations: the place sheet's option cards have an illustration slot (ux §13). Art can draw 5 `place_<id>` icons in the §11 style if ux-designer wants them.
+  - The `bubbles` band is taller now that the HUD tucks away when a sheet opens (ux §3). The frustum shift keeps the target centered. One T2 capture at `at_peak` and at maximum rise confirms it (§19.7, row X1).
 
 ## 16. The real-time starter look (D-037, for T2)
 
@@ -870,3 +882,334 @@ Settings: the ruling started at key 45%, lamp about 1.0 and sky 30%. T2 tuned th
   - The renders are not committed (D-045).
 - **If the cap still reads pointed in Godot in this framing,** that is the §5 dome profile (art's follow-up), not the camera.
 - **Wall coverage.** Covered: the check includes this pitch at close range.
+
+## 19. Places: `window_sill` and `proofing_box` (Phase 4, for T2)
+
+Generator: `/Applications/Blender.app/Contents/MacOS/Blender -b -P art/blender/scripts/build_places.py` (1.5 to 6.5 minutes on an M4, seeded; the first run of a session compiles Cycles kernels). Add `-- --check-only` for the ray checks alone (about 30 s, exit 1 on any blocked ray or wall miss), or `-- --preview-only` to re-render the sheet without baking. Verify: `python3 -I art/blender/scripts/verify_glb.py assets/3d/places.glb`.
+
+Preview: `art/previews/places_check.png`, 726 x 786. Top row `window_sill`, bottom row `proofing_box`. Columns: yaw -70, home (-12), +70, all at pitch 15 and the 0.68 m home distance, then home at night. The jar is `at_peak`. Sets are drawn as Godot draws them: baked, unshaded, no depth of field, no shadow maps.
+
+### 19.1 The rule: the jar never moves
+
+Agreed with tech-architect, 2026-11-27.
+- **The jar root stays exactly at the origin in every place.** The set changes around it. So the orbit, every focus preset, the wall's coverage (§18.1) and the §16 captures are the same in every place. `orbit_camera.gd` aims at world-space targets, and a moved jar would put every focus pose off.
+- **The view reads `StarterSnapshot.location`.** It is set dressing, not starter, so it needs no VisualParams field and no new signal. `&""` or an unknown id falls back to `counter`.
+- **Every place is a light preset (§19.5) plus a set:**
+
+| `location` | Set | New files | Extra draw calls |
+|---|---|---|---|
+| `counter` | `Kitchen_Wall` with `kitchen_wall.png`, oak counter | none | 0 |
+| `warm_spot` | As `counter` (light only, as designed in Phase 1) | none | 0 |
+| `fridge` | As `counter`, glass `fog` 0.3 (light only) | none | 0 |
+| `window_sill` | `Kitchen_Wall` with `place_window_sill.png` and its night map. The counter recolored as a painted sill | 2 textures | 0 |
+| `proofing_box` | The `counter` set plus `Place_Proofing_Box` around the jar, and a contact shade on the counter | `places.glb`, 1 texture | 1 |
+
+### 19.2 `window_sill`: the bay window
+
+**What reads.** The jar stands on a deep painted sill in a curved bay of tall windows. Oatmeal linen cafe curtains, with the sage stripe near the hem, glow on the lower panes. Above the rod there is a soft garden and pale sky. The light is cooler and brighter, and the glass gets a stronger rim from the window. At night the panes go dark, a cool night sky, and the lamp warms the curtains and the sill.
+
+**Why the wall, not new geometry.** The curved wall already holds over the whole orbit, so the bay is a second atlas on the same mesh: same UVs, same shader, same night path, 0 new draw calls. A window set close behind the jar would need its own side walls and its own coverage check. And at the home pose the frame is only about 0.3 m wide at the wall, so most of a near set would never show.
+
+**Atlas.** Same layout as `kitchen_wall.png` (§18.2): rows 0 to 447 are the wall, 452 to 511 the area under the counter edge. In the wall's unrolled coordinates (s = meters along the arc from the back center, y = height above the counter top):
+
+| Part | Where |
+|---|---|
+| Posts (painted `#ECE7DD`) | Every 0.42 m: s = ±0.21, ±0.63, ±1.05, 52 mm wide. A pane sits right behind the jar |
+| Bottom rail | y up to 0.045 |
+| Cafe curtain | y 0.052 (hem) to the rod at 0.168 to 0.176 (sage `#8E9F86`). Stripes at y 0.066 to 0.075 and 0.080 to 0.084 |
+| Garden and sky | Above the rod: soft foliage `#9AA887` to about y 0.40, pale sky `#DCE5EB` above |
+| Transom | y 0.420 to 0.448 |
+| Bay ends | Painted plaster `#E4DED2` past s = ±1.075 (seen only near yaw ±70) |
+| Under the counter edge | Painted boards `#E3DDD1`, 90 mm wide, in the counter's shade |
+
+The day atlas is radiance, as `kitchen_wall.png`: the curtain and sky are light sources, the frames are lit paint. 1.3% of its texels are at 1.0 (the brightest curtain folds). On screen that stays under the clip line (row WS6).
+
+**Shader.** `backdrop.gdshader` unchanged in its body. While the window is shown:
+- `wall_tex` = `place_window_sill.png`, `night_tex` = `place_window_sill_night.png`.
+- `night_floor` = `#15181C`, a cool night sky. The kitchen's warm `#1A1310` under the tonemapper pushed the dark panes into §2.3's reserved range in the preview (0.63% of the frame). With the cool floor: 0 pixels.
+
+For the cross-fade, add a second set and a mix. Only during a change does it sample four textures:
+```glsl
+uniform sampler2D wall_tex_b : source_color, filter_linear, repeat_disable;
+uniform sampler2D night_tex_b : filter_linear, repeat_disable;
+uniform vec3 night_floor_b : source_color = vec3(0.102, 0.075, 0.063);
+uniform float place_mix = 0.0;    // 0 shows set a, 1 set b; tween it, then swap b into a and reset
+// in fragment(), compute `day`, `m`, `floor` from a and b and mix them by place_mix before the
+// existing day/night formula. When place_mix is 0, skip the b fetches (a uniform branch).
+```
+
+**Counter as a painted sill.** `counter.gdshader`: `oak_light` `#D3CABB`, `oak_dark` `#C2B8A6`. The oak detail map stays and reads as faint grain under paint. Roughness, contact shadow and drop shadow are unchanged. Lerp the two colors during a change.
+
+### 19.3 `proofing_box`: the open warm box
+
+**What reads.** An insulated box, muted sage outside (`#A6B59E`) and warm tan inside (`#CDBEA4`), stands on the counter around the jar. Its front door lies folded flat on the counter and its lid is propped open behind it, so every camera sees in. The jar stands on a warm-gray heat pad. The light is warm and enclosed, the rim is weak, and no window stripe shows in the glass.
+
+**Size (Godot meters).** 600 x 222 x 210 mm outside (width, depth, height), walls 18 mm.
+- Inner back face 140 mm behind the jar axis (98 mm behind the glass).
+- The side walls' front edge is at z 0.064, 22 mm in front of the glass.
+- The lid is hinged at the back top edge and open 100 degrees, leaning back.
+- The door is 8 mm thick, lying from z 0.064 to 0.274.
+- The floor is a 1.5 mm heat plate with the pad (300 x 165 mm, 12 mm corners) under the jar. The jar root stays at y = 0. The glass base sinks 1.5 mm into the plate, which never shows.
+- **Why so wide.** At 580 mm the side wall's front inner corner grazed the jar's far edge at yaw ±70 when zoomed out (0.92 m), and a 12 mm door clipped the lowest paste at pitch -5. At 600 mm, with the front edge 6 mm further back and an 8 mm door, the ray check finds nothing in front of the jar.
+
+**Contract (names are the interface).**
+
+| Item | Value |
+|---|---|
+| File | `assets/3d/places.glb`, 19 KB. Instance it with the identity transform, like `jar_v0.glb` and `kitchen_wall.glb` |
+| Node | `Place_Proofing_Box`. Origin (0, 0, 0), identity transform, 480 verts in the GLB, 444 tris |
+| Surface | One surface, one draw call. `M_Proofing_Box` is a placeholder: put the box shader on it as `material_override`, `cast_shadow` off |
+| UV0 | The atlas of `place_proofing_box.png` (512 x 512). Faces no camera can see (undersides, faces turned to the back) are removed, so every texel is used |
+| Extras | `texture`, `inner_half_width_m` 0.282, `inner_back_z_m` -0.14, `front_z_m` 0.064, `wall_top_m` 0.21, `floor_top_m` 0.0015, `footprint_m` [x0, z0, x1, z1] = [-0.30, -0.158, 0.30, 0.274] (with the door), `night_mult` [0.27, 0.255, 0.24] |
+| Checked by `verify_glb.py` | One node, identity, one surface, the material name, UVs in 0..1, no embedded image, nothing below the counter top, nothing above the floor within 55 mm of the jar axis, the floor at 2 mm or less, the box at 1,500 tris or less, and the heaviest visible set at 16k or less |
+
+| Texture | Size | What it is | Import (T2) |
+|---|---|---|---|
+| `place_proofing_box.png` | 512 x 512 RGB, about 235 KB | The box's day radiance under the `proofing_box` preset, sRGB curve, no tonemap, island gutters filled. It carries the jar's soft shade on the pad (glass and lid only; the opaque starter baked a hard disk, so it casts none) | VRAM Compressed, mipmaps off (always magnified). 0.25 MB with ASTC 4x4 |
+
+**Box shader (new, `box.gdshader`).**
+```glsl
+shader_type spatial;
+render_mode unshaded, shadows_disabled;
+
+uniform sampler2D box_tex : source_color, filter_linear, repeat_disable;
+uniform float energy = 1.0;                       // per renderer, tuned to row PB3
+uniform float night = 0.0;                        // the shared night factor (D-043)
+uniform vec3 night_mult = vec3(0.27, 0.255, 0.24); // places.glb extras; tune to row PB8
+uniform float fade = 1.0;                         // place change: 0 gone, 1 shown
+
+void fragment() {
+	if (fade < 1.0) {                             // ordered dither, stays in the opaque pass
+		ivec2 q = ivec2(FRAGCOORD.xy) % 4;
+		float bayer = float((q.x * 2 + q.y * 3 + (q.x * q.y) % 2 * 5) % 16) / 16.0 + 0.03;
+		if (fade <= bayer) discard;
+	}
+	ALBEDO = texture(box_tex, UV).rgb * mix(vec3(1.0), night_mult, night) * energy;
+}
+```
+Use any 4 x 4 ordered dither T2 already has. The `discard` runs only during the 0.5 s fade: on a tile-based GPU, swap to a variant without it when `fade` is 1.
+
+**Counter contact shade (`counter.gdshader`).** The box is unshaded and casts no shadow map, so the counter darkens around its foot:
+```glsl
+uniform float box_k = 0.0;     // 0 elsewhere, 1 in the proofing box (tween with the place)
+uniform vec4 box_rect = vec4(-0.300, -0.158, 0.300, 0.274);   // extras footprint_m
+float box_shade(vec2 xz) {
+	vec2 c = (box_rect.xy + box_rect.zw) * 0.5;
+	vec2 h = (box_rect.zw - box_rect.xy) * 0.5;
+	float d = length(max(abs(xz - c) - h, 0.0));     // 0 under and at the box
+	return mix(1.0, 0.55 + 0.45 * smoothstep(0.0, 0.035, d), box_k);
+}
+// ALBEDO *= box_shade(v_world.xz);
+```
+The jar's own drop shadow on the counter lies under the heat plate in this place. The bake carries its shade on the pad instead.
+
+**Ray check (in the script, numpy).** Rays from the camera to the glass, from where the paste meets it (12 mm) to the highest possible paste (134 mm), on the half facing the camera, plus the paste top seen through the mouth. Every pose of the wall's coverage set (yaw -78 to +78, pitch -10 to +40, distance 0.25 to 0.92 m) and every focus preset (`surface` at 76 degrees, `mold`, `bubbles`, `height`, `top`) at the lowest, `at_peak` and highest starter.
+
+| Result | Count |
+|---|---|
+| Rays | 1,525,716 from 9,971 poses |
+| Starter and glass blocked within the limits (yaw ±70, pitch -5 to 35, zoom 1 to 2.2x, every preset) | **0** |
+| Lid and upper glass blocked within the limits | 0 |
+| Camera inside a box part | 0 |
+| Blocked only past the limits, in the rubber bands | 18,124 (the side walls at yaw past ±70) |
+| Skipped | 553 poses with the camera under the 20 mm counter clearance (D-049) |
+
+The box sits inside the wall's circle, in front of the wall, so it can only add hits: the wall's own coverage (0 misses) holds. The script reruns that check too, and `window_sill` uses the same mesh.
+
+### 19.4 Changing place
+
+The jar lifts and sets down while the set cross-fades behind it (ux-design §13: "the jar animates to its new spot behind the sheet").
+
+| Time | Jar | Set |
+|---|---|---|
+| 0 to 0.30 s | Lifts 18 mm, ease-out cubic | |
+| 0.15 to 1.05 s | Holds, still breathing | Lights tween to the new preset (ease-in-out cubic). The wall's `place_mix`, the counter colors and `box_k` tween over 0.6 s from 0.15 s. The box `fade` goes 1 to 0 or 0 to 1 over 0.5 s. Glass `fog` follows (fridge) |
+| 0.75 to 1.05 s | Sets down, ease-in cubic | |
+| 1.05 to 1.30 s | Settles, a 1.5 mm spring bounce | |
+
+- The lift is transient: the jar root is back at exactly (0, 0, 0) at 1.30 s. Approved by tech-architect (architecture §8.1), with these conditions for T2:
+  - Snap the root to (0, 0, 0) at the end. Don't trust the tween's last value.
+  - A second move during the lift retargets it. Offsets never stack.
+  - Focus requests and `jar_region_changed` reframes wait for the lift to end (1.3 s at most).
+  - Anything that sits on the jar is a child of the jar root (bubble pops already are). Smell wisps and flour dust live in world space under `World/Vfx`, so they must never run during a lift. Today a smell moment can't overlap a place change. Keep it that way.
+- Reduce motion: no lift. A 0.4 s cross-fade.
+- Sounds: a soft lift at 0 s and a set-down at 1.05 s (sound-designer).
+- Two changes in a row: the second starts from the current blend.
+
+### 19.5 Light presets (Godot)
+
+Day values, relative to the signed-off `ViewLook` (§3, §18.6). **At night every place shares the signed-off night look:** each multiplier becomes `mix(place_value, 1.0, night)`, and each color `mix(place_color, the night color, night)`. So rows N1 to N7 (§18.6) hold in every place with no new tuning, and only the set tells places apart at night.
+
+| Field | `counter` | `warm_spot` | `fridge` | `window_sill` | `proofing_box` |
+|---|---|---|---|---|---|
+| `key_color` | `#FFF6EE` | `#FFF0E2` (warmer) | `#EEF3F8` (§3) | `#FBF7F1` (a touch cooler) | `#FFF0E2` (warm) |
+| `key_energy` x | 1.0 | 1.0 | 0.95 | 1.0 | 0.9 |
+| `rim_energy` x, `rim_color` | 1.0, `#FFEEDD` | 1.0, `#FFEEDD` | 1.0, `#EEF3F8` | **1.6**, `#EEF3F8` (window backlight) | **0.4**, `#FFEEDD` (the back wall blocks it) |
+| `sky_energy` x | 1.0 | 1.0 | 0.9 | 1.1 | 0.8 |
+| Sky `top_color` | `#F3E8D8` | `#F3E8D8` | `#EAEDEF` | `#EFEEEA` | `#F5E6D2` |
+| Sky `window_energy` x | 1.0 | 1.0 | 0.6 | 1.4 | **0.3** (no window stripe in the glass) |
+| `glass_reflection` x | 1.0 | 1.0 | 1.0 | 1.0 | 0.7 |
+| Glass `fog` | 0 | 0 | 0.3 | 0 | 0 |
+| `starter_saturation` x | 1.0 | 1.0 | 0.8 (§3: -20%) | 1.0 | 1.0 |
+| Wall textures | kitchen | kitchen | kitchen | window (§19.2) | kitchen |
+| Counter | oak | oak | oak | painted sill (`#D3CABB`, `#C2B8A6`) | oak + `box_k` 1 |
+| `night_floor` on the wall | `#1A1310` | `#1A1310` | `#1A1310` | `#15181C` | `#1A1310` |
+
+T2 tunes energies per renderer to the rows in §19.7. The colors are the art values. The Blender look-dev mirror is `PRESETS` in `build_places.py`.
+
+### 19.6 Budgets
+
+| | `window_sill` | `proofing_box` |
+|---|---|---|
+| Triangles, heaviest visible set (jar, cloth cover, wall, set) | 14,600 (no new mesh) | 15,044 (box 444), budget 16,000 (`verify_glb.py`) |
+| Draw calls | +0 | +1 (the box). Still under 30 in all |
+| Texture memory, ASTC 4x4 | +0.6 MB (day 0.5, night 0.13). Both wall pairs are resident during a cross-fade | +0.25 MB |
+| Shader cost | During a change only: 4 fetches on the wall instead of 2 | One unshaded fetch per box pixel. The counter gains one rounded-box distance |
+
+### 19.7 Sign-off rows
+
+Measure as in §3: the §7 pose capture at `at_peak`, 31 px patches, sRGB 8-bit, HSV, on Mobile Tier B and Compatibility Tier A. Brackets are the Cycles reference from `build_places.py`, which draws the sets the way Godot does (unshaded bakes, no shadow maps), so the in-game rows are the targets, not the bracket values.
+
+| Row | Patch | Target | [Cycles] |
+|---|---|---|---|
+| WS1 paste, lit | (290, 850) | V 81 to 93%, S 7 to 16%, hue 30 to 42, max channel 0.92 or less | `#DAD4C8`, H 41, S 8%, V 85% |
+| WS2 paste, shadow side | (450, 830) | V 50 to 66%, S 45% or less | `#9A9281`, V 60%, S 16% |
+| WS3 the window behind the jar | (360, 150) | V 65 to 88%, S 14% or less, max channel 0.95 or less. Reads as light through a window, never as a gray wall | `#B7BCB6`, V 74%, S 3% (the garden) |
+| WS4 curtain, left of the jar | (120, 520) | V 65 to 88%, S 14% or less, hue 30 to 60 | `#BCB8AC`, H 45, S 8%, V 74% |
+| WS5 sill | (600, 1150) | V 82 to 93%, S 10% or less, never clipped. A sunlit painted sill is brighter than the oak counter (V 89) | `#EBEAE7`, V 92%, S 2% |
+| WS6 frame | whole frame | Under 0.5% clipped. §2.3: nothing under hue 25 at S over 50% | 0.025% clipped, 0% reserved (and 0% at yaw -70, -12, +70) |
+| WS7 orbit | yaw -70, 0, +70 at pitch 15; yaw 0 at -5; zoom 2.2 | The §18.4 magenta sky test with the window textures: 0 sky pixels | coverage: 0 misses |
+| WS8 night | n = 1 | N1 to N7 (§18.6) hold. The panes behind the jar read dark and cool (V 5 to 25%, hue 180 to 240 or S 15% or less), never warm brown. The curtains warm | Panes `#0F1011` (H 213, V 7%), curtain V 29%, paste lit V 78% S 22%, 0% reserved |
+| PB1 paste, lit | (290, 850) | V 78 to 92%, S 8 to 18%, hue 30 to 40 | `#D4C5B1`, H 35, S 17%, V 83% |
+| PB2 paste, shadow side | (450, 830) | V 46 to 62% | `#755E41`, V 46%, S 45% |
+| PB3 the box's back wall | (120, 520) | Hue 28 to 40, S 16 to 28%. Relative luminance at least 10% under PB1's and S at least 3 points over it, so the cream paste reads against the warm tan wall | `#CFB8A1`, H 30, S 22%, V 81%: luminance 0.50 vs the paste's 0.57 (12% lower) |
+| PB4 the lid's inside, above the wall | (360, 150) | V 60 to 85%, hue 28 to 45 | `#D2BCA7`, H 30, S 20%, V 82% |
+| PB5 floor in front (the door) | (600, 1150) | V 70 to 88%, hue 28 to 40, S 25% or less | `#C7B098`, H 31, S 23%, V 78% |
+| PB6 frame | whole frame | Under 0.5% clipped. §2.3 | 0% clipped, 0% reserved (and at yaw -70, -12, +70) |
+| PB7 occlusion | yaw ±70 at zoom 1 and at the most zoomed-out distance, pitch -5 and 35, and every focus preset | Nothing of the box in front of the jar's glass or paste. Art's ray check: 0 of 1.5 M rays | 0 blocked |
+| PB8 night | n = 1 | N1 to N7 hold. Back wall (120, 520) V 35 to 60%, hue 28 to 40, S 45% or less: it sits in the dim kitchen, never glows | `#8A6743`, H 31, V 54%, S 51%. Cycles' AgX saturates the darks: the paste's own shadow side reads S 51% in the same frame. Godot's night grades (§18.6) bring both down |
+| X1 `bubbles` band (ux §3, HUD tucked) | `bubbles` capture at `at_peak` and at the maximum rise, sheet open | The whole cap stays in the band, centered by the frustum shift (§18.7) | T2 |
+
+Night shadow side in the box (N2): Cycles reads V 27% (the window bay 37%) because the box walls block some sky light from the jar's shadow side. Godot doesn't occlude ambient, so N2 should read as in the kitchen. If it doesn't, raise `sky_energy` in the box at night.
+
+### 19.8 How to check it in Godot
+
+1. Add `--place=<id>` to the scrubber, then capture `pose`, the six orbit poses of §18.4 and `top`, at day and night, for `window_sill` and `proofing_box`. Compare frame by frame with `places_check.png`.
+2. Run the §18.4 magenta sky test once per place. It must stay at 0.
+3. In the box, orbit by hand to yaw ±70 at the most zoomed-out distance on a 360 x 640 profile, and at pitch -5. The side walls and the door must never cut into the glass.
+4. Change place 10 times in a row, quickly: no pop, and the jar always ends exactly at the origin.
+
+## 20. Flour looks (Phase 4)
+
+Reference: `/Applications/Blender.app/Contents/MacOS/Blender -b -P art/blender/scripts/render_flour_reference.py` (about 2 to 3 minutes) writes `art/previews/flours_check.png`, 1054 x 658: one column per flour (white_bread, whole_wheat, rye, spelt) at its own peak, the §16.2 side close-up on top and the surface close-up below. It reuses §16's masked starter and adds only what this section adds, so it shows what T2's shader can do.
+
+Checked with sourdough-scientist, 2026-11-27: the color directions are true to real flours (confidence low to medium: baker consensus; `sourdough-science.md` has no cited color claim, and spec §4 marks the looks as tuned). Their three safety notes are built in (§20.4). Whether the game's `spelt` is whole or white spelt is an open decision for the director; sparse flecks fit either.
+
+### 20.1 What each flour looks like
+
+| Flour | Paste | Bran | Shape at its peak (spec §4, V5) | Texture |
+|---|---|---|---|---|
+| `white_bread` | Ivory `#F5EBD6` (the signed-off look, unchanged) | none | Tallest, about 2.2x, a smooth glossy dome | Satin, as §6 |
+| `whole_wheat` | Oatmeal tan `#D8BD98` | Many small dark flakes | About 1.9x, a lower dome | A little more matte and lumpy |
+| `rye` | Warm taupe `#AA9379`, gray-brown leaning | Few flakes | Rises least, about 1.65x. No dome: the top opens into a few wide cracks | Pasty and matte, but still bubbly and moist |
+| `spelt` | Golden cream `#EFDCAC` | Sparse flakes | About 1.9x, a lower dome | Glossier and slacker than white at the same hydration |
+
+Mixes blend everything by `flour_mix` weight, as `VisualMapper` blends the tint today.
+
+### 20.2 Values for T1 (`SimCatalog`, `VisualMapper`)
+
+Lands in T1's second Phase 4 commit, together with T2's new `crack` uniform (T1, 2026-11-27).
+
+| Term | white_bread | whole_wheat | rye | spelt | How it applies |
+|---|---|---|---|---|---|
+| `SimCatalog.TINTS` (sRGB) | `#F5EBD6` (0.961, 0.922, 0.839) | `#D8BD98` (0.847, 0.741, 0.596) | `#AA9379` (0.667, 0.576, 0.475) | `#EFDCAC` (0.937, 0.863, 0.675) | Weighted average, as today |
+| `SimCatalog.FLECKS` | 0.0 | 0.6 | 0.3 | 0.15 | Weighted average, as today |
+| `dome_k` | 1.0 | 0.7 | 0.3 | 0.7 | `dome *= weighted dome_k` |
+| `size_k` | 1.0 | 0.9 | 0.75 | 1.0 | `bubble_size *= weighted size_k` (bran and weak gluten hold smaller bubbles) |
+
+**Firmness from h_eff** (the sim's `culture_hydration / absorb`, so the P1 hydration presets 60, 100 and 125% use the same rule):
+```
+firm  = clamp((100 - h_eff) / 40, -0.6, 1.0)      # white 100%: 0; whole wheat +0.27; rye +0.5; spelt -0.13
+sheen *= 1 - 0.35 * max(firm, 0) + 0.25 * max(-firm, 0)
+lumps  = (lumps + 0.25 * max(firm, 0)) * (1 - 0.5 * max(-firm, 0))
+dome  *= 1 - 0.4 * max(-firm, 0)
+```
+Stiff (60%) reads matte, lumpy and craggy. Loose (125%) reads glossy and levels out.
+
+**`crack`, new VisualParams field (float 0..1; tech-architect adds it to data-models §7).** The rule is spec §14 v1.1: cracks show **exactly** when the `surface` shape is `cracked` or `sunken_cracked`. That means rye share 0.5 or more, `rise` 1.3 or more, and the state is neither `moldy` nor `unhealthy`. They stay through the collapse, softening as the top sinks:
+```
+on    = rye_share >= 0.5 and rise >= 1.3 and state != unhealthy and state != moldy
+crack = on ? 0.35 + 0.65 * smoothstep(0.5, 0.8, rye_share) * smoothstep(1.3, 1.5, rise) : 0.0
+```
+The 0.35 floor is the visible minimum at the thresholds, so the jar and the text agree. It is a step, and T2's easer smooths it. While collapsing, `rise` falls toward 1.3, so the cracks soften to the floor, then go away at the rule's threshold, never before.
+
+### 20.3 Values for T2 (`starter.gdshader`)
+
+- **Bran flakes**, replacing today's 0.38 mm specks, which don't read at game distance:
+  ```glsl
+  const vec3 FLECK_COLOR = vec3(0.2086, 0.1104, 0.0482);   // #7E5E3E, linear, every flour
+  vec2 fc = tone_p / 0.0024;                                // about 2.4 mm cells
+  vec2 fi = floor(fc);
+  vec2 fo = fract(fc) - (0.25 + 0.5 * hash22(fi));
+  float flake = (1.0 - smoothstep(0.16, 0.25, length(fo * vec2(1.0, 1.6))))      // 0.8 to 1.2 mm flakes
+              * step(hash12(fi + 7.0), fleck * 0.45);
+  paste = mix(paste, FLECK_COLOR, flake * 0.85);
+  ```
+  About 2% of the paste at `fleck` 0.6. They show on the side and the cap, and never inside a bubble pocket (`* (1.0 - air)`).
+- **Rye cracks**, on the cap only. A few wide, moist splits about 16 mm apart, varying in width along each one. They are not the fine 2.5 mm crackle of a dry skin:
+  ```glsl
+  uniform float crack = 0.0;
+  vec2 cp = p.xz + (vec2(vnoise(p.xz * 90.0), vnoise(p.xz * 90.0 + 17.0)) - 0.5) * 0.012;
+  float e = cell_edge(cp / 0.016);                                  // noise.gdshaderinc
+  float w = crack * 0.075 * mix(0.12, 1.0, smoothstep(0.38, 0.62, vnoise(p.xz * 70.0)));
+  float on = step(0.001, crack) * top_w;
+  float fissure  = (1.0 - smoothstep(w * 0.35, w, e)) * on;
+  float shoulder = (1.0 - smoothstep(w, w * 2.2, e)) * on;
+  albedo = mix(albedo, pocket, fissure * 0.85 + shoulder * 0.25);  // pocket tone, never dark lines
+  albedo *= mix(1.0, cav_t, fissure);                              // lit like a pit
+  // Tier B: cap height -= 0.0006 * fissure. Roughness stays the paste's (moist), never the dry 0.8.
+  ```
+- **No web for rye.** `stretch *= 1.0 - step(0.001, crack)`. Rye rises as a bubbly paste, not a stretchy web (spec §14 v1.1, `airy_pasty`). If the `consistency` view lifts a strand from a spoon, make it a short paste blob for rye (ux §10).
+- **Hooch ignores the flour.** Drop `* mix(vec3(1.0), flour_ratio, 0.5)` from `hooch_col`. The scientist has no source that whole-grain hooch is darker, and dark hooch must stay a time cue on every flour (§20.4).
+- **A dry skin hides the pits.** On the cap, `ft.x *= 1.0 - dry` (no open pits through a dry skin), so `unhealthy` reads as a film on every flour, rye included.
+- Pockets keep `POCKET_COLOR * flour_ratio` (§16.4), as today.
+- Flour dust tints: §9.
+
+### 20.4 Safety
+
+- **Danger hues.** Every tint is warm, at hue 31 to 43 and S 28 to 30% (white 13%). Rendered paste reads hue 32 to 37, far from §2.3's line (hue under 25 at S over 50%). Rye's real "slight pinkish-gray tinge" (science doc) is left out on purpose, because of D-026.
+- **A healthy rye never reads `unhealthy`** (scientist). `unhealthy` is a dull dry skin with fine crackle, dark hooch, flat, with no bubbles showing. Rye at peak stays warm and moist, with bubbles and pits, and wide cracks with glossy edges. `crack` is 0 whenever the state is `unhealthy` or `moldy`, so a warning always reads on its own.
+- **Dark hooch stays a time cue** (scientist). Normal hooch (`hooch_thin`) looks the same on every flour, and `hooch_dark` is clearly darker on every flour.
+
+### 20.5 Look-probe rows
+
+Captures: the §16.2 side and top close-ups at each flour's own peak (§20.2 values, 100% hydration), plus rye `hungry` and rye `unhealthy`, on Mobile Tier B and Compatibility Tier A. "Paste" is the §16.1 split. Brackets are the Cycles reference (`flours_check.png`, side / top), which reads lighter and less saturated than the tints because the paste is lit.
+
+| Row | Capture | Target | [Cycles] |
+|---|---|---|---|
+| FL1 white_bread | side, top | The §16.6 rows, unchanged | `#D5CBBB` H 37 S 12% V 83% / `#DED3C3` H 34 S 12% V 87% |
+| FL2 whole_wheat paste | side | Hue 30 to 40, S 14 to 26%, V 74 to 88%. Darker and warmer than white by at least 4 V points or 5 S points | `#CFBCA3` H 33 S 21% V 81% / top S 17% V 86% |
+| FL3 rye paste | side | Hue 30 to 38, S 16 to 30%, V 66 to 82%. Never under V 64 (no gray sludge), never over S 32% | `#C2B097` H 34 S 22% V 76% / top S 19% V 83% |
+| FL4 spelt paste | side | Hue 33 to 44, S 14 to 26%, V 78 to 90%. Lighter than whole wheat by at least 1 V point, and at least 2 degrees yellower | `#D4C5AC` H 37 S 19% V 83% / top S 16% V 87% |
+| FL5 bran | side and top, whole_wheat | Flakes are visible: 0.5 to 3% of paste pixels at least 20 V points darker than the paste, at hue 25 to 40 | T2 |
+| FL6 rye cracks | top, rye at peak | 3 to 6 splits across the cap, fissures in pocket tone (V 55% or more, hue 28 to 40). No 2.5 mm crackle | Visible in the sheet |
+| FL7 rye safety | top, rye `unhealthy` | No splits (`crack` 0): only the dry skin's fine crackle and dark hooch | T2 |
+| FL8 hooch | top, rye `hungry` vs white `hungry` | R10 holds for both, within 3 V points of each other. R12 (`unhealthy`) stays at least 6 V points darker than R10 on every flour | T2 |
+| FL9 everywhere | every capture | §2.3, and no pink: no pixel group at hue 330 to 20 with S over 25% | 0% in the sheet |
+
+## 21. On the iPhone 13 Pro (D-058)
+
+The budgets in §13 and architecture §11 were written for this device class: a 2021 phone with an A15 (5-core GPU in the Pro), 6 GB, a 2532 x 1170 ProMotion screen at 460 ppi. Apple GPUs render in tiles, which changes what is cheap. **Nothing here changes yet.** Each item is something to measure on the phone first, with its likely outcome. Numbers from the phone replace Mac estimates (D-004).
+
+| Item | Today | On the iPhone 13 Pro | Suggested check |
+|---|---|---|---|
+| Tier B glass (screen refraction) | Mobile default. The screen copy cost about 4.5 ms on the Mac spike | On a tile GPU a screen copy ends the render pass and writes the frame out to memory, so it can cost more than on the Mac | GPU frame time, Tier A vs Tier B, `at_peak` pose. If Tier B costs more than 3 ms over Tier A, default this phone to Tier A (signed off on Mobile too, §16.6) and keep Tier B as the high setting |
+| MSAA | 2x (D-035) | MSAA resolves inside the tile on Apple GPUs and is close to free | Try 4x: crisper glass edges, band and box edges. Keep it if it costs under 0.5 ms |
+| 3D render scale | 0.75 | 0.75 of 460 ppi is still about 2.3x density. The soft wall and box would hold at 0.67. The glass highlights and the band edge show it first | Captures at 0.75 and 0.67 side by side. Change only if the GPU time needs it |
+| Frame rate | 60, 30 when idle (architecture §11) | ProMotion can run 120 Hz, but only if the app opts in | Don't opt in. Keep 60 and the idle 30. Breathing (6 to 9 s) reads the same at 30 |
+| Texture compression | VRAM Compressed | A15 supports ASTC. All color maps and the wall, box and night maps fit in about 1.5 MB as ASTC 4x4. The masks stay uncompressed (§16.3) | Confirm the iOS export uses ASTC, not ETC2 fallbacks, and that the ASTC wall shows no block artifacts at 2.2x zoom |
+| Shader compile hitches | Shader baker off (D-058) | Metal compiles each pipeline the first time it draws. The first place change, the first smell wisps, the first mold shells and the first night can each stutter once | Watch the first change to each place and the first feed on a fresh install. If it hitches, draw each material once at boot (box at `fade` 0, the window wall pair) |
+| Overdraw | Glass 2 passes, wisps, dust | Blending stays inside the tile on Apple GPUs, so it's cheap. The box's dissolve `discard` runs only during a change | Nothing to do unless the GPU time says so |
+| Battery and heat | The jar always breathes, so the app never stops drawing | The main cost of a calm app | 10 minutes idle on the home screen at 30 fps: battery drop and whether the phone warms. If it's high, the idle cap could go to 24 |
+| Color and EDR | SDR, AgX on Mobile | The XDR screen shows SDR content as on the Mac | Keep SDR. Re-capture the §7 pose at `at_peak`, day and night, on the phone, and re-measure the §3 rows and N1 to N7. That's the first look check on real hardware |
+| Memory | Scene textures under 4 MB | 6 GB: no pressure | Nothing |

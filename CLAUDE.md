@@ -72,6 +72,12 @@ python3 -I art/blender/scripts/verify_glb.py assets/3d/jar_v0.glb
 # Kitchen wall contract (D-049): "PASS: kitchen wall node ..." and exit 0
 python3 -I art/blender/scripts/verify_glb.py assets/3d/kitchen_wall.glb
 
+# Places set (D-059, art §19): "PASS ..." and exit 0. Rebuild with build_places.py (about 80 s, run by art-director;
+# ends with 0 blocked rays and 0 wall misses). Flour reference renders: render_flour_reference.py
+python3 -I art/blender/scripts/verify_glb.py assets/3d/places.glb
+/Applications/Blender.app/Contents/MacOS/Blender -b -P art/blender/scripts/build_places.py
+/Applications/Blender.app/Contents/MacOS/Blender -b -P art/blender/scripts/render_flour_reference.py
+
 # Rebuild the kitchen wall GLB, day and night textures and check sheet (about 60 s, run by art-director).
 # Ends with a ray coverage check over the whole orbit: 0 misses within the limits.
 /Applications/Blender.app/Contents/MacOS/Blender -b -P art/blender/scripts/bake_kitchen_wall.py
