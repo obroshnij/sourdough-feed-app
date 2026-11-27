@@ -19,6 +19,24 @@ var key_energy: float = 1.6
 var key_color: Color = Color("#FFF6EE")     # art #FFEAD6, whitened: AgX here keeps more warmth than Cycles
 var rim_energy: float = 0.9
 var rim_color: Color = Color(1.0, 0.933, 0.867)     # #FFEEDD
+## Night lamp (OmniLight3D under the cabinet, #FFE6CC, art-direction.md §18.6), at night = 1.
+var lamp_energy: float = 1.0
+var lamp_color: Color = Color("#FFE6CC")
+## Night key: share of the day key energy and its color at full night (art's night ruling).
+var night_key: float = 0.55
+## Night fill and dressing (rows N6, N7): sky share, counter brightness and pocket contrast at n = 1.
+var night_sky: float = 0.6
+var night_counter: float = 0.75
+var night_pocket: float = 0.6
+var night_key_color: Color = Color("#FFE6CC")
+## Paste desaturation at full night, so N1 keeps S 22% or less under the warm lamp.
+var night_desat: float = 0.3
+## The lamp color the wall's night path uses (art #FFD7A8), graded paler for N3.
+var wall_lamp_color: Color = Color("#FFE2C0")
+## Wall night path (backdrop.gdshader, art-direction.md §18.3), graded per renderer for N3 and N4.
+var wall_night_gain: float = 0.3
+var wall_keep_hue: float = 0.4
+var wall_floor_mul: float = 1.0
 var shadow_blur: float = 1.5
 ## 1 = the key casts real shadows. Off by default: on Compatibility in 4.7.2 a shadowed
 ## DirectionalLight3D lights about 5x too hard and clips the scene (T2 measurement). The counter
@@ -70,6 +88,15 @@ static func for_renderer(renderer: String) -> ViewLook:
 		look.glass_spec = 1.5
 		look.glass_reflection = 0.35
 		look.lid_saturation = 0.8
+		look.wall_night_gain = 0.35
+		look.wall_keep_hue = 0.8
+		look.wall_floor_mul = 2.0
+		look.night_desat = 0.5
+		look.lamp_energy = 0.5
+		look.night_key = 0.62
+		look.night_counter = 0.9
+		look.night_pocket = 0.2
+		look.night_sky = 0.8
 		look.hooch_dark_lift = 1.45
 		look.glass_edge_absorb = 0.35
 	return look

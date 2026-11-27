@@ -9,7 +9,7 @@
 	},
 	"starter": {
 		"acid": 0.5573937176066869,
-		"born_unix": 0,
+		"born_unix": 1793923200,
 		"culture_hydration": 100.0,
 		"dryness": 0.040201359122573256,
 		"feed_jitter": 1.0,

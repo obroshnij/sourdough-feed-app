@@ -12,7 +12,9 @@ const BACKDROP_SHADER: String = "res://src/view/shaders/backdrop.gdshader"
 const SIDE_MASK: String = "res://assets/textures/starter_side_bubbles.png"
 const TOP_MASK: String = "res://assets/textures/starter_top_pits.png"
 const LINER_MASK: String = "res://assets/textures/starter_liner_streaks.png"
-const WALL_TEX: String = "res://assets/textures/kitchen_backdrop.png"
+const WALL_TEX: String = "res://assets/textures/kitchen_wall.png"
+const WALL_NIGHT_TEX: String = "res://assets/textures/kitchen_wall_night.png"
+const WALL_NODE: StringName = &"Kitchen_Wall"
 const COUNTER_DETAIL: String = "res://assets/textures/counter_oak_detail.png"
 const LID_DETAIL: String = "res://assets/textures/lid_oak_detail.png"
 
@@ -27,7 +29,6 @@ var starter: MeshInstance3D
 var liner: MeshInstance3D
 var band: MeshInstance3D
 var counter: MeshInstance3D
-var backdrop: MeshInstance3D
 var covers: Dictionary[StringName, MeshInstance3D] = {}
 var floor_y: float = JarGeometry.FLOOR_Y_M
 
@@ -39,6 +40,8 @@ var lid_mat: ShaderMaterial
 var quality: QualityTier
 var tier: QualityTier.Tier = QualityTier.Tier.A
 var visuals: VisualParams = VisualParams.new()
+var pops: BubblePops
+var lid_rest_y: float = JarGeometry.HEIGHT_M
 ## Contract problems found at bind time. Empty when the GLB matches.
 var contract_errors: PackedStringArray = PackedStringArray()
 
@@ -54,7 +57,6 @@ func bind(model: Node3D) -> PackedStringArray:
 	liner = model.find_child(String(JarGeometry.NODE_LINER), true, false) as MeshInstance3D
 	band = model.find_child(String(JarGeometry.NODE_BAND), true, false) as MeshInstance3D
 	counter = model.find_child(String(JarGeometry.NODE_COUNTER), true, false) as MeshInstance3D
-	backdrop = model.find_child(String(JarGeometry.NODE_BACKDROP), true, false) as MeshInstance3D
 	for cover: StringName in JarGeometry.COVER_NODES:
 		var node: MeshInstance3D = model.find_child(String(JarGeometry.COVER_NODES[cover]), true, false) as MeshInstance3D
 		if node != null:
@@ -69,6 +71,12 @@ func bind(model: Node3D) -> PackedStringArray:
 	for e: String in contract_errors:
 		push_error("JarView contract: " + e)
 	_make_materials()
+	if covers.has(&"loose_lid"):
+		lid_rest_y = covers[&"loose_lid"].position.y
+	pops = BubblePops.new()
+	pops.name = "BubblePops"
+	pops.floor_y = floor_y
+	add_child(pops)
 	return contract_errors
 
 
@@ -106,12 +114,10 @@ func _make_materials() -> void:
 		counter_mat.set_shader_parameter(&"jar_radius", JarGeometry.OUTER_RADIUS_M)
 		counter_mat.set_shader_parameter(&"oak_detail", load(COUNTER_DETAIL) as Texture2D)
 		counter.material_override = counter_mat
-	if backdrop != null:
-		backdrop_mat = ShaderMaterial.new()
-		backdrop_mat.shader = load(BACKDROP_SHADER) as Shader
-		backdrop_mat.set_shader_parameter(&"wall_tex", load(WALL_TEX) as Texture2D)
-		backdrop.material_override = backdrop_mat
-		backdrop.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	backdrop_mat = ShaderMaterial.new()
+	backdrop_mat.shader = load(BACKDROP_SHADER) as Shader
+	backdrop_mat.set_shader_parameter(&"wall_tex", load(WALL_TEX) as Texture2D)
+	backdrop_mat.set_shader_parameter(&"night_tex", load(WALL_NIGHT_TEX) as Texture2D)
 	if covers.has(&"loose_lid"):
 		lid_mat = ShaderMaterial.new()
 		lid_mat.shader = load(LID_WOOD_SHADER) as Shader
@@ -140,22 +146,58 @@ func _standard(color: Color, roughness: float) -> StandardMaterial3D:
 	return m
 
 
+## The wide kitchen wall (kitchen_wall.glb, §18.2): the backdrop material on Kitchen_Wall.
+func bind_wall(wall_root: Node3D) -> bool:
+	var wall: MeshInstance3D = wall_root.find_child(String(WALL_NODE), true, false) as MeshInstance3D
+	if wall == null or backdrop_mat == null:
+		push_error("JarView: no Kitchen_Wall to bind")
+		return false
+	wall.material_override = backdrop_mat
+	wall.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return true
+
+
+## Night factor for the wall (D-043), 0 day to 1 night.
+func set_wall_night(n: float) -> void:
+	if backdrop_mat != null:
+		backdrop_mat.set_shader_parameter(&"night", n)
+
+
 ## The starter-shaped materials that take VisualParams uniforms.
 func starter_materials() -> Array[ShaderMaterial]:
 	return [starter_mat, liner_mat]
 
 
-## Shows a VisualParams. The band sits at the fed level; the cover picks the visible lid node.
-func apply_visuals(p: VisualParams) -> void:
+## Shows a VisualParams. The band sits at the fed level (or at band_level_m while it snaps after a
+## feed); the cover picks the visible lid node.
+func apply_visuals(p: VisualParams, band_level_m: float = -1.0) -> void:
 	visuals = p
 	StarterUniforms.apply(p, starter_materials())
+	if pops != null:
+		pops.set_params(p)
 	if band != null:
-		band.position.y = floor_y + p.level_m
+		band.position.y = floor_y + (p.level_m if band_level_m < 0.0 else band_level_m)
 	for cover: StringName in covers:
 		covers[cover].visible = cover == p.cover
 	if counter_mat != null:
 		counter_mat.set_shader_parameter(&"starter_top", floor_y + p.level_m * p.rise)
 		counter_mat.set_shader_parameter(&"lid_on", 1.0 if p.cover == &"loose_lid" or p.cover == &"tight_lid" else 0.0)
+
+
+## Lid lift for feeds and the smell moment: 0 on, 1 lifted 8 mm and turned 10 degrees (§8).
+func set_lid_lift(k: float) -> void:
+	for cover: StringName in [&"loose_lid", &"tight_lid"]:
+		if covers.has(cover):
+			covers[cover].position.y = lid_rest_y + 0.008 * k
+			covers[cover].rotation.y = deg_to_rad(10.0) * k
+
+
+## Reduce motion turns off breathing and pops (ux-design.md §15).
+func set_motion(on: bool) -> void:
+	for m: ShaderMaterial in starter_materials():
+		m.set_shader_parameter(&"motion_k", 1.0 if on else 0.0)
+	if pops != null:
+		pops.motion_on = on
 
 
 ## Freezes or frees the shader clock (captures and tests use a fixed time).
@@ -187,6 +229,10 @@ func apply_look(look: ViewLook, key_dir: Vector3, rim_dir: Vector3) -> void:
 	starter_mat.set_shader_parameter(&"hooch_dark_lift", look.hooch_dark_lift)
 	if backdrop_mat != null:
 		backdrop_mat.set_shader_parameter(&"energy", look.backdrop_energy)
+		backdrop_mat.set_shader_parameter(&"night_gain", look.wall_night_gain)
+		backdrop_mat.set_shader_parameter(&"night_keep_hue", look.wall_keep_hue)
+		backdrop_mat.set_shader_parameter(&"lamp_color", look.wall_lamp_color)
+		backdrop_mat.set_shader_parameter(&"night_floor", Color("#1A1310") * look.wall_floor_mul)
 	if counter_mat != null:
 		counter_mat.set_shader_parameter(&"grade_value", look.dressing_value)
 		counter_mat.set_shader_parameter(&"key_dir", key_dir)

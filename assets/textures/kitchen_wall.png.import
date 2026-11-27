@@ -2,9 +2,9 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b73ricudv1xpa"
-path.s3tc="res://.godot/imported/kitchen_backdrop.png-c981fec9afb37fd1b2d905a2f123505f.s3tc.ctex"
-path.etc2="res://.godot/imported/kitchen_backdrop.png-c981fec9afb37fd1b2d905a2f123505f.etc2.ctex"
+uid="uid://bnt50kcnjg2yd"
+path.s3tc="res://.godot/imported/kitchen_wall.png-7b5e45d97572956340566af5eaec436d.s3tc.ctex"
+path.etc2="res://.godot/imported/kitchen_wall.png-7b5e45d97572956340566af5eaec436d.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -12,8 +12,8 @@ metadata={
 
 [deps]
 
-source_file="res://assets/textures/kitchen_backdrop.png"
-dest_files=["res://.godot/imported/kitchen_backdrop.png-c981fec9afb37fd1b2d905a2f123505f.s3tc.ctex", "res://.godot/imported/kitchen_backdrop.png-c981fec9afb37fd1b2d905a2f123505f.etc2.ctex"]
+source_file="res://assets/textures/kitchen_wall.png"
+dest_files=["res://.godot/imported/kitchen_wall.png-7b5e45d97572956340566af5eaec436d.s3tc.ctex", "res://.godot/imported/kitchen_wall.png-7b5e45d97572956340566af5eaec436d.etc2.ctex"]
 
 [params]
 

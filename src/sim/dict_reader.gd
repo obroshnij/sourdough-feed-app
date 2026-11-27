@@ -86,6 +86,30 @@ func list(key: String) -> Array:
 	return []
 
 
+# Optional fields (Phase 3 additions to schema v1). A missing key gives `fallback` and keeps `ok`, so every
+# v1 save and fixture written before the field existed still loads. A present key with the wrong type still
+# sets `ok` to false, like the required readers.
+
+func integer_or(key: String, fallback: int) -> int:
+	return integer(key) if _d.has(key) else fallback
+
+
+func num_or(key: String, fallback: float) -> float:
+	return num(key) if _d.has(key) else fallback
+
+
+func text_or(key: String, fallback: String) -> String:
+	return text(key) if _d.has(key) else fallback
+
+
+func flag_or(key: String, fallback: bool) -> bool:
+	return flag(key) if _d.has(key) else fallback
+
+
+func dict_or_empty(key: String) -> Dictionary:
+	return dict(key) if _d.has(key) else {}
+
+
 func num_map(key: String) -> Dictionary[StringName, float]:
 	var out: Dictionary[StringName, float] = {}
 	var src: Dictionary = dict(key)
@@ -194,6 +218,34 @@ static func canonical(v: Variant) -> Variant:
 static func canonical_dict(d: Dictionary) -> Dictionary:
 	var out: Dictionary = canonical(d)
 	return out
+
+
+## The exact form a free-form dictionary has after a save and load: whole numbers as ints, every other float as
+## its D-040 hex string, recursively. Journal data and args are kept in this form from the start, so an entry
+## is identical before and after a save (PROP-02 for the journal). Read numbers with float_of().
+static func saved_form(d: Dictionary) -> Dictionary:
+	var out: Dictionary = _hex_floats(canonical(d))
+	return out
+
+
+static func _hex_floats(v: Variant) -> Variant:
+	match typeof(v):
+		TYPE_FLOAT:
+			var x: float = v
+			return float_to_hex(x)
+		TYPE_DICTIONARY:
+			var src: Dictionary = v
+			var out: Dictionary = {}
+			for k: Variant in src:
+				out[k] = _hex_floats(src[k])
+			return out
+		TYPE_ARRAY:
+			var arr: Array = v
+			var list: Array = []
+			for item: Variant in arr:
+				list.append(_hex_floats(item))
+			return list
+	return v
 
 
 ## Accepts a JSON number (hand-written fixtures) or a D-040 hex string (saves).

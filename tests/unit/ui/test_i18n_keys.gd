@@ -7,7 +7,9 @@ const CATALOGS: Array[String] = [
 	"res://src/i18n/en.csv", "res://src/i18n/pending_core.csv", "res://src/i18n/pending_view.csv",
 	"res://src/i18n/pending_ui.csv",
 ]
-const KEY_RE: String = "[\"']([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+)[\"']"
+const KEY_RE: String = "(key_for\\(\\s*)?[\"']([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+)[\"']"
+## SimEvent.key_for() parts are completed into EVENT_<ID>_<PART>; test_built_keys_exist checks those.
+const EVENT_PARTS: Array[String] = ["TOAST", "TITLE", "BODY", "BTN", "DISMISS", "BTN_LOOK", "BTN_FEED"]
 
 
 func test_every_key_literal_in_src_ui_exists() -> void:
@@ -17,7 +19,9 @@ func test_every_key_literal_in_src_ui_exists() -> void:
 	for path: String in _files("res://src/ui"):
 		var text: String = FileAccess.get_file_as_string(path)
 		for m: RegExMatch in re.search_all(text):
-			var key: String = m.get_string(1)
+			if m.get_string(1) != "":
+				continue
+			var key: String = m.get_string(2)
 			found += 1
 			check(catalog.has(key) and catalog[key] != "", "%s uses %s, which is in a catalog" % [path, key])
 	check(found >= 15, "found %d key literals in src/ui" % found)
@@ -45,6 +49,16 @@ func test_built_keys_exist() -> void:
 		check(catalog.has(label + "_A11Y"), label + "_A11Y exists")
 		check(a11y.length() <= 40, label + "_A11Y <= 40")
 	check(catalog.has("STATUS_A11Y"), "STATUS_A11Y exists")
+	# The slice's event parts the UI asks for (events-catalog §1).
+	var parts: Dictionary[String, Array] = {
+		"FIRST_RISE": ["TOAST"], "PEAKED_WHILE_AWAY": [], "PEAK_NOW": ["TOAST"], "HOOCH_FORMING": ["TOAST"],
+		"BACK_TO_STRENGTH": ["TOAST"], "HUNGRY_AGAIN": ["TITLE", "BODY", "BTN", "DISMISS"],
+		"WARNING_SIGNS": ["TITLE", "BODY", "BTN_LOOK", "BTN_FEED"],
+	}
+	for id: String in parts:
+		for part: String in parts[id]:
+			check(EVENT_PARTS.has(part), "%s is a part the UI uses" % part)
+			check(catalog.has("EVENT_%s_%s" % [id, part]), "EVENT_%s_%s exists" % [id, part])
 	check(catalog.has(String(GameAction.REASON_MOLDY)), "the moldy feed reason exists")
 
 

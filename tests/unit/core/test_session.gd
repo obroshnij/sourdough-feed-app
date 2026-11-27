@@ -40,7 +40,10 @@ func test_feed_pipeline_saves_before_signals() -> void:
 	var r: ActionResult = s.apply(FeedAction.from_ratio(1.0, 1.0, &"white_bread"))
 	check(r.ok, "the feed is accepted")
 	check(seen.size() == 1 and seen[0][0] == true and float(seen[0][1]) == 0.0, "INT-01 the save already holds the feed")
-	check_eq(order, ["applied", "state", "journal"], "step 9 order: action_applied, state_changed, journal_appended")
+	# With the slice rules live, the step-1 sync may journal an event too (peak_now here); it comes after.
+	check_eq(order.slice(0, 3), ["applied", "state", "journal"],
+		"step 9 order: action_applied, state_changed, journal_appended")
+	check(order.slice(3).all(func(x: String) -> bool: return x == "journal"), "anything after is journal entries")
 	check_eq(r.journal_entry.kind, &"feed", "one journal entry")
 	check_eq(s.get_starter().sim_time_unix, Sim.grid(clock.now_unix()), "CLK-18 applied at grid(now)")
 	check_eq(r.journal_entry.at_unix, clock.now_unix(), "the journal records the real time")

@@ -60,6 +60,58 @@ func ratio() -> Vector2:
 	return Vector2(flour_total_g() / kept_g, water_g / kept_g)
 
 
+## The ratio as shown in copy, "1:5:5" ({ratio}, game-copy §1.3). Rounded to whole parts.
+func ratio_text() -> String:
+	var r: Vector2 = ratio()
+	return "1:%d:%d" % [roundi(r.x), roundi(r.y)]
+
+
+## The flour with the most grams (the {flour} of the journal line). white_bread when there is none.
+func main_flour() -> StringName:
+	var main: StringName = &"white_bread"
+	var most: float = -1.0
+	for id: StringName in flour_g:
+		if flour_g[id] > most:
+			most = flour_g[id]
+			main = id
+	return main
+
+
+## The facts a journal feed entry keeps: only what can't be derived. Ratio and hydration follow from the
+## grams (ratio(), hydration_pct() on FeedAction.from_dict(facts)), so they aren't stored per entry
+## (QA's SAVE-13 finding: the save outgrew 128 KB in long play).
+func journal_facts() -> Dictionary:
+	var flours: Dictionary = {}
+	for k: StringName in flour_g:
+		flours[String(k)] = flour_g[k]
+	return {"kept_g": kept_g, "flour_g": flours, "water_g": water_g, "hooch_choice": String(hooch_choice)}
+
+
+## A field-by-field copy (AC-05.3: "feed like last time" equals the previous feed except the time).
+func copy() -> FeedAction:
+	var a := FeedAction.new()
+	a.kept_g = kept_g
+	a.flour_g = flour_g.duplicate()
+	a.water_g = water_g
+	a.hooch_choice = hooch_choice
+	return a
+
+
+## Rebuilds a feed from `to_dict()` (as PlayerHistory.last_feed stores it). Numbers may be JSON numbers or
+## D-040 hex strings. Returns null on anything malformed; validation still happens in Session.apply().
+static func from_dict(d: Dictionary) -> FeedAction:
+	var r := DictReader.new(d)
+	var a := FeedAction.new()
+	a.kept_g = r.num("kept_g")
+	a.water_g = r.num("water_g")
+	a.hooch_choice = r.id("hooch_choice")
+	var flours: Dictionary[StringName, float] = r.num_map("flour_g")
+	if not r.ok or flours.is_empty():
+		return null
+	a.flour_g = flours
+	return a
+
+
 func validate(state: StarterState, _env: EnvironmentState, _catalog: SimCatalog) -> StringName:
 	if state.moldy:
 		return REASON_MOLDY

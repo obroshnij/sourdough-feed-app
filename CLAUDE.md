@@ -13,7 +13,7 @@ A cozy 3D virtual pet for iOS and Android. The player keeps a living sourdough s
 | [`production/board.md`](production/board.md) | Who is doing what right now. |
 | `.claude/agents/` | The studio's specialist agents and the shared team contract. |
 
-**Status:** Phase 2 (foundation) is done on branch `phase-2-foundation` and waiting for the user's review. It contains the real sim, clock, saves and catch-up; the 3D jar in both renderers; the themed HUD shell; the 640-string catalog; and the test gate. Phase 3 (vertical slice) is next. Start with [`docs/mvp-scope.md`](docs/mvp-scope.md), [`docs/roadmap.md`](docs/roadmap.md) and [`production/board.md`](production/board.md).
+**Status:** Phase 2 is merged into `main`. Phase 3 (the vertical slice) is code-complete on branch `phase-3-slice` and waiting for the user's play session and review. It adds the feed, place, smell and inspect flows, the 8 live event rules, the away summary and time-lapse, the journal, naming, the mold-to-restart flow, day and night lighting, the wider kitchen wall, and the F3 dev overlay for time travel. All 107 acceptance rows are covered, manual or waived (D-052). Phase 4 (polish and the rest of the MVP) is next. Start with [`docs/mvp-scope.md`](docs/mvp-scope.md), [`docs/roadmap.md`](docs/roadmap.md) and [`production/board.md`](production/board.md).
 
 ## Toolchain (verified 2026-11-26)
 
@@ -38,8 +38,10 @@ Only commands that have actually been run go here.
 # Reference simulation: checks test vectors V1 to V20 against the spec (about 3 s)
 python3 -I tools/sim-reference/sim.py vectors   # ends "Checks: 243 run, 0 failed", exit 0; exit 1 on any miss
 
-# Full test gate: imports first, runs every Godot test plus 4 lints; --strict fails on any skip (D-041)
-tests/run.sh --strict   # "RESULT: 179 passed, 0 failed, 0 skipped" / "RUN: PASS" on a fresh clone (Phase 2 close)
+# Full test gate: imports first, runs every Godot test plus 5 lints; --strict fails on any skip (D-041).
+# If Godot's first import crashes (an engine bug, test-plan §1), run.sh retries once and the RUN line says
+# "import retried after signal N". Any phase-exit report must quote that note. A second crash fails the run.
+tests/run.sh --strict   # "RESULT: 399 passed, 0 failed, 0 skipped" / "RUN: PASS" on a fresh clone (Phase 3 exit, 2f7645b; about 3.5 min)
 
 # Copy checker (docs plus pending CSVs) and the catalog build
 python3 -I tools/i18n/check_copy.py .              # 640 strings, "OK: ... pending CSVs", exit 0
@@ -60,6 +62,13 @@ python3 -I art/blender/scripts/verify_glb.py assets/3d/jar_v0.glb
 
 # Rebuild the jar .blend, GLB and preview renders (about 100 s, run by art-director)
 /Applications/Blender.app/Contents/MacOS/Blender -b -P art/blender/scripts/build_jar.py
+
+# Kitchen wall contract (D-049): "PASS: kitchen wall node ..." and exit 0
+python3 -I art/blender/scripts/verify_glb.py assets/3d/kitchen_wall.glb
+
+# Rebuild the kitchen wall GLB, day and night textures and check sheet (about 60 s, run by art-director).
+# Ends with a ray coverage check over the whole orbit: 0 misses within the limits.
+/Applications/Blender.app/Contents/MacOS/Blender -b -P art/blender/scripts/bake_kitchen_wall.py
 ```
 
 ## Hard rules

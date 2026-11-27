@@ -10,6 +10,13 @@ static func minute_of_day(unix: int, utc_offset_s: int) -> int:
 	return m
 
 
+## Days since 1970-01-01 in local time: changes exactly when day_key() does, without building a string.
+static func day_index(unix: int, utc_offset_s: int) -> int:
+	var t: int = unix + utc_offset_s
+	@warning_ignore("integer_division")
+	return (t - posmod(t, 86400)) / 86400
+
+
 ## Local calendar date as "YYYY-MM-DD" (proleptic Gregorian, H. Hinnant's civil_from_days).
 static func day_key(unix: int, utc_offset_s: int) -> String:
 	var t: int = unix + utc_offset_s

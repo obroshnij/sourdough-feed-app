@@ -6,6 +6,8 @@ extends PanelContainer
 ## A tap dismisses it. It blocks touches only inside its own rect.
 
 signal dismissed()
+## A tap on a toast that links to its journal entry (ux §12).
+signal link_opened()
 
 ## Set by UiRoot from the "Keep messages on screen" setting (not stored yet; Phase 3).
 static var keep_messages: bool = false
@@ -16,6 +18,8 @@ var icon_rect: TextureRect = null
 var _shown: bool = false
 var _tween: Tween = null
 var _timer: Timer = null
+var _link: bool = false
+var _chevron: TextureRect = null
 
 
 func _ready() -> void:
@@ -48,6 +52,15 @@ func _ready() -> void:
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(label)
+	_chevron = TextureRect.new()
+	_chevron.name = "Chevron"
+	_chevron.texture = UiIcon.texture(&"ui_chevron_right")
+	_chevron.custom_minimum_size = Vector2(20, 20)
+	_chevron.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_chevron.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_chevron.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_chevron.visible = false
+	row.add_child(_chevron)
 	_timer = Timer.new()
 	_timer.one_shot = true
 	_timer.timeout.connect(dismiss)
@@ -59,7 +72,17 @@ func is_shown() -> bool:
 
 
 func show_key(key: StringName, args: Dictionary = {}, icon_id: StringName = &"") -> void:
-	label.text = tr(key).format(args)
+	show_text(tr(key).format(args), icon_id)
+
+
+## Text already rendered (Session.format_text() for event toasts with a {time}). With `link`, a › chevron
+## shows and a tap opens the journal entry instead of only dismissing.
+func show_text(text: String, icon_id: StringName = &"", link: bool = false) -> void:
+	label.text = text
+	_link = link
+	_chevron.visible = link
+	_chevron.modulate = get_theme_color(&"surface", ThemeBuilder.PALETTE_TYPE)
+	accessibility_description = tr(&"TOAST_A11Y_MORE") if link else ""
 	icon_rect.visible = icon_id != &""
 	if icon_id != &"":
 		icon_rect.texture = UiIcon.texture(icon_id)
@@ -85,8 +108,11 @@ func dismiss() -> void:
 func _gui_input(event: InputEvent) -> void:
 	var mb: InputEventMouseButton = event as InputEventMouseButton
 	if mb != null and mb.button_index == MOUSE_BUTTON_LEFT and not mb.pressed:
+		var linked: bool = _link
 		dismiss()
 		accept_event()
+		if linked:
+			link_opened.emit()
 
 
 func _animate(entering: bool) -> void:

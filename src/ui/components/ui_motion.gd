@@ -4,6 +4,8 @@ extends RefCounted
 ## the in-app setting (the OS value can't be read on phones). Times in seconds.
 
 static var reduce: bool = false
+## Tests run the smell moment, the feed sequence and the inspect hold faster with this (1.0 in the game).
+static var time_scale: float = 1.0
 
 const SHEET_OPEN: float = 0.30
 const SHEET_CLOSE: float = 0.22

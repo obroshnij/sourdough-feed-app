@@ -1,7 +1,7 @@
 class_name UiPalette
 extends RefCounted
 ## The UI color roles (art-direction.md §2.2, ux-design.md §16.1) with the night variant.
-## `night` is the blend toward the evening look, 0 by day and 1 at night. Only the surfaces change at night:
+## `night` is Session.get_night_factor() (NightFade, D-043): 0 by day, 1 at night. Only the surfaces change at night:
 ## sheets and cards use surface_night, and the HUD plates use it at alpha 0.94 instead of 0.88.
 
 const SURFACE := Color("#FBF6EC")
@@ -30,11 +30,6 @@ const PLATE_ALPHA_DAY: float = 0.88
 const PLATE_ALPHA_NIGHT: float = 0.94
 const SCRIM_ALPHA: float = 0.30
 const SHADOW_ALPHA: float = 0.18
-
-## Evening preset hours (art-direction.md §3): 17:00 to 06:00, cross-faded over about 20 minutes.
-const EVENING_START_MIN: int = 17 * 60
-const MORNING_START_MIN: int = 6 * 60
-const FADE_MIN: int = 20
 
 var night: float = 0.0
 
@@ -75,17 +70,3 @@ static func tone(tone_id: StringName) -> Color:
 static func pressed(c: Color) -> Color:
 	var out: Color = Color.from_ok_hsl(c.ok_hsl_h, c.ok_hsl_s, maxf(c.ok_hsl_l - 0.08, 0.0), c.a)
 	return out
-
-
-## 0 by day, 1 at night, with a linear 20-minute fade centered on 17:00 and on 06:00.
-## Pending a shared day-phase function with T2's lighting presets (open decision).
-static func night_blend_at(minute_of_day: int) -> float:
-	var m: float = float(posmod(minute_of_day, 24 * 60))
-	var half: float = FADE_MIN * 0.5
-	var evening: float = clampf((m - (EVENING_START_MIN - half)) / FADE_MIN, 0.0, 1.0)
-	var morning: float = clampf((m - (MORNING_START_MIN - half)) / FADE_MIN, 0.0, 1.0)
-	if m >= MORNING_START_MIN - half and m < EVENING_START_MIN - half:
-		return 1.0 - morning
-	if m >= EVENING_START_MIN - half:
-		return evening
-	return 1.0

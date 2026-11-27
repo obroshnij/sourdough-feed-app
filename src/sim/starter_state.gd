@@ -50,6 +50,15 @@ func rebase_to(now_unix: int) -> void:
 	born_unix = now_unix
 
 
+## The `starter_seed` of game-copy §1.4 (name suggestions, epitaph): a non-negative int from the starter's
+## 16-hex id, fixed for the starter's life. 0 for an empty or non-hex id.
+static func seed_of(starter_id: String) -> int:
+	var head: String = starter_id.substr(0, 7)
+	if head.is_empty() or not head.is_valid_hex_number():
+		return 0
+	return head.hex_to_int()
+
+
 ## Replaces flour_mix with the same entries in sorted key order.
 func set_flour_mix(mix: Dictionary[StringName, float]) -> void:
 	var names: PackedStringArray = []
@@ -60,6 +69,39 @@ func set_flour_mix(mix: Dictionary[StringName, float]) -> void:
 	for n: String in names:
 		sorted_mix[StringName(n)] = mix[StringName(n)]
 	flour_mix = sorted_mix
+
+
+## Overwrites every field with `other`'s, reusing this object (catch-up keeps one buffer for the previous
+## step instead of allocating 20,160 copies). flour_mix is only duplicated when it differs.
+func copy_from(other: StarterState) -> void:
+	id = other.id
+	name = other.name
+	born_unix = other.born_unix
+	sim_time_unix = other.sim_time_unix
+	food = other.food
+	food_at_feed = other.food_at_feed
+	yeast = other.yeast
+	lab = other.lab
+	acid = other.acid
+	rise = other.rise
+	peak_rise = other.peak_rise
+	peak_rate = other.peak_rate
+	hooch = other.hooch
+	dryness = other.dryness
+	vigor = other.vigor
+	vigor_at_feed = other.vigor_at_feed
+	maturity = other.maturity
+	starved_h = other.starved_h
+	mold_risk = other.mold_risk
+	moldy = other.moldy
+	temp_c = other.temp_c
+	since_feed_s = other.since_feed_s
+	mass_g = other.mass_g
+	culture_hydration = other.culture_hydration
+	if flour_mix != other.flour_mix:
+		flour_mix = other.flour_mix.duplicate()
+	feed_u = other.feed_u
+	feed_jitter = other.feed_jitter
 
 
 func copy() -> StarterState:

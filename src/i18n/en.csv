@@ -71,10 +71,12 @@ EVENT_HUNGRY_AGAIN_AWAY,It ran out of food and fell back.
 EVENT_HUNGRY_AGAIN_BODY,It has eaten everything and fallen back. A sour smell is normal now. Feed it whenever it suits you.
 EVENT_HUNGRY_AGAIN_BTN,Feed it
 EVENT_HUNGRY_AGAIN_DISMISS,Later
-EVENT_HUNGRY_AGAIN_JOURNAL_BODY,"The food ran out around {time}. It fell back and turned sour, right on cue."
+EVENT_HUNGRY_AGAIN_JOURNAL_BODY,"It’s been hungry since about {time}. It fell back and turned sour, right on cue."
 EVENT_HUNGRY_AGAIN_JOURNAL_TITLE,Hungry again
 EVENT_HUNGRY_AGAIN_TITLE,Ready for a feed
 EVENT_MOLD_FOUND_AWAY,Mold appeared on the surface.
+EVENT_MOLD_FOUND_JOURNAL_BODY,"Mold appeared on the surface. It can’t be fixed. Don’t use or taste it. Discard all of it, even the parts that look clean, then wash the jar well."
+EVENT_MOLD_FOUND_JOURNAL_TITLE,Mold appeared
 EVENT_OFF_TO_NAP_ENERGETIC,Into the fridge. It seems mildly offended.
 EVENT_OFF_TO_NAP_JOURNAL_BODY,"Into the fridge around {time}. The cold slows it nearly to a stop, so it can wait days or weeks. When it comes out, a feed or two will wake it."
 EVENT_OFF_TO_NAP_JOURNAL_TITLE,Off for a nap
@@ -115,6 +117,7 @@ EVENT_WARNING_SIGNS_JOURNAL_BODY,"Warning signs showed up: a musty smell and a t
 EVENT_WARNING_SIGNS_JOURNAL_TITLE,Warning signs
 EVENT_WARNING_SIGNS_OUTCOME_FED,Fed through the warning signs. Look in again tomorrow.
 EVENT_WARNING_SIGNS_TITLE,Warning signs
+FEED_DISCARD_LINE,Take out {grams} g first.
 FEED_DONE_TITLE,Fed
 FEED_EARLY_NOTE,"Still rising. Fine to feed, but the next peak comes later."
 FEED_EXACT_BTN,Pick a ratio
@@ -313,6 +316,7 @@ LOC_WARM_SPOT,Warm spot
 LOC_WARM_SPOT_SUB,Faster rise
 LOC_WINDOW_SILL,Window sill
 LOC_WINDOW_SILL_SUB,Slower rise
+MEMORIAL_BTN_NEXT,Continue
 MEMORIAL_CAUSE_UNFED,It went about {days} days without a feed at room temperature. That’s long enough for mold to take hold.
 MEMORIAL_DATES,{start_date} to {end_date}
 MEMORIAL_EPITAPH_1,It rose and fell and rose again. A good life for flour and water.
@@ -380,8 +384,21 @@ MOLD_FEED_BLOCKED,Feeding can’t fix mold. Please discard it.
 MOLD_SHEET_BODY,"There’s fuzzy growth on the surface. That’s mold. A moldy starter can’t be saved. Mold reaches deeper than it shows, so discard all of it, even the parts that look clean. Please don’t use it or taste it. Then wash the jar well. This happens, even to careful bakers."
 MOLD_SHEET_BODY_TINT,"There’s fuzzy growth on the surface. That’s mold, and the pink or orange color is spoilage too. A moldy starter can’t be saved. Discard all of it, even the parts that look clean. Please don’t use it or taste it. Then wash the jar well. This happens, even to careful bakers."
 MOLD_SHEET_TITLE,This is mold
+MONTH_SHORT_01,Jan
+MONTH_SHORT_02,Feb
+MONTH_SHORT_03,Mar
+MONTH_SHORT_04,Apr
+MONTH_SHORT_05,May
+MONTH_SHORT_06,Jun
+MONTH_SHORT_07,Jul
+MONTH_SHORT_08,Aug
+MONTH_SHORT_09,Sep
+MONTH_SHORT_10,Oct
+MONTH_SHORT_11,Nov
+MONTH_SHORT_12,Dec
 NAME_BODY,Plenty of bakers name their starter. It’s easier to care about a name than a jar.
 NAME_BTN_CONFIRM,That’s its name
+NAME_BTN_PICK,Pick for me
 NAME_BTN_SUGGEST,Suggest another
 NAME_DONE_TOAST,{name} it is.
 NAME_FIELD_A11Y,Starter name
@@ -441,6 +458,7 @@ ONBOARD_TIMELAPSE_BTN,Watch
 ONBOARD_TIMELAPSE_PEAK,That’s its peak: as tall as it gets. Time to feed it.
 ONBOARD_TIMELAPSE_TITLE,Watch it rise
 PLACE_DIAL_LABEL,Warmth
+PLACE_TEMP_C,{temp} °C
 PLACE_TEMP_LABEL,Temperature
 PLACE_TITLE,Where it lives
 REACT_FEED_AT_PEAK,Fed right at its peak. Nicely timed.
@@ -461,6 +479,7 @@ REACT_MOVE_COOL,A cooler spot. Things will slow down a little.
 REACT_MOVE_COUNTER,Back on the counter. Its usual pace.
 REACT_MOVE_PROOFING,Into the proofing box. Warm and steady.
 REACT_MOVE_WARM,"Somewhere warmer. A faster rise, and hungry sooner."
+REASON_ADOPT,It already has a name.
 REASON_ENVIRONMENT,That place isn’t available.
 REASON_EVENT,That note is already gone.
 REASON_FLOUR,Pick a flour to feed with.
@@ -474,12 +493,16 @@ REASON_NOT_MOLDY,"No mold here, so there’s no need to throw it out."
 REASON_NOT_READY,One moment. Still getting ready.
 REASON_SAVE_FAILED,Couldn’t save just now. Trying again soon.
 REASON_WATER,Too much or too little water for a starter.
+RECOVERED_BODY,"Your saved starter couldn’t be read, so a new one is here. The old file is set aside, not deleted."
+RECOVERED_TITLE,Your save couldn’t be read
 RESTART_BODY_FIRST,"In the fridge, a small jar with M.’s writing on the lid: “Spare. Just in case.”"
 RESTART_BODY_LATER,"A friend has a spoonful of starter to spare. It’s young, but it’s ready."
 RESTART_BTN_LATER,Not today
 RESTART_BTN_YES,Start again
 RESTART_TITLE,Start again?
 SETTINGS_A11Y,Settings
+SETTINGS_HAPTICS,Vibration
+SETTINGS_KEEP_MESSAGES,Keep messages on screen
 SETTINGS_REDUCE_MOTION,Reduce motion
 SETTINGS_TEXT_LARGE,Large
 SETTINGS_TEXT_LARGEST,Largest
@@ -514,6 +537,7 @@ SMELL_FRESH_YEASTY_3,"That fresh-bread smell, soft and inviting."
 SMELL_FRESH_YEASTY_MEANING,Mid-rise. The yeast is busy making gas.
 SMELL_FRESH_YEASTY_NOTE,fresh bread
 SMELL_FRESH_YEASTY_TITLE,Yeasty
+SMELL_MEANING_BTN,What it means
 SMELL_MILDLY_FRUITY_1,"A soft fruitiness, like a bowl of ripe apples."
 SMELL_MILDLY_FRUITY_2,"Faintly fruity. Pear, maybe, or apple skins."
 SMELL_MILDLY_FRUITY_3,"A gentle fruit note, like a fresh-cut apple."
@@ -528,6 +552,7 @@ SMELL_MUSTY_3,"Damp and musty, under the sourness."
 SMELL_MUSTY_MEANING,"A warning sign. Check the surface first: fuzz or color means discard. If none, feed it."
 SMELL_MUSTY_NOTE,damp cellar
 SMELL_MUSTY_TITLE,Musty
+SMELL_NEW_RIBBON,New smell
 SMELL_NOTE_CLEAR,And some {note}.
 SMELL_NOTE_FAINT,A hint of {note}.
 SMELL_PLEASANTLY_TANGY_1,"A bright, clean tang with a little sweetness behind it."
@@ -542,6 +567,8 @@ SMELL_STRONGLY_ACIDIC_3,"Vinegar-sharp, with not much sweetness left."
 SMELL_STRONGLY_ACIDIC_MEANING,Hungry. Acid builds up once the food runs out. Normal. Feed it.
 SMELL_STRONGLY_ACIDIC_NOTE,vinegar
 SMELL_STRONGLY_ACIDIC_TITLE,Very sour
+SMELL_TRY_INSPECT,Hard to say. Try inspecting the surface.
+SMELL_TRY_INSPECT_BTN,Inspect
 SMELL_WET_FLOUR_1,Like flour and water stirred together. Mild and clean.
 SMELL_WET_FLOUR_2,"A clean, floury smell, like a bag of flour on a damp day."
 SMELL_WET_FLOUR_3,"Raw dough, plain and mild. Not much else, yet."
@@ -585,6 +612,7 @@ STATUS_MOLDY_WORD,Moldy
 STATUS_NEAR_PEAK_HINT,"Rise slowing, dome forming"
 STATUS_NEAR_PEAK_TAP,Close to its tallest. Peak comes soon.
 STATUS_NEAR_PEAK_WORD,Nearly there
+STATUS_NEW_A11Y,New state
 STATUS_RECOVERING_HINT,Getting its strength back
 STATUS_RECOVERING_TAP,Weaker than usual after a hard stretch. Regular feeds rebuild it.
 STATUS_RECOVERING_WORD,Recovering
@@ -592,6 +620,8 @@ STATUS_SHOW_ME_BTN,Show me
 STATUS_UNHEALTHY_HINT,"Warning signs. Look, then feed"
 STATUS_UNHEALTHY_TAP,"Musty, run down. No mold yet. Fuzz or color on top means discard. If none, feed it."
 STATUS_UNHEALTHY_WORD,At risk
+TIME_AM,AM
+TIME_PM,PM
 TOAST_A11Y_MORE,Opens the journal entry
 TRAIT_ENERGETIC_JOURNAL_BODY,"Keen on everything: a feed, a warm spot, a bit of attention. It greets each feed like good news. This won’t change how it rises, only how it carries itself."
 TRAIT_ENERGETIC_JOURNAL_TITLE,The energetic type
@@ -609,6 +639,7 @@ TRAIT_SENSITIVE_JOURNAL_BODY,"It notices things. A new flour, a new spot, a cold
 TRAIT_SENSITIVE_JOURNAL_TITLE,The sensitive type
 TRAIT_SENSITIVE_NAME,Sensitive
 TRAIT_SENSITIVE_REVEAL_TOAST,It’s clear now: {name} is the sensitive type.
+UI_BACK_A11Y,Back
 UI_CLOSE_A11Y,Close
 UI_DECREASE_A11Y,Decrease
 UI_DONE_BTN,Done

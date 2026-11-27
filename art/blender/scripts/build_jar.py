@@ -104,12 +104,11 @@ BAND_T = 0.0016
 BAND_H = 0.0045
 
 # --- Environment ----------------------------------------------------------------
-COUNTER_X = 0.90
+COUNTER_X = 2.20              # full width. Reaches under the curved kitchen wall's ends (x +-1.01 m,
+                              # bake_kitchen_wall.py) so no orbit pose sees past the counter (§18)
 COUNTER_FRONT_Y = -0.24
 COUNTER_BACK_Y = 0.45
 COUNTER_T = 0.035
-BACKDROP_W = 1.0
-BACKDROP_H = 0.70
 
 # --- Colors (sRGB hex, see docs/art-direction.md palette) ------------------------
 C = {
@@ -221,7 +220,7 @@ PREVIEW_DIR = os.path.join(REPO, "art", "previews")
 
 EXPORT_NAMES = ["Jar_Glass", "Starter_Body", "Starter_Liner", "Jar_Lid_Loose",
                 "Jar_Lid_Tight", "Cloth_Cover", "Rubber_Band", "Counter",
-                "Backdrop_placeholder", "StarterFloor", "StarterRim"]
+                "StarterFloor", "StarterRim"]
 
 EPS = 1e-7
 GN_IDS = {}   # GN input name -> socket identifier (kept out of the GLB extras)
@@ -943,29 +942,20 @@ def build_counter(coll, mats):
     return make_object("Counter", bm, coll, sharp_angle=40, mats=mats)
 
 
-def build_backdrop(coll, mats):
-    """Placeholder wall card. UV 0..1 for a painted, pre-blurred backdrop."""
-    bm = bmesh.new()
-    uv = bm.loops.layers.uv.new("UVMap")
-    nx, nz = 8, 6
-    grid = []
-    for j in range(nz + 1):
-        row = []
-        for i in range(nx + 1):
-            x = -BACKDROP_W / 2 + BACKDROP_W * i / nx
-            z = BACKDROP_H * j / nz
-            row.append((bm.verts.new((x, COUNTER_BACK_Y, z)), (i / nx, j / nz)))
-        grid.append(row)
-    for j in range(nz):
-        for i in range(nx):
-            items = [grid[j][i], grid[j][i + 1], grid[j + 1][i + 1], grid[j + 1][i]]
-            f = bm.faces.new([it[0] for it in items])
-            for loop, it in zip(f.loops, items):
-                loop[uv].uv = it[1]
-    orient_normals(bm, lambda f: f.normal.y < 0)
-    ob = make_object("Backdrop_placeholder", bm, coll, mats=mats)
-    ob["placeholder"] = "wall card; final soft-focus kitchen corner comes later"
-    return ob
+def build_wall_preview(coll):
+    """Render-only kitchen wall for Blender previews, never exported: Godot loads
+    kitchen_wall.glb (art-direction §18). The curved wall and cabinet front with the look-dev
+    tiles, lit by the preview lights and blurred by the preview lens. That is the scene the
+    kitchen_wall.png atlas is baked from, so at yaw 0 it reads as the old flat card did."""
+    if HERE not in sys.path:
+        sys.path.insert(0, HERE)
+    import bake_kitchen_wall as bkw   # imported here: it imports this module
+    return {
+        "Kitchen_Wall_preview": bkw.build_wall_mesh(
+            "Kitchen_Wall_preview", coll, (bkw.mat_wall_tiles(),), "bake_wall"),
+        "Kitchen_Cabinet_preview": bkw.build_wall_mesh(
+            "Kitchen_Cabinet_preview", coll, (bkw.mat_cabinet(),), "bake_cab"),
+    }
 
 
 # =============================================================================
@@ -1474,38 +1464,6 @@ def mat_counter():
     return m
 
 
-def mat_backdrop():
-    m, t = new_mat("M_Backdrop")
-    tc = t.n("ShaderNodeTexCoord")
-    mp = t.n("ShaderNodeMapping")
-    t.put(mp.inputs["Vector"], tc.outputs["Object"])
-    mp.inputs["Rotation"].default_value = (math.radians(90), 0, 0)
-    brick = t.n("ShaderNodeTexBrick", offset=0.0, offset_frequency=1)
-    t.put(brick.inputs["Vector"], mp.outputs[0])
-    brick.inputs["Scale"].default_value = 1.0
-    brick.inputs["Mortar Size"].default_value = 0.0015
-    brick.inputs["Mortar Smooth"].default_value = 0.3
-    brick.inputs["Brick Width"].default_value = 0.065
-    brick.inputs["Row Height"].default_value = 0.065
-    brick.inputs["Bias"].default_value = 0.0
-    brick.inputs["Color1"].default_value = hexcol(C["tile_a"])
-    brick.inputs["Color2"].default_value = hexcol(C["tile_b"])
-    brick.inputs["Mortar"].default_value = hexcol(C["grout"])
-    glaze = t.n("ShaderNodeTexNoise")
-    t.put(glaze.inputs["Vector"], tc.outputs["Object"])
-    glaze.inputs["Scale"].default_value = 30.0
-    glaze.inputs["Detail"].default_value = 3.0
-    bump = t.n("ShaderNodeBump")
-    bump.inputs["Strength"].default_value = 0.4
-    t.put(bump.inputs["Height"], t.math("SUBTRACT", glaze.outputs["Fac"],
-                                        t.math("MULTIPLY", brick.outputs["Fac"], 0.6)))
-    rough = t.maprange(brick.outputs["Fac"], 0.0, 1.0, 0.18, 0.8, smooth_step=False)
-    p = t.principled(Base_Color=brick.outputs["Color"], Roughness=rough, Coat_Weight=0.3)
-    t.put(p.inputs["Normal"], bump.outputs[0])
-    t.out(p.outputs[0])
-    return m
-
-
 def setup_world():
     w = bpy.data.worlds.new("World")
     bpy.context.scene.world = w
@@ -1689,7 +1647,6 @@ def main():
     m_twine = mat_simple("M_Twine", C["twine"], 0.8, bump_scale=900.0, bump_strength=0.4)
     m_band = mat_simple("M_Rubber_Band", C["band"], 0.55, subsurf=0.1)
     m_counter = mat_counter()
-    m_backdrop = mat_backdrop()
     setup_world()
 
     objs = {}
@@ -1701,9 +1658,9 @@ def main():
     objs["Cloth_Cover"] = build_cloth(export_coll, (m_linen, m_twine))
     objs["Rubber_Band"] = build_band(export_coll, (m_band,))
     objs["Counter"] = build_counter(export_coll, (m_counter,))
-    objs["Backdrop_placeholder"] = build_backdrop(export_coll, (m_backdrop,))
     objs.update(build_empties(export_coll))
     add_starter_shape_modifier(objs["Starter_Body"], mat_mold_fuzz())
+    objs.update(build_wall_preview(render_coll))
     setup_lights_camera(render_coll)
 
     # --- Export the GLB (raw meshes, modifiers NOT applied) -------------------

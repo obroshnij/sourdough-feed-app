@@ -7,7 +7,7 @@ extends Control
 ## plate STOPs across its whole area.
 
 signal action_requested(action_id: StringName)
-signal locked_pressed(reason_key: StringName)
+signal locked_pressed(action_id: StringName, reason_key: StringName)
 signal status_pressed()
 signal settings_pressed()
 ## The plate or the bar changed size or place.
@@ -15,6 +15,10 @@ signal layout_changed()
 
 const ACTIONS: Array[StringName] = [&"feed", &"smell", &"inspect", &"environment", &"journal"]
 const BAR_HEIGHT: float = 72.0
+## D-043 and narrative §9.2: what a locked button says. Smell shows the "Best not" card instead of a toast.
+const MOLDY_LOCKS: Dictionary[StringName, StringName] = {
+	&"feed": &"MOLD_FEED_BLOCKED", &"smell": &"SMELL_MOLDY_BODY", &"environment": &"REASON_MOLDY_LOCKED",
+}
 
 @onready var top_plate: PanelContainer = $TopPlate
 @onready var name_label: FitLabel = $TopPlate/Rows/NameRow/Name
@@ -24,6 +28,7 @@ const BAR_HEIGHT: float = 72.0
 @onready var action_bar: PanelContainer = $ActionBar
 
 var snapshot: StarterSnapshot = null
+var _hint_override: String = ""
 var _insets: SafeInsets = SafeInsets.new()
 
 
@@ -34,7 +39,7 @@ func _ready() -> void:
 	status_pill.pressed.connect(_on_status_pressed)
 	for b: ActionBarButton in bar_buttons():
 		b.activated.connect(func(id: StringName) -> void: action_requested.emit(id))
-		b.locked_pressed.connect(func(key: StringName) -> void: locked_pressed.emit(key))
+		b.locked_pressed.connect(func(id: StringName, key: StringName) -> void: locked_pressed.emit(id, key))
 	top_plate.resized.connect(func() -> void: layout_changed.emit())
 	action_bar.resized.connect(func() -> void: layout_changed.emit())
 	apply_insets(_insets)
@@ -96,7 +101,17 @@ func set_snapshot(snap: StarterSnapshot) -> void:
 	_apply_hint()
 	var feed: ActionBarButton = bar_button(&"feed")
 	feed.emphasized = StatusStyle.FEED_EMPHASIS.has(snap.state) and snap.can_feed
-	feed.locked_reason_key = &"" if snap.can_feed else GameAction.REASON_MOLDY
+	# D-043: while moldy, Feed, Smell and Place are locked, each with its reason. Inspect and Journal work.
+	for id: StringName in MOLDY_LOCKS:
+		bar_button(id).locked_reason_key = &"" if snap.can_feed else MOLDY_LOCKS[id]
+
+
+## D-050: disabled and quiet while the Session catches up on a worker thread.
+func set_actions_enabled(on: bool) -> void:
+	for b: ActionBarButton in bar_buttons():
+		if b.disabled == on:
+			b.disabled = not on
+			b.queue_redraw()
 
 
 ## Marks the button whose sheet is open (filled icon and the accent pill), or none.
@@ -105,8 +120,15 @@ func set_open_action(action_id: StringName) -> void:
 		b.is_open = b.action_id == action_id
 
 
+## ux §8: the forecast line stands in for the hint after a feed. Empty goes back to the state's hint.
+func set_hint_override(text: String) -> void:
+	_hint_override = text
+	if snapshot != null:
+		_apply_hint()
+
+
 func _apply_hint() -> void:
-	hint_label.text = tr(Keys.status_hint(snapshot.state, snapshot.dormant_cause))
+	hint_label.text = _hint_override if _hint_override != "" else tr(Keys.status_hint(snapshot.state, snapshot.dormant_cause))
 
 
 func _on_status_pressed() -> void:

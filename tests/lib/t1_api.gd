@@ -15,6 +15,7 @@ const MILESTONES: Dictionary[StringName, String] = {
 	&"m3_clock": "FakeClock and TimePolicy",
 	&"m4_save": "SaveStore with fault_point, load_from_path and quarantine",
 	&"m5_catchup": "CatchUp.run and GameSession.on_resume",
+	&"p3_contracts": "the Phase 3 contracts: return summary, last_feed_action, debug time travel, Session.shutdown, NightFade, naming",
 }
 
 

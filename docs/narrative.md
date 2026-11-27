@@ -167,6 +167,7 @@ The gloss strings are the `GLOSS_*` keys in [`game-copy.md`](game-copy.md) §12.
 | `NAME_BODY` | Plenty of bakers name their starter. It's easier to care about a name than a jar. | 120 |
 | `NAME_FIELD_A11Y` | Starter name | 40 |
 | `NAME_BTN_SUGGEST` | Suggest another | 18 |
+| `NAME_BTN_PICK` | Pick for me | 18 |
 | `NAME_BTN_CONFIRM` | That's its name | 18 |
 | `NAME_DONE_TOAST` | {name} it is. | 60 |
 
@@ -342,7 +343,7 @@ Sources for the safety lines: King Arthur Baking says pink or orange streaks mea
 | 3. Confirm | "Discard it" opens a confirmation. | `MOLD_CONFIRM_*` |
 | 4. Discard | The jar is emptied and washed on screen (art-director). One toast. | `MOLD_DONE_TOAST` |
 | 5. Memorial | A journal page closes the starter's chapter. Stats, an epitaph, what happened, one tip. | `MEMORIAL_*` |
-| 6. Start again | A page offers a fresh spoonful. "Not today" leaves a clean, empty jar. | `RESTART_*`, `EMPTY_JAR_*` |
+| 6. Start again | A page offers a fresh spoonful. "Not today" leaves a clean, empty jar. | `RESTART_*`, `EMPTY_JAR_*`. Slice: "Start again" only. "Not today" and the empty jar are Phase 4 (D-047). |
 | 7. New starter | Naming (§6), then normal play. Earned knowledge stays (game-design §5). | `NAME_*` |
 
 ### 9.3 Memorial strings
@@ -377,6 +378,7 @@ Slots: attention sheet title 26 and body 280; confirmation title 26 and body 120
 | `MEMORIAL_EPITAPH_SENSITIVE` | It noticed everything, including you. | 90 |
 | `MEMORIAL_EPITAPH_RESILIENT` | It weathered plenty before this. | 90 |
 | `MEMORIAL_CAUSE_UNFED` | It went about {days} days without a feed at room temperature. That's long enough for mold to take hold. | 120 |
+| `MEMORIAL_BTN_NEXT` | Continue | 18 |
 | `MEMORIAL_TIP` | Worth knowing: in the fridge, a starter can wait weeks between feeds. | 90 |
 | `RESTART_TITLE` | Start again? | 26 |
 | `RESTART_BODY_FIRST` | In the fridge, a small jar with M.'s writing on the lid: "Spare. Just in case." | 120 |
@@ -385,6 +387,8 @@ Slots: attention sheet title 26 and body 280; confirmation title 26 and body 120
 | `RESTART_BTN_LATER` | Not today | 18 |
 | `EMPTY_JAR_TITLE` | An empty jar | 26 |
 | `EMPTY_JAR_BODY` | Clean and waiting. Start again whenever you're ready. | 90 |
+
+**P4, unused in the slice (D-047):** `RESTART_BTN_LATER`, `EMPTY_JAR_TITLE`, `EMPTY_JAR_BODY`. They stay in the table until Phase 4.
 
 **Tint variant:** art-director's v0 mold never shows pink or orange, so `MOLD_SHEET_BODY_TINT` has no trigger yet. It stays in the table, unused. D-026: no tint in the MVP. The rule "fuzz, or pink or orange color, means discard" is still taught in the `warning_signs` sheet and the unhealthy surface lines.
 

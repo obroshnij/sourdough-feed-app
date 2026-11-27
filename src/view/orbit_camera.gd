@@ -48,6 +48,12 @@ const SURFACE_PITCH: float = 76.0
 const JAR_CENTER: Vector3 = Vector3(0.0, 0.1018, 0.0)
 const JAR_EXTENT_M: float = 0.22
 const FRAME_MARGIN: float = 0.06
+## D-049: the camera never goes lower than this above the counter top.
+const COUNTER_CLEARANCE_M: float = 0.02
+## Bubbles inspection (art-direction.md §18.7, revised): fixed angle and distance for every state.
+const BUBBLES_YAW: float = -28.0
+const BUBBLES_PITCH: float = 4.4
+const BUBBLES_DIST_M: float = 0.36
 
 ## Pose (degrees and meters).
 var yaw: float = HOME_YAW
@@ -70,6 +76,10 @@ var reduce_motion: bool = false
 ## Where the starter surface is, so focus presets frame the real starter (world y, meters).
 var starter_top_y: float = 0.098
 var starter_level_m: float = 0.030
+## Middle of the real paste: floor + 0.55 x level_m x rise (world y, meters).
+var starter_mid_y: float = 0.0245
+## HUD plate bottom as a fraction of the screen height (from the jar region), for sheet framing.
+var _region_top: float = 0.24
 var focus_target: StringName = &""
 
 var camera: Camera3D
@@ -82,6 +92,7 @@ var _anim_s: float = 0.0
 var _anim_ease: int = 0
 var _free_pose: Pose = null
 var _interacting: bool = false
+var _nudge_from: float = -1.0
 var _idle_s: float = 0.0
 var _frame_dyaw: float = 0.0
 var _frame_dpitch: float = 0.0
@@ -178,6 +189,18 @@ func focus(what: StringName) -> void:
 	_move_to(pose, 0.0 if reduce_motion else FOCUS_S, Ease.IN_OUT_CUBIC)
 
 
+## Smell moment dolly: 12% closer over 600 ms, back over 400 ms (ux-design.md §15). Off with reduce motion.
+func nudge(on: bool) -> void:
+	if reduce_motion or focus_target != &"":
+		return
+	if on and _nudge_from < 0.0:
+		_nudge_from = zoom
+		_move_to(Pose.new(yaw, pitch, zoom * 1.12, target), 0.6, Ease.IN_OUT_SINE)
+	elif not on and _nudge_from >= 0.0:
+		_move_to(Pose.new(yaw, pitch, _nudge_from, target), 0.4, Ease.IN_OUT_SINE)
+		_nudge_from = -1.0
+
+
 ## Back to where the player left the orbit.
 func release_focus() -> void:
 	if focus_target == &"":
@@ -193,9 +216,12 @@ func focus_pose(what: StringName) -> Pose:
 	var floor_y: float = JarGeometry.FLOOR_Y_M
 	match what:
 		&"bubbles":
-			var y: float = floor_y + 0.55 * starter_level_m
-			var off := Vector3(-0.0737, 0.012, 0.1386)
-			return Pose.new(rad_to_deg(atan2(off.x, off.z)), rad_to_deg(asin(off.y / off.length())), home_dist / off.length(), Vector3(0.0, y, 0.0))
+			# Raised with the paste, so the camera stays just above the rim and the cap stays in frame.
+			var y: float = maxf(starter_mid_y, starter_top_y - 0.028)
+			return Pose.new(BUBBLES_YAW, BUBBLES_PITCH, home_dist / BUBBLES_DIST_M, Vector3(0.0, y, 0.0))
+		&"mold":
+			# Colony close-up (D-023): the top and the glass just above it, from the front left.
+			return Pose.new(-20.0, 38.0, home_dist / 0.17, Vector3(0.0, starter_top_y + 0.006, 0.0))
 		&"surface":
 			var off_s := Vector3(0.0, 0.194, 0.0524)
 			return Pose.new(0.0, SURFACE_PITCH, home_dist / off_s.length(), Vector3(0.0, starter_top_y, -0.004))
@@ -213,6 +239,7 @@ func set_jar_region(region: Rect2, screen_h_pt: float) -> void:
 		return
 	var center: float = (region.position.y + region.size.y * 0.5) / screen_h_pt
 	_region_shift = 0.5 - center
+	_region_top = clampf(region.position.y / screen_h_pt, 0.0, 0.6)
 	# Fit the jar's projected height into the region, with FRAME_MARGIN of it top and bottom.
 	var frac: float = clampf(region.size.y / screen_h_pt, 0.2, 1.0)
 	var fit: float = JAR_EXTENT_M / (2.0 * tan(deg_to_rad(fov_deg) * 0.5) * frac * (1.0 - 2.0 * FRAME_MARGIN))
@@ -224,9 +251,14 @@ func set_jar_region(region: Rect2, screen_h_pt: float) -> void:
 	_start_shift()
 
 
-## A sheet covers the bottom `cover_fraction` of the screen: lift the jar into the space above it.
+## A sheet covers the bottom `cover_fraction` of the screen: center the target in the band between
+## the HUD plate and the sheet's top edge.
 func set_sheet_cover(cover_fraction: float) -> void:
-	_sheet_shift = 0.0 if cover_fraction <= 0.0 else clampf(cover_fraction * 0.5, 0.0, 0.3)
+	if cover_fraction <= 0.0:
+		_sheet_shift = 0.0
+	else:
+		var center: float = (_region_top + (1.0 - cover_fraction)) * 0.5
+		_sheet_shift = (0.5 - center) - _region_shift
 	_start_shift()
 
 
@@ -478,6 +510,7 @@ func apply_pose() -> void:
 	var p: float = deg_to_rad(pitch)
 	var dir := Vector3(cos(p) * sin(y), sin(p), cos(p) * cos(y))
 	var pos: Vector3 = target + dir * distance()
+	pos.y = maxf(pos.y, COUNTER_CLEARANCE_M)
 	var up: Vector3 = Vector3.UP if absf(pitch) < 89.0 else Vector3.FORWARD
 	camera.look_at_from_position(pos, target, up)
 	camera.size = 2.0 * NEAR * tan(deg_to_rad(fov_deg) * 0.5)

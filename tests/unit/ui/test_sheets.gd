@@ -35,12 +35,15 @@ func test_every_sheet_fits_at_every_size() -> void:
 			await H.settle(_tree)
 			for s: Sheet in _ui.sheets.sheets():
 				_ui.sheets.open(s.sheet_id)
-				await _wait(0.35)
+				# Poll for the end of the open animation instead of a fixed wait, so a loaded machine
+				# can't fail it (the 360 x 640 @ 125% flake).
+				await _until(func() -> bool: return absf(s.panel.get_global_rect().position.y - s.open_top()) < 0.5, 2.0)
+				await _tree.process_frame
 				var tag: String = "%s @%d%% %s" % [device, roundi(scale * 100), s.sheet_id]
 				check_eq(_ui.sheets.current_id(), s.sheet_id, tag + " is the open sheet")
 				_check_sheet(tag, s, H.device_size(device), H.device_insets(device))
 				s.close()
-				await _wait(0.3)
+				await _until(func() -> bool: return not s.visible, 2.0)
 				check(not s.visible, tag + " hides after closing")
 			await after_each()
 
@@ -139,6 +142,13 @@ func test_sheet_heights_follow_the_spec() -> void:
 	check(844.0 - _ui.sheets.sheet(&"feed").sheet_height() >= 0.40 * 844.0 - EPS, "a half sheet's top stays below 40%")
 
 
+## Waits until `cond` is true, at most `max_s` seconds.
+func _until(cond: Callable, max_s: float) -> void:
+	var end_ms: int = Time.get_ticks_msec() + int(max_s * 1000.0)
+	while not cond.call() and Time.get_ticks_msec() < end_ms:
+		await _tree.process_frame
+
+
 func _wait(seconds: float) -> void:
 	await _tree.create_timer(seconds).timeout
 
@@ -172,9 +182,24 @@ func _check_sheet(tag: String, s: Sheet, screen: Vector2, insets: SafeInsets) ->
 				if b.icon != null:
 					room -= b.get_theme_constant(&"icon_max_width") + b.get_theme_constant(&"h_separation")
 				check(w2 <= room + EPS, "%s %s text '%s' fits (%.1f of %.1f)" % [tag, c.name, b.text, w2, room])
-			check(panel.grow(EPS).encloses(r), "%s %s %s inside the sheet %s" % [tag, c.name, r, panel])
+			# Rows below the fold scroll; they must fit the sheet's width, and the footer must stay inside.
+			check(r.position.x >= panel.position.x - EPS and r.end.x <= panel.end.x + EPS,
+				"%s %s %s inside the sheet's width %s" % [tag, c.name, r, panel])
+			if not s.content.is_ancestor_of(c):
+				check(panel.grow(EPS).encloses(r), "%s %s %s inside the sheet %s" % [tag, c.name, r, panel])
+	# Scrolled rows are clipped to the scroll area, so compare the parts a finger can reach.
+	var scroll_rect: Rect2 = (s.content.get_parent() as Control).get_global_rect()
 	for i: int in targets.size():
 		for j: int in range(i + 1, targets.size()):
-			var a: Rect2 = targets[i].get_global_rect().grow(-EPS)
-			var b2: Rect2 = targets[j].get_global_rect().grow(-EPS)
-			check(not a.intersects(b2), "%s %s and %s don't overlap" % [tag, targets[i].name, targets[j].name])
+			var a: Rect2 = _reachable(s, targets[i], scroll_rect)
+			var b2: Rect2 = _reachable(s, targets[j], scroll_rect)
+			if a.size.x <= 2.0 * EPS or a.size.y <= 2.0 * EPS or b2.size.x <= 2.0 * EPS or b2.size.y <= 2.0 * EPS:
+				continue
+			check(not a.grow(-EPS).intersects(b2.grow(-EPS)), "%s %s and %s don't overlap" % [tag, targets[i].name, targets[j].name])
+
+
+func _reachable(s: Sheet, c: Control, scroll_rect: Rect2) -> Rect2:
+	var r: Rect2 = c.get_global_rect()
+	if not s.content.is_ancestor_of(c):
+		return r
+	return r.intersection(scroll_rect) if r.intersects(scroll_rect) else Rect2()

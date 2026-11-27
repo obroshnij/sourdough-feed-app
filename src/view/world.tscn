@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://src/view/world.gd" id="1_world"]
 [ext_resource type="Script" path="res://src/view/jar_view.gd" id="2_jar"]
 [ext_resource type="Script" path="res://src/view/orbit_camera.gd" id="3_rig"]
 [ext_resource type="PackedScene" uid="uid://kfpyj6bc2byv" path="res://assets/3d/jar_v0.glb" id="4_glb"]
+[ext_resource type="PackedScene" uid="uid://crk6jsx3tfd4b" path="res://assets/3d/kitchen_wall.glb" id="5_wall"]
 
 [node name="World" type="Node3D"]
 script = ExtResource("1_world")
@@ -13,6 +14,14 @@ script = ExtResource("1_world")
 [node name="KeyLight" type="DirectionalLight3D" parent="."]
 
 [node name="RimLight" type="DirectionalLight3D" parent="."]
+
+[node name="NightLamp" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.1, 0.44, -0.26)
+visible = false
+light_color = Color(1, 0.902, 0.8, 1)
+omni_range = 1.2
+
+[node name="Wall" parent="." instance=ExtResource("5_wall")]
 
 [node name="CameraRig" type="Node3D" parent="."]
 script = ExtResource("3_rig")

@@ -1,3 +1,14 @@
+PROBE compat_night_tierA_at_peak_pose.png (720x1280) state=at_peak
+ROW N1 night paste lit #BEAD95 H 35 S 21% V 75% [PASS] want V 72-88, S <= 27 (art's tolerance), hue 30-40, max <= 0.92
+ROW N2 night paste shadow #7C6A52 H 35 S 34% V 49% [PASS] want V >= 40
+ROW N6 night counter, clip 0.01% #9C876C H 34 S 31% V 61% [PASS] want counter V 55-75, clipped < 0.5%
+ROW N7 night pockets mean 0.71 x p80, darkest5 V 36 [PASS] want >= 0.68 and >= 35
+ROW N3 night wall behind the jar #6A533C H 30 S 44% V 42% [PASS] want V 25-45, hue 30-60, S <= 45
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.01% of pixels
+PROBE compat_night_tierA_unhealthy_pose.png (720x1280) state=unhealthy
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.01% of pixels
 PROBE compat_tierA_active_pose.png (720x1280) state=active
 ROW info paste (290,850) #DCD2C0 H 38 S 12% V 86%, (450,830) #C5BAA8 H 37 S 15% V 77%
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
@@ -16,13 +27,13 @@ PROBE compat_tierA_at_peak_pose.png (720x1280) state=at_peak
 ROW paste lit (290,850) #D8CDBA H 38 S 14% V 85% [PASS] want V 81-93, S 8-16, hue 30-40, max <= 0.92
 ROW paste shadow (450,830) #8C7C62 H 37 S 30% V 55% [PASS] want V 50-62, S <= 45
 ROW counter (600,1150) #F0E4CF H 38 S 14% V 94% [PASS] want S <= 15, not clipped
-ROW tile wall (360,150) #B0AE85 H 57 S 24% V 69% [PASS] want hue 45-70
+ROW tile wall (360,150) #ABAB82 H 59 S 24% V 67% [PASS] want hue 45-70
 ROW lid top (330,350) #BEA783 H 37 S 31% V 74% [PASS] want S <= 35
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.01% of pixels
 PROBE compat_tierA_at_peak_side.png (640x800) state=at_peak
 ROW side paste mean #D9CEBB H 38 S 14% V 85%
-ROW R7 pocket mean #B4A790 H 38 S 20% V 70% [PASS] want V 66-76, S 18-30, hue 30-40, darkest5 >= 58 (got 58)
+ROW R7 pocket mean #B4A791 H 38 S 20% V 70% [PASS] want V 66-76, S 18-30, hue 30-40, darkest5 >= 58 (got 58)
 ROW R8 pocket share 18.9% [PASS] want 12-22%
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.11% of pixels
@@ -36,10 +47,10 @@ ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.01% of pixels
 PROBE compat_tierA_collapsing_side.png (640x800) state=collapsing
 ROW side paste mean #DBD1BF H 38 S 13% V 86%
-ROW pockets #B4A992 H 40 S 19% V 71% share 15.1% darkest5 V 56
-ROW R11 residue light pixels=18165 V p20-p80 84-89 S p80 13 [PASS] want S <= 15
+ROW pockets #B5A992 H 40 S 19% V 71% share 15.0% darkest5 V 56
+ROW R11 residue light pixels=18190 V p20-p80 84-89 S p80 13 [PASS] want S <= 15
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
-ROW clipped 0.33% of pixels
+ROW clipped 0.32% of pixels
 PROBE compat_tierA_collapsing_top.png (640x800) state=collapsing
 ROW R9 cap center #E5DAC7 H 37 S 13% V 90% [PASS] want V 84-92, S 7-14
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
@@ -50,7 +61,7 @@ ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.01% of pixels
 PROBE compat_tierA_developing_side.png (640x800) state=developing
 ROW side paste mean #DBD1BF H 38 S 13% V 86%
-ROW pockets #B6AA96 H 38 S 18% V 71% share 6.5% darkest5 V 35
+ROW pockets #B6AA96 H 38 S 18% V 71% share 6.5% darkest5 V 34
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.14% of pixels
 PROBE compat_tierA_developing_top.png (640x800) state=developing
@@ -89,7 +100,8 @@ ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.01% of pixels
 PROBE compat_tierA_hungry_side.png (640x800) state=hungry
 ROW side paste mean #D9CFBD H 38 S 13% V 85%
-ROW pockets #A59884 H 37 S 20% V 65% share 23.9% darkest5 V 49
+ROW pockets #A59984 H 37 S 20% V 65% share 23.4% darkest5 V 49
+ROW R13 dark specks above the surface 0.000% [PASS] want <= 0.2%
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.02% of pixels
 PROBE compat_tierA_hungry_top.png (640x800) state=hungry
@@ -106,7 +118,7 @@ ROW pockets #9F9382 H 36 S 18% V 62% share 12.3% darkest5 V 47
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.15% of pixels
 PROBE compat_tierA_moldy_top.png (640x800) state=moldy
-ROW info cap center #C6B69B H 37 S 22% V 78% (crust or dark hooch, no R9 row)
+ROW info cap center #C6B69B H 37 S 22% V 78% (colonies and crust, no R9 row)
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 1.19% of pixels
 PROBE compat_tierA_near_peak_pose.png (720x1280) state=near_peak
@@ -142,19 +154,31 @@ ROW clipped 0.01% of pixels
 PROBE compat_tierA_unhealthy_side.png (640x800) state=unhealthy
 ROW side paste mean #D9D0BF H 38 S 12% V 85%
 ROW pockets #A09483 H 36 S 18% V 63% share 16.0% darkest5 V 47
+ROW R13 dark specks above the surface 0.000% [PASS] want <= 0.2%
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.13% of pixels
 PROBE compat_tierA_unhealthy_top.png (640x800) state=unhealthy
-ROW info cap center #8F7A66 H 29 S 29% V 56% (crust or dark hooch, no R9 row)
+ROW R12 dark hooch from above #8F7A66 H 29 S 29% V 56% [PASS] want V 46-60, S 28-45, hue 28-40
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.01% of pixels
+PROBE mobile_night_tierB_at_peak_pose.png (720x1280) state=at_peak
+ROW N1 night paste lit #BCA991 H 33 S 23% V 74% [PASS] want V 72-88, S <= 27 (art's tolerance), hue 30-40, max <= 0.92
+ROW N2 night paste shadow #8C755A H 33 S 35% V 55% [PASS] want V >= 40
+ROW N6 night counter, clip 0.00% #B7A38C H 32 S 24% V 72% [PASS] want counter V 55-75, clipped < 0.5%
+ROW N7 night pockets mean 0.76 x p80, darkest5 V 42 [PASS] want >= 0.68 and >= 35
+ROW N3 night wall behind the jar #6B5B44 H 36 S 37% V 42% [PASS] want V 25-45, hue 30-60, S <= 45
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_night_tierB_unhealthy_pose.png (720x1280) state=unhealthy
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
 PROBE mobile_tierA_active_pose.png (720x1280) state=active
 ROW info paste (290,850) #E1D5C5 H 34 S 13% V 88%, (450,830) #DBCDBC H 34 S 14% V 86%
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.00% of pixels
 PROBE mobile_tierA_active_side.png (640x800) state=active
 ROW side paste mean #D9CCBB H 34 S 14% V 85%
-ROW R7 pocket mean #B9AB99 H 35 S 17% V 73% [FAIL] want V 66-76, S 18-30, hue 30-40, darkest5 >= 58 (got 63)
+ROW R7 pocket mean #B9AC99 H 35 S 17% V 73% [FAIL] want V 66-76, S 18-30, hue 30-40, darkest5 >= 58 (got 63)
 ROW R8 pocket share 8.4% [PASS] want 8-16%
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.01% of pixels
@@ -166,7 +190,7 @@ PROBE mobile_tierA_at_peak_pose.png (720x1280) state=at_peak
 ROW paste lit (290,850) #D6C9B8 H 34 S 14% V 84% [PASS] want V 81-93, S 8-16, hue 30-40, max <= 0.92
 ROW paste shadow (450,830) #9A8971 H 34 S 27% V 61% [PASS] want V 50-62, S <= 45
 ROW counter (600,1150) #DACDBC H 34 S 14% V 86% [PASS] want S <= 15, not clipped
-ROW tile wall (360,150) #9A9677 H 52 S 23% V 61% [PASS] want hue 45-70
+ROW tile wall (360,150) #969374 H 54 S 23% V 59% [PASS] want hue 45-70
 ROW lid top (330,350) #B39B7A H 35 S 32% V 70% [PASS] want S <= 35
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.00% of pixels
@@ -186,8 +210,8 @@ ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.00% of pixels
 PROBE mobile_tierA_collapsing_side.png (640x800) state=collapsing
 ROW side paste mean #DBCFBE H 34 S 13% V 86%
-ROW pockets #BBAD99 H 36 S 18% V 73% share 18.3% darkest5 V 60
-ROW R11 residue light pixels=18883 V p20-p80 85-91 S p80 13 [PASS] want S <= 15
+ROW pockets #BBAD99 H 36 S 18% V 73% share 18.2% darkest5 V 60
+ROW R11 residue light pixels=18895 V p20-p80 85-91 S p80 13 [PASS] want S <= 15
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.00% of pixels
 PROBE mobile_tierA_collapsing_top.png (640x800) state=collapsing
@@ -199,8 +223,8 @@ ROW info paste (290,850) #E9DDCE H 33 S 12% V 91%, (450,830) #E2D6C6 H 34 S 13% 
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.00% of pixels
 PROBE mobile_tierA_developing_side.png (640x800) state=developing
-ROW side paste mean #D9CCBB H 34 S 14% V 85%
-ROW pockets #B0A799 H 35 S 13% V 69% share 23.8% darkest5 V 62
+ROW side paste mean #D9CCBC H 34 S 14% V 85%
+ROW pockets #B0A799 H 35 S 13% V 69% share 23.9% darkest5 V 62
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.01% of pixels
 PROBE mobile_tierA_developing_top.png (640x800) state=developing
@@ -240,6 +264,7 @@ ROW clipped 0.00% of pixels
 PROBE mobile_tierA_hungry_side.png (640x800) state=hungry
 ROW side paste mean #D6C9B8 H 34 S 14% V 84%
 ROW pockets #B0A595 H 35 S 15% V 69% share 33.5% darkest5 V 62
+ROW R13 dark specks above the surface 0.000% [PASS] want <= 0.2%
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.00% of pixels
 PROBE mobile_tierA_hungry_top.png (640x800) state=hungry
@@ -256,7 +281,7 @@ ROW pockets #ACA294 H 34 S 14% V 67% share 31.0% darkest5 V 58
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.00% of pixels
 PROBE mobile_tierA_moldy_top.png (640x800) state=moldy
-ROW info cap center #DDCFBE H 34 S 14% V 87% (crust or dark hooch, no R9 row)
+ROW info cap center #DDCFBE H 34 S 14% V 87% (colonies and crust, no R9 row)
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.00% of pixels
 PROBE mobile_tierA_near_peak_pose.png (720x1280) state=near_peak
@@ -291,11 +316,12 @@ ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.00% of pixels
 PROBE mobile_tierA_unhealthy_side.png (640x800) state=unhealthy
 ROW side paste mean #D6CABB H 33 S 13% V 84%
-ROW pockets #ABA194 H 34 S 14% V 67% share 32.6% darkest5 V 58
+ROW pockets #ACA294 H 34 S 14% V 67% share 32.6% darkest5 V 58
+ROW R13 dark specks above the surface 0.000% [PASS] want <= 0.2%
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.00% of pixels
 PROBE mobile_tierA_unhealthy_top.png (640x800) state=unhealthy
-ROW info cap center #927D65 H 32 S 31% V 57% (crust or dark hooch, no R9 row)
+ROW R12 dark hooch from above #927D65 H 32 S 31% V 57% [PASS] want V 46-60, S 28-45, hue 28-40
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.00% of pixels
 PROBE mobile_tierB_active_pose.png (720x1280) state=active
@@ -304,7 +330,7 @@ ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.00% of pixels
 PROBE mobile_tierB_active_side.png (640x800) state=active
 ROW side paste mean #D7CBB9 H 36 S 14% V 84%
-ROW R7 pocket mean #BAAC98 H 36 S 19% V 73% [PASS] want V 66-76, S 18-30, hue 30-40, darkest5 >= 58 (got 64)
+ROW R7 pocket mean #BAAD98 H 36 S 19% V 73% [PASS] want V 66-76, S 18-30, hue 30-40, darkest5 >= 58 (got 64)
 ROW R8 pocket share 8.3% [PASS] want 8-16%
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.00% of pixels
@@ -316,7 +342,7 @@ PROBE mobile_tierB_at_peak_pose.png (720x1280) state=at_peak
 ROW paste lit (290,850) #D5C9B7 H 36 S 14% V 83% [PASS] want V 81-93, S 8-16, hue 30-40, max <= 0.92
 ROW paste shadow (450,830) #99876E H 36 S 28% V 60% [PASS] want V 50-62, S <= 45
 ROW counter (600,1150) #DACDBC H 34 S 14% V 86% [PASS] want S <= 15, not clipped
-ROW tile wall (360,150) #9A9677 H 52 S 23% V 61% [PASS] want hue 45-70
+ROW tile wall (360,150) #969374 H 54 S 23% V 59% [PASS] want hue 45-70
 ROW lid top (330,350) #B39B7A H 35 S 32% V 70% [PASS] want S <= 35
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.00% of pixels
@@ -336,8 +362,8 @@ ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.00% of pixels
 PROBE mobile_tierB_collapsing_side.png (640x800) state=collapsing
 ROW side paste mean #D9CDBB H 36 S 14% V 85%
-ROW pockets #B8AB95 H 38 S 19% V 72% share 15.8% darkest5 V 60
-ROW R11 residue light pixels=18507 V p20-p80 85-91 S p80 14 [PASS] want S <= 15
+ROW pockets #B8AB96 H 38 S 19% V 72% share 15.8% darkest5 V 60
+ROW R11 residue light pixels=18534 V p20-p80 85-91 S p80 13 [PASS] want S <= 15
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.00% of pixels
 PROBE mobile_tierB_collapsing_top.png (640x800) state=collapsing
@@ -390,6 +416,7 @@ ROW clipped 0.00% of pixels
 PROBE mobile_tierB_hungry_side.png (640x800) state=hungry
 ROW side paste mean #D4C8B6 H 36 S 14% V 83%
 ROW pockets #B1A593 H 36 S 17% V 69% share 31.5% darkest5 V 60
+ROW R13 dark specks above the surface 0.000% [PASS] want <= 0.2%
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.00% of pixels
 PROBE mobile_tierB_hungry_top.png (640x800) state=hungry
@@ -406,7 +433,7 @@ ROW pockets #ACA191 H 35 S 15% V 67% share 28.7% darkest5 V 57
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.00% of pixels
 PROBE mobile_tierB_moldy_top.png (640x800) state=moldy
-ROW info cap center #DDCFBE H 34 S 14% V 87% (crust or dark hooch, no R9 row)
+ROW info cap center #DDCFBE H 34 S 14% V 87% (colonies and crust, no R9 row)
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.00% of pixels
 PROBE mobile_tierB_near_peak_pose.png (720x1280) state=near_peak
@@ -442,10 +469,325 @@ ROW clipped 0.00% of pixels
 PROBE mobile_tierB_unhealthy_side.png (640x800) state=unhealthy
 ROW side paste mean #D5CAB9 H 36 S 13% V 83%
 ROW pockets #ACA191 H 35 S 15% V 67% share 30.7% darkest5 V 57
+ROW R13 dark specks above the surface 0.000% [PASS] want <= 0.2%
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.00% of pixels
 PROBE mobile_tierB_unhealthy_top.png (640x800) state=unhealthy
-ROW info cap center #927D65 H 32 S 31% V 57% (crust or dark hooch, no R9 row)
+ROW R12 dark hooch from above #927D65 H 32 S 31% V 57% [PASS] want V 46-60, S 28-45, hue 28-40
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.00% of pixels
-SUMMARY 154 pass, 2 fail
+PROBE compat_magenta_tierA_at_peak_orbit_y-35_p-5_z1.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 10.97% of pixels
+PROBE compat_magenta_tierA_at_peak_orbit_y-35_p-5_z2.2.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 1.38% of pixels
+PROBE compat_magenta_tierA_at_peak_orbit_y-35_p15_z1.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 10.44% of pixels
+PROBE compat_magenta_tierA_at_peak_orbit_y-35_p15_z2.2.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 2.15% of pixels
+PROBE compat_magenta_tierA_at_peak_orbit_y-35_p35_z1.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 6.79% of pixels
+PROBE compat_magenta_tierA_at_peak_orbit_y-35_p35_z2.2.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 1.44% of pixels
+PROBE compat_magenta_tierA_at_peak_orbit_y-70_p-5_z1.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 2.73% of pixels
+PROBE compat_magenta_tierA_at_peak_orbit_y-70_p-5_z2.2.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 1.44% of pixels
+PROBE compat_magenta_tierA_at_peak_orbit_y-70_p15_z1.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.40% of pixels
+PROBE compat_magenta_tierA_at_peak_orbit_y-70_p15_z2.2.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 1.05% of pixels
+PROBE compat_magenta_tierA_at_peak_orbit_y-70_p35_z1.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.10% of pixels
+PROBE compat_magenta_tierA_at_peak_orbit_y-70_p35_z2.2.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.35% of pixels
+PROBE compat_magenta_tierA_at_peak_orbit_y0_p-5_z1.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.05% of pixels
+PROBE compat_magenta_tierA_at_peak_orbit_y0_p-5_z2.2.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.36% of pixels
+PROBE compat_magenta_tierA_at_peak_orbit_y0_p15_z1.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.02% of pixels
+PROBE compat_magenta_tierA_at_peak_orbit_y0_p15_z2.2.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.11% of pixels
+PROBE compat_magenta_tierA_at_peak_orbit_y0_p35_z1.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.02% of pixels
+PROBE compat_magenta_tierA_at_peak_orbit_y0_p35_z2.2.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.10% of pixels
+PROBE compat_magenta_tierA_at_peak_orbit_y35_p-5_z1.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.04% of pixels
+PROBE compat_magenta_tierA_at_peak_orbit_y35_p-5_z2.2.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.60% of pixels
+PROBE compat_magenta_tierA_at_peak_orbit_y35_p15_z1.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.03% of pixels
+PROBE compat_magenta_tierA_at_peak_orbit_y35_p15_z2.2.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.18% of pixels
+PROBE compat_magenta_tierA_at_peak_orbit_y35_p35_z1.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.01% of pixels
+PROBE compat_magenta_tierA_at_peak_orbit_y35_p35_z2.2.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.09% of pixels
+PROBE compat_magenta_tierA_at_peak_orbit_y70_p-5_z1.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.12% of pixels
+PROBE compat_magenta_tierA_at_peak_orbit_y70_p-5_z2.2.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.83% of pixels
+PROBE compat_magenta_tierA_at_peak_orbit_y70_p15_z1.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.04% of pixels
+PROBE compat_magenta_tierA_at_peak_orbit_y70_p15_z2.2.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.24% of pixels
+PROBE compat_magenta_tierA_at_peak_orbit_y70_p35_z1.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.11% of pixels
+PROBE compat_magenta_tierA_at_peak_orbit_y70_p35_z2.2.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.54% of pixels
+PROBE compat_night_tierA_at_peak_orbit_y-70_p15_z1.png (720x1280) state=at_peak
+ROW N4 darkest wall at night #36251D H 19 S 46% V 21% [PASS] want V >= 8
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.01% of pixels
+PROBE compat_night_tierA_at_peak_orbit_y-70_p35_z1.png (720x1280) state=at_peak
+ROW N4 darkest wall at night #39281F H 20 S 45% V 22% [PASS] want V >= 8
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE compat_night_tierA_at_peak_orbit_y0_p-5_z1.png (720x1280) state=at_peak
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.02% of pixels
+PROBE compat_night_tierA_at_peak_orbit_y0_p15_z1.png (720x1280) state=at_peak
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.01% of pixels
+PROBE compat_night_tierA_at_peak_orbit_y70_p-5_z2.2.png (720x1280) state=at_peak
+ROW N4 darkest wall at night #18130E H 27 S 41% V 10% [PASS] want V >= 8
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.53% of pixels
+PROBE compat_night_tierA_at_peak_orbit_y70_p15_z1.png (720x1280) state=at_peak
+ROW N4 darkest wall at night #37271E H 20 S 45% V 22% [PASS] want V >= 8
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.02% of pixels
+PROBE mobile_day_tierB_at_peak_orbit_y-70_p15_z1.png (720x1280) state=at_peak
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_day_tierB_at_peak_orbit_y-70_p35_z1.png (720x1280) state=at_peak
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_day_tierB_at_peak_orbit_y0_p-5_z1.png (720x1280) state=at_peak
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_day_tierB_at_peak_orbit_y0_p15_z1.png (720x1280) state=at_peak
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_day_tierB_at_peak_orbit_y70_p-5_z2.2.png (720x1280) state=at_peak
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_day_tierB_at_peak_orbit_y70_p15_z1.png (720x1280) state=at_peak
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_magenta_tierB_at_peak_orbit_y-35_p-5_z1.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_magenta_tierB_at_peak_orbit_y-35_p-5_z2.2.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_magenta_tierB_at_peak_orbit_y-35_p15_z1.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_magenta_tierB_at_peak_orbit_y-35_p15_z2.2.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_magenta_tierB_at_peak_orbit_y-35_p35_z1.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_magenta_tierB_at_peak_orbit_y-35_p35_z2.2.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_magenta_tierB_at_peak_orbit_y-70_p-5_z1.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_magenta_tierB_at_peak_orbit_y-70_p-5_z2.2.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_magenta_tierB_at_peak_orbit_y-70_p15_z1.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_magenta_tierB_at_peak_orbit_y-70_p15_z2.2.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_magenta_tierB_at_peak_orbit_y-70_p35_z1.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_magenta_tierB_at_peak_orbit_y-70_p35_z2.2.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_magenta_tierB_at_peak_orbit_y0_p-5_z1.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_magenta_tierB_at_peak_orbit_y0_p-5_z2.2.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_magenta_tierB_at_peak_orbit_y0_p15_z1.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_magenta_tierB_at_peak_orbit_y0_p15_z2.2.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_magenta_tierB_at_peak_orbit_y0_p35_z1.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_magenta_tierB_at_peak_orbit_y0_p35_z2.2.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_magenta_tierB_at_peak_orbit_y35_p-5_z1.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_magenta_tierB_at_peak_orbit_y35_p-5_z2.2.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_magenta_tierB_at_peak_orbit_y35_p15_z1.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_magenta_tierB_at_peak_orbit_y35_p15_z2.2.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_magenta_tierB_at_peak_orbit_y35_p35_z1.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_magenta_tierB_at_peak_orbit_y35_p35_z2.2.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_magenta_tierB_at_peak_orbit_y70_p-5_z1.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_magenta_tierB_at_peak_orbit_y70_p-5_z2.2.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_magenta_tierB_at_peak_orbit_y70_p15_z1.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_magenta_tierB_at_peak_orbit_y70_p15_z2.2.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_magenta_tierB_at_peak_orbit_y70_p35_z1.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_magenta_tierB_at_peak_orbit_y70_p35_z2.2.png (720x1280) state=at_peak
+ROW magenta sky pixels in the free band: 0 [PASS]
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_night_tierB_at_peak_orbit_y-70_p15_z1.png (720x1280) state=at_peak
+ROW N4 darkest wall at night #1C1510 H 25 S 44% V 11% [PASS] want V >= 8
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_night_tierB_at_peak_orbit_y-70_p35_z1.png (720x1280) state=at_peak
+ROW N4 darkest wall at night #241C13 H 31 S 46% V 14% [PASS] want V >= 8
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_night_tierB_at_peak_orbit_y0_p-5_z1.png (720x1280) state=at_peak
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_night_tierB_at_peak_orbit_y0_p15_z1.png (720x1280) state=at_peak
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_night_tierB_at_peak_orbit_y70_p-5_z2.2.png (720x1280) state=at_peak
+ROW N4 darkest wall at night #1C1510 H 26 S 44% V 11% [PASS] want V >= 8
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE mobile_night_tierB_at_peak_orbit_y70_p15_z1.png (720x1280) state=at_peak
+ROW N4 darkest wall at night #211A12 H 32 S 45% V 13% [PASS] want V >= 8
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE se_tierA_at_peak_focus_bubbles.png (720x1281) state=at_peak
+ROW info inspect framing capture, no rows
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+PROBE se_tierA_freshly_fed_focus_bubbles.png (720x1281) state=freshly_fed
+ROW info inspect framing capture, no rows
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.01% of pixels
+PROBE se_tierA_unhealthy_focus_bubbles.png (720x1281) state=unhealthy
+ROW info inspect framing capture, no rows
+ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
+ROW clipped 0.00% of pixels
+SUMMARY 326 pass, 2 fail

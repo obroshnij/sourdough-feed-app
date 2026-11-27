@@ -50,11 +50,18 @@ func test_insets_gutters_and_jar_region() -> void:
 			check_close(region.position.y, plate.end.y, 0.0, EPS, tag + " jar region starts under the plate")
 			check_close(region.end.y, bar.position.y, 0.0, EPS, tag + " jar region ends at the bar")
 			print("    jar region %s: %.0f pt (%.0f%%)" % [tag, region.size.y, 100.0 * region.size.y / size.y])
+			# D-043 floors: 55% at normal text on every phone and at every size on iPhones; 360 x 640 may
+			# drop to 51% at normal text and 45% at the largest.
+			var floor_share: float = 0.0
 			if not device.begins_with("android"):
-				check(region.size.y >= 0.55 * size.y, "%s jar region %.0f pt is >= 55%% of %.0f" % [tag, region.size.y, size.y])
+				floor_share = 0.55
+			elif device == "android_360x640":
+				floor_share = 0.51 if is_equal_approx(scale, 1.0) else (0.45 if is_equal_approx(scale, 1.5) else 0.0)
 			elif is_equal_approx(scale, 1.0):
-				# D-043: 360 x 640 may drop to 51% at 100% text.
-				check(region.size.y >= 0.51 * size.y, "%s jar region %.0f pt is >= 51%% of %.0f" % [tag, region.size.y, size.y])
+				floor_share = 0.55
+			if floor_share > 0.0:
+				check(region.size.y >= floor_share * size.y, "%s jar region %.0f pt is >= %d%% of %.0f" % [
+					tag, region.size.y, roundi(floor_share * 100.0), size.y])
 			await after_each()
 
 
@@ -104,7 +111,7 @@ func test_feed_emphasis_and_moldy_lock() -> void:
 	check_eq(feed.locked_reason_key, &"MOLD_FEED_BLOCKED", "moldy: Feed is locked with a reason")
 	check(not feed.emphasized, "moldy: no feed emphasis")
 	var reasons: Array[StringName] = []
-	feed.locked_pressed.connect(func(k: StringName) -> void: reasons.append(k))
+	feed.locked_pressed.connect(func(_id: StringName, k: StringName) -> void: reasons.append(k))
 	feed.pressed.emit()
 	await H.settle(_tree)
 	check_eq(reasons, [&"MOLD_FEED_BLOCKED"], "a tap on locked Feed reports the reason")

@@ -7,7 +7,8 @@
 #   tests/run.sh --strict           a skipped test or lint counts as a failure (phase exit gate)
 #   tests/run.sh --selftest         prove the runner catches every known false pass (R-9)
 #
-# Environment: GODOT (engine binary), RUN_TIMEOUT_S (outer timeout per Godot call, default 300).
+# Environment: GODOT (engine binary), RUN_TIMEOUT_S (outer timeout per Godot call, default 600; the suite
+# took about 210 s on the Mac at the Phase 3 exit, so 300 s left too little room on a loaded machine).
 # Exit 0 only when every step passed. The last line is always "RUN: PASS ..." or "RUN: FAIL ...".
 # Written for the bash 3.2 that ships with macOS.
 
@@ -15,8 +16,10 @@ set -u
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GODOT="${GODOT:-/Applications/Godot.app/Contents/MacOS/Godot}"
-RUN_TIMEOUT_S="${RUN_TIMEOUT_S:-300}"
+RUN_TIMEOUT_S="${RUN_TIMEOUT_S:-600}"
 RESULT_RE='^RESULT: ([0-9]+) passed, ([0-9]+) failed, ([0-9]+) skipped$'
+# Set when the first --import crashed and the retry succeeded. Shown on the RUN line, never hidden.
+IMPORT_NOTE=""
 
 MODE=main
 STRICT="${RUN_STRICT:-0}"
@@ -26,7 +29,7 @@ while [ $# -gt 0 ]; do
     --selftest) MODE=selftest ;;
     --strict) STRICT=1 ;;
     --) shift; RUNNER_ARGS=("$@"); break ;;
-    -h|--help) sed -n '2,12p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,13p' "$0"; exit 0 ;;
     *) echo "run.sh: unknown option $1 (see --help)"; echo "RUN: FAIL bad arguments"; exit 2 ;;
   esac
   shift
@@ -43,6 +46,23 @@ godot_timed() {
     "$limit" "$GODOT" "$@"
 }
 
+# True when an --import exit code means the engine died by a signal: 129 to 159, except our own
+# timeout (142, SIGALRM) and a person stopping the run (130 SIGINT, 143 SIGTERM).
+import_crashed() {
+  local code="$1"
+  [ "$code" -ge 129 ] && [ "$code" -le 159 ] && [ "$code" -ne 142 ] && [ "$code" -ne 130 ] && [ "$code" -ne 143 ]
+}
+
+# Copies a crashed import's log where it outlives the run (build/ is gitignored) and prints the path.
+# CRASH_LOG_DIR overrides the folder (the self-test cases point it into the work folder).
+keep_crash_log() {
+  local dest_dir="${CRASH_LOG_DIR:-$ROOT/build/logs}" dest
+  mkdir -p "$dest_dir"
+  dest="$dest_dir/import_crash_$(date +%Y%m%d_%H%M%S)_$$.txt"
+  cp "$1" "$dest"
+  echo "$dest"
+}
+
 # run_suite DIR IMPORT(1|0) QUIET(1|0) LIMIT [runner args...]
 # Imports DIR (R-0), runs its tests/run_tests.gd, and judges the result (R-6).
 # Sets SUITE_P, SUITE_F, SUITE_S. Returns 0 pass, 1 fail, 2 skipped (no project.godot).
@@ -57,6 +77,22 @@ run_suite() {
   if [ "$do_import" = 1 ]; then
     godot_timed "$limit" --headless --path "$dir" --import >"$WORK/import.txt" 2>&1
     code=$?
+    if import_crashed "$code"; then
+      # An engine crash, not our code: 4.7.2 once aborted in a worker thread on a fresh clone's first
+      # import (libmalloc double free, test-plan §1). Retry once, keep the first log, and say so.
+      local first_log
+      first_log="$(keep_crash_log "$WORK/import.txt")"
+      echo "WARN godot --import crashed (signal $((code - 128)), exit $code), retrying once. First log: $first_log"
+      tail -n 30 "$WORK/import.txt" | sed 's/^/    /'
+      IMPORT_NOTE="import retried after signal $((code - 128))"
+      godot_timed "$limit" --headless --path "$dir" --import >"$WORK/import.txt" 2>&1
+      code=$?
+      if import_crashed "$code"; then
+        echo "FAIL godot --import crashed again (signal $((code - 128)), exit $code)"
+        tail -n 30 "$WORK/import.txt"
+        return 1
+      fi
+    fi
     if [ $code -ne 0 ]; then
       [ $code -eq 142 ] && echo "TIMEOUT: --import killed after ${limit} s" \
                         || echo "FAIL godot --import exited $code"
@@ -242,6 +278,8 @@ echo "== lints"
 run_lint copy tools/i18n/check_copy.py .
 run_lint catalog tools/i18n/build_catalog.py . --check
 run_lint sim-vectors tools/sim-reference/sim.py vectors
+# AC-01.1 and D-031: the jar GLB's node contract and triangle budgets (art's checker, about 0.02 s).
+run_lint glb art/blender/scripts/verify_glb.py assets/3d/jar_v0.glb
 lint_golden_fresh
 
 echo "== godot tests"
@@ -256,5 +294,7 @@ GODOT_SUMMARY="godot $SUITE_P passed, $SUITE_F failed, $SUITE_S skipped"
 if [ "$STRICT" = 1 ] && [ $((SUITE_S + LINT_S)) -gt 0 -o $SUITE_RC -eq 2 ]; then
   echo "FAIL --strict: skips are failures"; STATUS=FAIL
 fi
-echo "RUN: $STATUS ($GODOT_SUMMARY; lints $LINT_P passed, $LINT_F failed, $LINT_S skipped)"
+RUN_NOTE=""
+[ -n "$IMPORT_NOTE" ] && RUN_NOTE="; $IMPORT_NOTE"
+echo "RUN: $STATUS ($GODOT_SUMMARY; lints $LINT_P passed, $LINT_F failed, $LINT_S skipped$RUN_NOTE)"
 [ "$STATUS" = PASS ]

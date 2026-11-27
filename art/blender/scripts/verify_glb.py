@@ -1,4 +1,5 @@
-"""Check assets/3d/jar_v0.glb against the mesh contract in docs/art-direction.md.
+"""Check a GLB against its mesh contract in docs/art-direction.md: the jar (§12) or, when the file
+holds a Kitchen_Wall node, the kitchen wall (§18).
 
 Plain Python 3, no dependencies:
     python3 art/blender/scripts/verify_glb.py [path/to/file.glb]
@@ -6,6 +7,7 @@ Exits 1 if any contract check fails.
 """
 
 import json
+import math
 import os
 import struct
 import sys
@@ -23,14 +25,13 @@ MESH_NODES = {
     "Cloth_Cover": (2, False),
     "Rubber_Band": (1, False),
     "Counter": (1, False),
-    "Backdrop_placeholder": (1, False),
 }
 EMPTY_NODES = ("StarterFloor", "StarterRim")
 TRI_BUDGET = {"Jar_Glass": 5000, "Starter_Body": 4000, "_total": 30000}
 # architecture.md section 11: the rendered scene is 16k tris or fewer. Only one cover
-# shows at a time, so check the base set plus the heaviest cover.
-VISIBLE_BASE = ("Jar_Glass", "Starter_Body", "Starter_Liner", "Rubber_Band", "Counter",
-                "Backdrop_placeholder")
+# shows at a time, so check the base set plus the heaviest cover. The kitchen wall lives in
+# kitchen_wall.glb; its check adds the wall to this set.
+VISIBLE_BASE = ("Jar_Glass", "Starter_Body", "Starter_Liner", "Rubber_Band", "Counter")
 COVERS = ("Jar_Lid_Loose", "Jar_Lid_Tight", "Cloth_Cover")
 VISIBLE_BUDGET = 16000
 
@@ -59,9 +60,127 @@ def read_floats(g, binary, index):
     return [struct.unpack_from("<%df" % n, binary, off + i * stride) for i in range(a["count"])]
 
 
+# Kitchen wall (§18): one node, one surface, UV0 = the kitchen_wall.png atlas.
+WALL_TRI_BUDGET = 500
+WALL_ATLAS_V = {"wall_top": 0.0, "wall_bottom": 448 / 512, "cabinet_top": 452 / 512, "cabinet_bottom": 1.0}
+WALL_EXTRAS = ("wall_center_z_m", "wall_radius_m", "wall_end_deg", "wall_top_m", "cabinet_z_m", "texture")
+
+
+def verify_wall(path, g, binary):
+    errors = []
+    by_name = {n.get("name"): n for n in g["nodes"]}
+    extra = sorted(set(by_name) - {"Kitchen_Wall"})
+    if extra:
+        errors.append("unexpected nodes: " + ", ".join(extra))
+    n = by_name["Kitchen_Wall"]
+    if any(k in n for k in ("rotation", "scale", "matrix")):
+        errors.append("Kitchen_Wall has rotation/scale/matrix (must be identity)")
+    if any(abs(c) > 1e-9 for c in n.get("translation", [0.0, 0.0, 0.0])):
+        errors.append("Kitchen_Wall origin must be (0, 0, 0), the jar axis on the counter top")
+    ex = n.get("extras", {})
+    for k in WALL_EXTRAS:
+        if k not in ex:
+            errors.append("Kitchen_Wall extras has no " + k)
+    prims = g["meshes"][n["mesh"]]["primitives"]
+    if len(prims) != 1:
+        errors.append("Kitchen_Wall has %d surfaces, expected 1 (one draw call)" % len(prims))
+    p = prims[0]
+    a = p["attributes"]
+    mat = g["materials"][p["material"]]["name"] if "material" in p else None
+    if mat != "M_Kitchen_Wall":
+        errors.append("Kitchen_Wall material is %s, expected M_Kitchen_Wall" % mat)
+    if g.get("images") or g.get("textures"):
+        errors.append("the GLB embeds images; the wall texture ships as a separate PNG")
+    for attr in ("NORMAL", "TEXCOORD_0"):
+        if attr not in a:
+            errors.append("Kitchen_Wall has no " + attr)
+    tris = g["accessors"][p["indices"]]["count"] // 3
+    if tris > WALL_TRI_BUDGET:
+        errors.append("Kitchen_Wall has %d tris, budget %d" % (tris, WALL_TRI_BUDGET))
+    pos = read_floats(g, binary, a["POSITION"])
+    nrm = read_floats(g, binary, a["NORMAL"])
+    uv = read_floats(g, binary, a["TEXCOORD_0"])
+    cz, r = float(ex.get("wall_center_z_m", 0.65)), float(ex.get("wall_radius_m", 1.10))
+    cab_z = float(ex.get("cabinet_z_m", 0.22))
+    if min(c for t in uv for c in t) < -1e-6 or max(c for t in uv for c in t) > 1 + 1e-6:
+        errors.append("UV0 outside 0..1")
+    bad_n = 0
+    wall_v, cab_v = [], []
+    for (x, y, z), (nx, _ny, nz), (u, v) in zip(pos, nrm, uv):
+        if abs(z - cab_z) < 1e-4 and y < -0.025:            # cabinet front: faces the camera (+z)
+            bad_n += nz <= 0.5
+            cab_v.append((y, v))
+        else:                                               # wall: faces the circle center
+            bad_n += (nx * -x + nz * (cz - z)) <= 0.0
+            if abs((x * x + (z - cz) ** 2) ** 0.5 - r) > 1e-3:
+                errors.append("wall vertex off the circle at (%.3f, %.3f, %.3f)" % (x, y, z))
+                break
+            wall_v.append((y, v, x, u, z))
+    if bad_n:
+        errors.append("%d vertex normals face away from the camera side" % bad_n)
+    top = min(wall_v, key=lambda t: -t[0])
+    bot = min(wall_v, key=lambda t: t[0])
+    ctop = max(cab_v, key=lambda t: t[0])
+    cbot = min(cab_v, key=lambda t: t[0])
+    left = min(wall_v, key=lambda t: t[2])
+    right = max(wall_v, key=lambda t: t[2])
+    checks = [("wall top v", top[1], WALL_ATLAS_V["wall_top"]), ("wall bottom v", bot[1], WALL_ATLAS_V["wall_bottom"]),
+              ("cabinet top v", ctop[1], WALL_ATLAS_V["cabinet_top"]), ("cabinet bottom v", cbot[1], WALL_ATLAS_V["cabinet_bottom"]),
+              ("left end u", left[3], 0.0), ("right end u", right[3], 1.0)]
+    for label, got, want in checks:
+        if abs(got - want) > 1e-4:
+            errors.append("%s is %.4f, expected %.4f" % (label, got, want))
+    # Every vertex: u follows the angle around the arc (x across the cabinet), v follows the height.
+    end = math.radians(float(ex.get("wall_end_deg", 67.0)))
+    y_top, y_bot = top[0], bot[0]
+    worst_uv = 0.0
+    for y, v, x, u, z in wall_v:
+        want_u = (math.atan2(x, cz - z) + end) / (2 * end)
+        want_v = (y_top - y) / (y_top - y_bot) * WALL_ATLAS_V["wall_bottom"]
+        worst_uv = max(worst_uv, abs(u - want_u), abs(v - want_v))
+    half_w = (r * r - (cz - cab_z) ** 2) ** 0.5
+    for (x, y, z), (u, v) in zip(pos, uv):
+        if abs(z - cab_z) < 1e-4 and y < -0.025:
+            want_u = (x + half_w) / (2 * half_w)
+            want_v = WALL_ATLAS_V["cabinet_top"] + (ctop[0] - y) / (ctop[0] - cbot[0]) * (1.0 - WALL_ATLAS_V["cabinet_top"])
+            worst_uv = max(worst_uv, abs(u - want_u), abs(v - want_v))
+    if worst_uv > 1e-4:
+        errors.append("UV0 does not follow the atlas layout (worst error %.5f)" % worst_uv)
+    checks.append(("worst per-vertex UV error", worst_uv, 0.0))
+    print("file:", path, os.path.getsize(path), "bytes")
+    print("Kitchen_Wall: %d verts, %d tris, material %s, wall y %.3f..%.3f, x %.3f..%.3f, cabinet y %.3f..%.3f at z %.2f"
+          % (len(pos), tris, mat, bot[0], top[0], left[2], right[2], cbot[0], ctop[0], cab_z))
+    print("UV0: " + ", ".join("%s %.4f" % (lbl, got) for lbl, got, _ in checks))
+    print("extras: " + ", ".join("%s=%s" % (k, ex[k]) for k in WALL_EXTRAS if k in ex))
+    jar = os.path.abspath(DEFAULT)
+    if os.path.exists(jar):
+        jg, _ = load(jar)
+        jn = {nd.get("name"): nd for nd in jg["nodes"]}
+
+        def node_tris(name):
+            if name not in jn:
+                return 0
+            return sum(jg["accessors"][pr["indices"]]["count"] // 3 for pr in jg["meshes"][jn[name]["mesh"]]["primitives"])
+        base = sum(node_tris(nm) for nm in VISIBLE_BASE)
+        worst = base + max(node_tris(c) for c in COVERS) + tris
+        print("visible scene with this wall, heaviest cover: %d tris (budget %d)"
+              % (worst, VISIBLE_BUDGET))
+        if worst > VISIBLE_BUDGET:
+            errors.append("visible scene with the wall is %d tris, over %d" % (worst, VISIBLE_BUDGET))
+    if errors:
+        print("FAIL")
+        for e in errors:
+            print("  -", e)
+        sys.exit(1)
+    print("PASS: kitchen wall node, identity transform, one surface, inward normals, atlas UVs, extras, budgets")
+
+
 def main():
     path = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else DEFAULT)
     g, binary = load(path)
+    if any(n.get("name") == "Kitchen_Wall" for n in g["nodes"]):
+        verify_wall(path, g, binary)
+        return
     acc = g["accessors"]
     errors = []
     total_tris = 0
