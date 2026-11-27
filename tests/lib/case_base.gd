@@ -145,6 +145,8 @@ static func dict_diff(actual: Dictionary, expected: Dictionary) -> String:
 			continue
 		parts.append("%s: expected %s, got %s" % [str(key), show(expected[key]) if has_e else "<none>",
 				show(actual[key]) if has_a else "<none>"])
+	if parts.is_empty():
+		return "same values, but a key or number type differs (String vs StringName, int vs float), or a nested value does: expected %s, got %s" % [str(expected), str(actual)]
 	return "; ".join(parts)
 
 
