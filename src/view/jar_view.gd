@@ -29,7 +29,6 @@ var starter: MeshInstance3D
 var liner: MeshInstance3D
 var band: MeshInstance3D
 var counter: MeshInstance3D
-var backdrop: MeshInstance3D
 var covers: Dictionary[StringName, MeshInstance3D] = {}
 var floor_y: float = JarGeometry.FLOOR_Y_M
 
@@ -58,7 +57,11 @@ func bind(model: Node3D) -> PackedStringArray:
 	liner = model.find_child(String(JarGeometry.NODE_LINER), true, false) as MeshInstance3D
 	band = model.find_child(String(JarGeometry.NODE_BAND), true, false) as MeshInstance3D
 	counter = model.find_child(String(JarGeometry.NODE_COUNTER), true, false) as MeshInstance3D
-	backdrop = model.find_child(String(JarGeometry.NODE_BACKDROP), true, false) as MeshInstance3D
+	# The old wall card (art-direction.md §18.5) may still be in the GLB: it would z-fight with the
+	# kitchen wall, so hide it if present. Nothing else uses it.
+	var legacy_card: Node3D = model.find_child("Backdrop_placeholder", true, false) as Node3D
+	if legacy_card != null:
+		legacy_card.visible = false
 	for cover: StringName in JarGeometry.COVER_NODES:
 		var node: MeshInstance3D = model.find_child(String(JarGeometry.COVER_NODES[cover]), true, false) as MeshInstance3D
 		if node != null:
@@ -116,13 +119,10 @@ func _make_materials() -> void:
 		counter_mat.set_shader_parameter(&"jar_radius", JarGeometry.OUTER_RADIUS_M)
 		counter_mat.set_shader_parameter(&"oak_detail", load(COUNTER_DETAIL) as Texture2D)
 		counter.material_override = counter_mat
-	if backdrop != null:
-		backdrop_mat = ShaderMaterial.new()
-		backdrop_mat.shader = load(BACKDROP_SHADER) as Shader
-		backdrop_mat.set_shader_parameter(&"wall_tex", load(WALL_TEX) as Texture2D)
-		backdrop_mat.set_shader_parameter(&"night_tex", load(WALL_NIGHT_TEX) as Texture2D)
-		# The old card sits on the wall's back plane and would z-fight (art-direction.md §18.5).
-		backdrop.visible = false
+	backdrop_mat = ShaderMaterial.new()
+	backdrop_mat.shader = load(BACKDROP_SHADER) as Shader
+	backdrop_mat.set_shader_parameter(&"wall_tex", load(WALL_TEX) as Texture2D)
+	backdrop_mat.set_shader_parameter(&"night_tex", load(WALL_NIGHT_TEX) as Texture2D)
 	if covers.has(&"loose_lid"):
 		lid_mat = ShaderMaterial.new()
 		lid_mat.shader = load(LID_WOOD_SHADER) as Shader
