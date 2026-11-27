@@ -30,6 +30,8 @@ uniform float authored_h = 0.030;
 uniform float starter_r = 0.038;
 // Per-renderer grade (art-direction.md §16.5b allows it, never a palette change).
 uniform float grade_saturation = 1.0;
+// Decorative motion (breathing): 1, or 0 with reduce motion. View only.
+uniform float motion_k = 1.0;
 uniform float grade_value = 1.0;
 
 // Art-direction.md §5. Mirror these in jar_geometry.gd.
@@ -78,7 +80,7 @@ float hooch_flat() {
 // alone draws the cap to a point (art review of 293b09c).
 float cap_offset(vec2 xz, float t) {
 	float lump = lumps * LUMPS_MAX_M * (fbm3(xz * 70.0) - 0.5) * 0.5 * smoothstep(0.0, 0.3, length(xz) / starter_r);
-	float breath = activity * BREATH_M * sin(t * 0.9 + 1.7);
+	float breath = motion_k * activity * BREATH_M * sin(t * 0.9 + 1.7);
 	return (dome * DOME_MAX_M + lump + breath) * (1.0 - hooch_flat());
 }
 
