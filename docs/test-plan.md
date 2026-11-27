@@ -1,6 +1,8 @@
 # Test plan
 
-Owner: `qa-engineer`. Status: Phase 3 (vertical slice). Last updated 2026-11-27.
+Owner: `qa-engineer`. Status: Phase 4 (polish and the rest of the MVP). Last updated 2026-11-27.
+
+**Phase 4 additions:** the re-scope for iOS first and no screen readers (§3.14), the Phase 4 acceptance criteria AC-13 to AC-26 with their traceability (§3A), new edge cases EC-26 to EC-32 (§5), the iPhone play checklist MAN-D0 to MAN-D7 (§6), and Phase 4 open items (§13).
 
 **Phase 3 additions:** the AC integration harness (§2.6), the traceability table that says what proves each AC row (§3.13), and the slice play-session checklists (§6, MAN-S0 to MAN-S5).
 
@@ -10,7 +12,7 @@ Owner: `qa-engineer`. Status: Phase 3 (vertical slice). Last updated 2026-11-27.
 - `starter-simulation-spec.md` v1 (ranges §1, mold §10, derivation §12, smell §13, inspection §14, vectors V1 to V17 §18)
 - `game-mechanics.md` (BT-1 to BT-16, L-1 to L-11), `events-catalog.md`, `game-copy.md`, `ux-design.md`
 - `art-direction.md` (state tells §6, `max_delta` §8)
-- `decisions.md` D-038 to D-046
+- `decisions.md` D-038 to D-059
 
 Numbers taken from a draft are tagged, and they move when the owning spec moves. **QA never tunes a number. It tests the number the owner publishes.**
 
@@ -29,14 +31,15 @@ Numbers taken from a draft are tagged, and they move when the owning spec moves.
 
 1. Runner contract (measured in Phase 1)
 2. Strategy by layer
-3. Acceptance criteria for the 12 vertical-slice items
+3. Acceptance criteria for the 12 vertical-slice items (and the Phase 4 re-scope, §3.14)
+3A. Phase 4 acceptance criteria (AC-13 to AC-26)
 4. Sim and time tests tied to the specs
 5. Edge-case catalog
 6. What can't be automated, with manual checklists
 7. Performance
 8. Accessibility checks
-9. Device and screen matrix (Phase 5)
-10. Definition of done (Phases 2 and 3)
+9. Device and screen matrix (the iPhone 13 Pro now, the rest in Phase 5)
+10. Definition of done (Phases 2 to 4)
 11. Bug severity scale
 12. Seams the tests use
 13. Open items
@@ -718,6 +721,277 @@ T1, T2, T3 and T4 rows are mapped from their owners' lists and assertion message
 | 12.14 | `lint/04_10::lint_04_scene_text_is_keys_and_every_tr_key_exists`, `lint/slice_scope::lint_12_pending_csvs_are_header_only`, `lint copy`, `lint catalog`, `t3/i18n_keys` | covered |
 | 12.15 | `t3/hud_layout::insets_gutters_and_jar_region` (five profiles, 411 × 914 included) | covered |
 
+### 3.14 Re-scope for Phase 4: iOS first (D-054), no screen readers (D-055)
+
+Two new statuses:
+- **Android phase:** Android-only behavior, moved to the later Android phase (D-054). Its headless tests stay in the suite, because the code stays portable. The 360 × 640 and 411 × 914 layout profiles stay too (D-054: they also protect small iPhones and large text).
+- **dropped (D-055):** screen-reader work. The existing accessibility labels stay as they are, with no new work.
+
+**Rows and parts that move:**
+
+| Item | Was | Now |
+|---|---|---|
+| AC-12.11 Android back | covered | **Android phase.** iOS has no back button. `t3/backfill::ac12_11_android_back_closes_the_top_sheet` stays in the suite. |
+| AC-11.1, the SAVE-19 part | Phase 5 (rename on Android) | Android phase |
+| AC-11.3 kill from the app switcher | manual only (MAN-S5, Mac and Android emulator) | manual only, on the iPhone 13 Pro (MAN-D6). The Android boxes move to the Android phase. |
+| AC-03.13, AC-05.10, AC-07.8 | manual on the Mac and the simulator | manual on the Mac and the iPhone 13 Pro (MAN-D3). The simulator can't render (D-044). |
+| AC-12.6, the "every Android phone 56 dp" part | waived to Phase 5 | Android phase. The iPhone parts stay waived to Phase 5. |
+| MAN-05: Android's three haptic levels | manual | Android phase. iOS haptics are judged on the iPhone (MAN-D4, D-059). |
+| MAN-S0 to MAN-S5: every **A** box | manual | Android phase. Their iOS versions are in MAN-D. |
+| EC-22 Android split screen | manual (Phase 5) | Android phase |
+| §9 Android emulator profiles | Phase 5 | Android phase |
+| A11Y-09 VoiceOver and TalkBack | manual after Godot 4.8 | **dropped (D-055)** |
+| A11Y-08 `accessibility_name` on every interactive Control | auto | **frozen:** kept for existing Controls, no new work for Phase 4 Controls (D-055) |
+| §6 "Screen readers" | needs Godot 4.8 | dropped (D-055). D-012 is superseded. |
+
+**New counts for AC-01 to AC-12 (107 rows):**
+
+| Status | Rows |
+|---|---|
+| covered | 87 |
+| manual only | 11 |
+| waived to Phase 5 (AC-01.5, AC-09.7, AC-12.6, AC-12.12) | 4 |
+| carried into Phase 4, to be proven there (AC-02.1, AC-02.3, AC-10.7, AC-11.4; §3A.14) | 4 |
+| Android phase (AC-12.11) | 1 |
+| dropped (D-055) | 0 (no AC row was screen-reader only) |
+| open | 0 |
+
+BT-12, the tutorial demo, was waived to Phase 4 as part of AC-04.4. It is proven by AC-13.2 to AC-13.6.
+
+---
+
+## 3A. Phase 4 acceptance criteria (AC-13 to AC-26)
+
+Owner: `qa-engineer`. Drafted 2026-11-27 on `phase-4-polish` (7914ffb), before T1's Phase 4 contracts.
+
+**Scope:** `mvp-scope.md` "The rest of the MVP" and D-059. **Sources:** game-design §3; game-mechanics §2, §3, §5, §7, §8.1, §8.2; progression §2, §3, §5; events-catalog §4; narrative §9; ux-design §8, §10, §13 to §16; architecture §5.5; spec v1 §2.2, §4 to §6, §14, §15 and the scientist's v1.1 notes (2026-11-27); D-047, D-051, D-052, D-054 to D-059.
+
+**Rules for this section:**
+- **iOS first (D-054).** Device rows run on the user's iPhone 13 Pro (D-058) and are labeled "iPhone 13 Pro". Mac numbers stay "Mac estimate". No Android-only row is written here.
+- **No screen-reader rows (D-055).** Visible accessibility stays: never color alone, text size, reduce motion, contrast.
+- **The Check column names the track that writes the test**: QA (`tests/` outside the unit folders), T1 (`tests/unit/core`, `tests/unit/sim`), T2 (`tests/unit/view`), T3 (`tests/unit/ui`), T4 (`tests/unit/sim/rules`).
+- **New placeholder tags:** `TBD-SND` (sound-designer, `audio-direction.md`), `TBD-T1` (a name or rule from T1's Phase 4 contracts), `TBD-T4` (T4's event rules).
+- **Gating:** every test here runs under `tests/run.sh --strict` with no skips in the main suite. A test that needs T1's contracts lands in the commit that merges them, never as a skipped file.
+
+### AC-13 Guided onboarding (B1 to B8, the demo, the skip path)
+
+Play order (game-design §3): B1, B2, B3, B5, B6, B4, B7, B8. The B6 demo is the only sped-up time in a release build (game-mechanics §8.1, architecture §5.5).
+
+| ID | Given | When | Then | Check |
+|---|---|---|---|---|
+| AC-13.1 | No save (first launch), the tour path | Onboarding runs | Beats show in exactly this order: B1, B2, B3, B5, B6, B4, B7, B8. One coach mark at a time, each ≤ 60 characters, with a 3 pt spotlight ring at ≥ 3:1 against the scene behind it (ux §14). No beat starts while another's sheet or card is open. | auto, T3 |
+| AC-13.2 | The B1 start state: just mixed, young (maturity 0.2), `counter` (T1 names the preset, TBD-T1) | `Demo.run(state, env, steps)` | Every frame equals `VisualMapper.from_state` of a plain loop of 60 s `Sim.step` calls on a copy, field for field. The input state's `to_dict()` text is unchanged afterwards. No other step length is ever used (BT-12). | auto, QA |
+| AC-13.3 | Same | `Demo.run_to_peak` | `rise_phase` goes `freshly_fed`, `developing`, `active`, `near_peak`, `at_peak` in that order, never back, never another phase, and stops on the first `at_peak` step. The jar pauses there (B6). The test prints N, the step count from feed to `at_peak`. | auto, QA |
+| AC-13.4 | The demo playing in the UI | Feed to `at_peak` | Lasts 90 to 120 s of wall time (BT-12): N steps at the playback's steps per frame, measured with a fake frame clock. Reduce motion: TBD-UX (proposed: before and after stills, 1.2 s each, like AC-09.5). | auto, T3 |
+| AC-13.5 | A first launch, the demo running | The whole demo, then a kill before the name is confirmed, then a relaunch 2 days later | The demo never changes the clock or the save: `Session.now_unix()` equals the device clock, `get_debug_time_scale()` stays 1, `is_time_traveling()` stays false, and the save bytes on disk are identical before and after the demo. After the relaunch, onboarding starts again at B1, and the starter adopted then is fresh at that moment (`at_peak`, `sim_time_unix` = `grid(now)`), never one that aged while it had no name. | auto, QA |
+| AC-13.6 | The demo at `at_peak` | B4: the name is confirmed (`Session.adopt_starter`) | One save write. Its starter is `at_peak` by `rise_phase`, `sim_time_unix` = `grid(now)`, maturity 0.2, at `counter`, with the confirmed name. `meta` shows no time travel. A relaunch 60 s later catches up exactly 1 step and doesn't re-anchor (`meta.clock_reanchors` unchanged). | auto, QA |
+| AC-13.7 | No save | "I've kept a starter before" (the skip path) | B2, B3, B5 and B6 never show. B4 (naming) and the B7 question do. The save comes from the same at-peak `new_game` preset, so the B7 feed's timing class is `on_time`. Every P0 and P1 option is open at once: 4 flours, 3 hydration presets, 5 places, 5 inspect kinds (progression §3). | auto, QA + T3 |
+| AC-13.8 | The tour path, or the skip path | The B7 feed | Exactly one day-one journal entry, with body `JOURNAL_DAY_ONE_BODY` (tour) or `JOURNAL_DAY_ONE_SKIP_BODY` (skip) and the name. A second feed adds none. | auto, QA |
+| AC-13.9 | B7 | The schedule question, then Mix | The 3 answers of game-mechanics §2.2 are offered, and the feed is the starter's first real-time feed. B8 shows the forecast in time-of-day words (no digits, AC-08.3) and the one fridge line. From the feed on, each minute's tick advances exactly 1 step. | auto, T3 |
+| AC-13.10 | Any beat from B7 on | Killed, then relaunched | The named starter is there: never a second starter, never a lost name. If the B7 feed wasn't made, the B7 question shows again (TBD-UX). | auto, QA |
+| AC-13.11 | A running game | Settings, "Replay tutorial" (ux §14), if it ships in Phase 4 | The coach marks and demo play on a copy. The real starter, journal and save are byte-unchanged apart from `meta`. | auto, T3 |
+| AC-13.12 | The iPhone 13 Pro | MAN-D2 | Every item is ticked. | manual |
+
+### AC-14 Flours and hydration (P1 feeding)
+
+| ID | Given | When | Then | Check |
+|---|---|---|---|---|
+| AC-14.1 | A non-moldy starter, every P1 option open | Mix with each of 4 flours × 3 ratio presets × 3 hydration presets (36 feeds) | Session accepts all 36. Grams follow the derived discard with hydration (game-mechanics §2.3, rule TBD-GD): `keep = round(150 / (1 + f + f × h / 100))`, `flour = keep × f`, `water = flour × h / 100`, with 1:5:5 rounded to 5 g. Keep / flour / water (total): 1:1:1 at 60% 58 / 58 / 34.8 (150.8), at 125% 46 / 46 / 57.5 (149.5); 1:2:2 at 60% 36 / 72 / 43.2 (151.2), at 125% 27 / 54 / 67.5 (148.5); 1:5:5 at 60% 17 / 85 / 50 (152), at 125% 12 / 60 / 75 (147); 100% as AC-05.1. Every total is 150 ± 5 g. **QA finding (2026-11-27):** today's `FeedAction.from_ratio(f, f, flour, h)` keeps `w = f`, so 1:1:1 at 60% is 50 / 50 / 30 (130 g) and at 125% 162.5 g, and Session rejects all 6 non-100% presets with `REASON_MASS`. Sent to T1. | auto, QA |
+| AC-14.2 | Any feed through `Session.apply()` | The new culture | `flour_mix` and `culture_hydration` equal spec §6, computed independently, within 1e-9: `kept_flour = kept × 100 / (100 + h)`, `culture_hydration = (kept_water + water) / (kept_flour + flour) × 100`, `flour_mix` a flour-weighted blend whose shares sum to 1 ± 1e-9. After 3 conversion feeds with a new flour, that flour holds a share ≥ 0.5, so the flour readouts (surface, smell) switch to it. | auto, QA |
+| AC-14.3 | V5 and V6 (spec §18) | 3 conversion feeds 12 h apart, then the test feed, all through `Session.apply()` | V5's and V6's ranges plus drift (±0.3 h, ±0.05×): rye peaks 5.1 to 5.3 h at about 1.66×, whole_wheat 5.5 to 5.7 h and spelt 5.5 to 5.8 h at about 1.91×; 60% peaks 6.75 to 7.0 h at 2.33 to 2.35× with hooch never ≥ 0.1 in 48 h; 100% 6.2 to 6.4 h; 125% 6.0 to 6.2 h. The AC-14.1 grams keep the same inoculum fraction as V6 (58 / 150.8 = 50 / 130), so V6's ranges apply. | auto, QA (T1 covers the sim level) |
+| AC-14.4 | The 4 flours at `at_peak` after 3 conversion feeds | `VisualMapper.from_state`, `SmellModel.read`, `Inspection.read` | Each flour differs from white in something the player can see or smell (game-mechanics §2.7): a `VisualParams` tint or fleck by at least the visible delta (TBD-ART), or the smell set. Rye's surface reads `cracked` (rye share ≥ 0.5 and rise ≥ 1.3). Rye-majority consistency at its peak reads `airy_pasty` (spec v1.1 §14). | auto, QA |
+| AC-14.5 | The tour path (progression §3) | Play to each trigger | `white_bread` from the start; `whole_wheat` after the first real-time `first_peak`; `rye` and the hydration presets at stage `steady` (maturity 0.33); `spelt` at `mature` (0.50). A locked option is not offered (TBD-UX: hidden, or shown locked with a reason). Each unlock writes one journal line and one intro, once. Unlocks are per player, so they survive a discard and a new starter. | auto, T1 + T3 |
+| AC-14.6 | A previous feed with rye at 60% | Feed, then Mix | 2 taps. The stored `FeedAction` equals the previous one field by field, flour and water included (AC-05.3 extended). | auto, T3 + QA |
+| AC-14.7 | The feed sheet | Water presets | Labeled in words (Stiff, Standard, Loose, ux §8). Each row's grams match AC-14.1. The forecast updates when the preset changes and matches `Session.forecast_feed()` for that feed. | auto, T3 |
+
+### AC-15 The new places: `window_sill` and `proofing_box`
+
+| ID | Given | When | Then | Check |
+|---|---|---|---|---|
+| AC-15.1 | Any non-moldy starter | Move to `window_sill`, then to `proofing_box` | Applies at once. The environment equals spec §2.2: `window_sill` 18 °C and 55% RH, `proofing_box` 26 °C and 60% RH by default. Humidity comes from the place, never from the caller, and is never shown. One move line each in the journal. | auto, QA |
+| AC-15.2 | `proofing_box` | Set 24, 30, 23.5 and 30.5 °C | 24 and 30 apply. 23.5 and 30.5 are rejected with `REASON_ENVIRONMENT`, and the save, journal and state stay byte-unchanged. The UI steps by 1 °C (TBD-UX) with 48 pt steppers, and the proofing box is the only place with a dial. | auto, QA + T3 |
+| AC-15.3 | The same fed state (1:1:1) | One run per place | Peak order: proofing box at 30 °C < warm spot = proofing box at 26 °C < counter < window sill. The warm spot and the box at 26 °C peak in the same minute (humidity only changes dryness). The window sill peaks at about 8.7 h (spec §15, 18 °C), within 5% plus drift. | auto, QA |
+| AC-15.4 | Unfed at `window_sill` | 14 days | `unhealthy` at about 5.8 d and `moldy` at about 11.4 d (spec §15), within 5% plus drift. Warning to mold ≥ 72 h. At the proofing box at 30 °C, warning to mold ≥ 59 h (SIM-WARN-03's floor). | auto, QA |
+| AC-15.5 | progression §3 | Play | `window_sill` opens after `first_wake` or stage `steady`, whichever is first. `proofing_box` opens at `mature`. The skip path opens both (AC-13.7). | auto, T1 + T3 |
+| AC-15.6 | The place sheet with 5 places, every phone in §9, text 100% to 150% | Layout | Every card and stepper ≥ 44 pt (48 standard), no overlap, no clipped text. The stepper shows only while the proofing box is selected. Each card shows its temperature with a word (Cold, Cool, Mild, Warm, ux §13), never color alone. | auto, T3 |
+| AC-15.7 | Each place | Move there | The jar moves to its own spot with its own light (art-director). No `VisualParams` field jumps more than `max_delta`. Captures reviewed against art's references. | capture + review, T2 |
+
+### AC-16 Traits and renaming
+
+| ID | Given | When | Then | Check |
+|---|---|---|---|---|
+| AC-16.1 | 4 scripted 14-day schedules, one per signal (progression §5): ≥ 50% of hours at 24 °C or more (`energetic`); ≥ 50% at 18 °C or less (`patient`); 2 `comeback` or `rescued` (`resilient`); 8 changes of place, flour or ratio (`sensitive`) | Play to stage `steady` | The revealed trait is the scripted one, and `trait_revealed` fires once. Hours count from the environment's temperature (`EnvironmentState.temperature_c`, spec v1.1 §14.2), not the starter's lagging `temp_c`. A tie goes `resilient`, `patient`, `energetic`, `sensitive`. Every starter gets a trait. | auto, QA |
+| AC-16.2 | Two runs that differ only in the revealed trait | The same schedule | Every starter and environment field is byte-identical. Traits change words only (progression §5, CLAUDE.md rule 2). | auto, QA |
+| AC-16.3 | Another trait leads 14 days in a row | Play | It becomes dominant and the journal says so (`EVENT_TRAIT_DRIFT_*`). At most one change per 28 days. | auto, T1 |
+| AC-16.4 | A revealed trait | Its copy | The reveal and trait page use `TRAIT_*`. The memorial epitaph is `MEMORIAL_EPITAPH_<TRAIT>`, else `MEMORIAL_EPITAPH_<1 + seed % 3>` (narrative §9.3). The trait never shows as a number or a bar. | auto, QA + T3 |
+| AC-16.5 | A named starter | Rename to 1 character, 24 characters, " Dough " (padded), emoji, right-to-left text; then to "", spaces only, 25 characters | The first five apply, trimmed, each with one `JOURNAL_LOG_RENAME` entry. The last three are rejected with `REASON_NAME` and change nothing. Every accepted name survives a save and reload byte for byte (UTF-8, EC-20). | auto, QA |
+| AC-16.6 | Settings | "Rename starter" (ux §14) | Within the UX §7 tap budget (TBD-UX). The pill and the journal header show the new name at once, and the pill never overflows at 150% text. | auto, T3 |
+
+### AC-17 `consistency` and `development` inspection, and "What it means"
+
+| ID | Given | When | Then | Check |
+|---|---|---|---|---|
+| AC-17.1 | Spec §14 `consistency` | States at value − ε and value for `h_eff` 75, `acid` 0.66 in each slack condition, and `h_eff` 110, plus cold `dormant` | First match wins: `stiff_dough`, `slack_soupy`, `airy_webby` (`airy_pasty` when rye is the main flour, spec v1.1), `loose_batter`, `thick_batter`. `firm_cold` replaces the last three when cold dormant. `h_eff = culture_hydration / absorb`, so white at 60% is stiff and rye at 100% (h_eff 80) is not. | auto, QA |
+| AC-17.2 | Spec §14 `development` | Maturity 0.33, 0.50 and 0.83, and vigor 0.6 and 0.85, each at − ε and exact | Stages `young`, `steady`, `mature`, `seasoned` and strengths `weakened`, `steady`, `strong` switch exactly there. The copy is `UNHEALTHY` when unhealthy, `WEAKENED` when vigor < 0.6, else the stage. It never claims how reliable recent rises were (spec §14). | auto, QA |
+| AC-17.3 | States from real sim runs: every flour, 60, 100 and 125%, every place, fed and then neglected to `moldy` | `Inspection.read` for all 5 kinds | Every observation and meaning key exists in `en.csv` with non-empty text, and no such text contains a digit. Every key for a `moldy` state is a moldy key, and its meaning says "discard" (LINT-06). | auto, QA |
+| AC-17.4 | Spec v1.1 §14 | `surface` with `mold_risk` ≥ 0.3, not moldy | `is_warning` is true and the meaning is `INSPECT_SURFACE_UNHEALTHY_MEAN`, so it never fades. Below 0.3 (and not unhealthy) it is false. | auto, QA |
+| AC-17.5 | Inspect, `consistency`; then `development` | The chip | `consistency`: the camera reaches the jar mouth from 50° above in 500 ms, and a spoon lifts a strand. `development`: a slow 40° orbit over 3 s at 1.2 × the home distance. Reduce motion: a 200 ms cut, and a still wide 3/4 view for `development` (ux §10). | auto + capture, T2 |
+| AC-17.6 | Stage `steady`, or the skip path | Inspect | The `consistency` and `development` chips appear (with `getting_stretchy`). Before that, only the 3 P0 chips (AC-08.4). Chips are 156 × 48 pt in 2 columns. | auto, T3 |
+| AC-17.7 | Any inspection kind | The meaning line (game-mechanics §5) | Shows on the first 3 views of each kind and level (`inspect.<kind>.level_<n>`). From the 4th view, a "What it means" button (`SMELL_MEANING_BTN`) shows it in 1 tap. A warning readout (`is_warning`) always shows its meaning and has no button. | auto, T3 |
+
+### AC-18 The empty jar (D-047 follow-up)
+
+The discard now commits at "Discard" in the confirmation, and "Not today" leaves an empty jar (narrative §9.2 step 6, D-059).
+
+| ID | Given | When | Then | Check |
+|---|---|---|---|---|
+| AC-18.1 | `moldy`, the confirmation open | "Discard" | One atomic save: the memorial is written, the old starter is gone, and the save holds the empty jar. Then the restart page (`RESTART_*`). | auto, QA |
+| AC-18.2 | The restart page | "Not today" (`RESTART_BTN_LATER`) | The empty-jar screen: `EMPTY_JAR_TITLE` and `EMPTY_JAR_BODY` and a clean jar. Feed, Smell, Place and Inspect are disabled with a visible reason, or hidden (TBD-UX). Journal and Settings work. "Start again" is offered. No timer, and nothing advances on its own. | auto, T3 |
+| AC-18.3 | The empty jar | Relaunch 1 min, 8 h and 30 days later, and with the clock set back 1 day | Still the empty jar. No catch-up, no events, no journal entries, no notification scheduled (AC-20.6), no crash. | auto, QA |
+| AC-18.4 | The empty jar | "Start again", then a name | The new starter is `first_restart` after the first loss and `restart` after later ones (game-mechanics §8.2), rebased to now: `sim_time_unix` = `grid(now)`, never a catch-up over the empty time. "Pick for me" names it in 1 tap. | auto, QA |
+| AC-18.5 | Two losses, an empty-jar stay between them | The journal | Exactly one memorial per loss. Old chapters and entries are kept with their `starter_id`. The new chapter's entries carry the new id. The empty time writes nothing. | auto, QA |
+| AC-18.6 | Taps | Discard to the empty jar; the empty jar to a named starter | "Discard it", "Discard", "Not today": 3 taps. "Start again", "Pick for me": 2 taps (TBD-UX). | auto, T3 |
+| AC-18.7 | Copy on the restart page and the empty jar | Review | No blame, no rush, no nag (narrative §9.1). Scientist and narrative sign off. | review |
+
+**EC-25 is rewritten for this** (§5): a kill before "Discard" keeps the moldy jar; a kill after it never brings the moldy jar back.
+
+### AC-19 The 8 remaining events
+
+Rules: game-mechanics §7.4 and events-catalog §4. T4 writes each rule's unit tests. QA writes the scenarios through `Session` with the full registry. In every row the event fires in the positive scenario with its tier, cooldown and payload, and never in a negative one.
+
+| ID | Event | Positive | Negative | Then | Check |
+|---|---|---|---|---|---|
+| AC-19.1 | `first_acetone` (info, one-time per player, catalog §4.1) | The first smell whose primary is `acetone` or `alcohol` (24 h unfed at the counter, V1) | Catch-up with no smell; a second hungry smell; the next starter after a discard | Fires once, on that smell. The copy says hunger (LINT-06 hunger set). | auto, T4 + QA |
+| AC-19.2 | `off_to_nap` (info, 24 h) | A move to `fridge` | A second fridge move within 24 h; a move anywhere else | The move's own journal line is replaced by the event's entry (game-copy §11). `first_nap` is journal only (AC-10.7). 50 flips in a minute give at most 1. | auto, T4 + QA |
+| AC-19.3 | `waking_up` (info, once per fridge stay) | After a fridge stay, the first rise crossing 1.25 upward after a feed | A rise with no fridge stay; the second rise after the same stay; leaving the fridge with no feed | Fires once per stay, on the crossing step. `first_wake` is journal only. | auto, T4 + QA |
+| AC-19.4 | `fed_before_peak` (nudge, 72 h) | A 3rd feed in a row with `rise_phase` `freshly_fed`, `developing` or `active` | An `on_time` feed in between resets the count | One "Got it" button. Nudge rules hold: deferred to 08:00 in quiet hours, dropped when stale, ≤ 2 nudges a day. EC-04 (12 feeds in 2 h) fires it once. | auto, T4 + QA |
+| AC-19.5 | `warm_and_quick` (info, 72 h) | A feed at `warm_spot`, or the proofing box at 26 to 30 °C | `counter`, `window_sill`, `fridge` | Fires at the peak when feed-to-peak ≤ 0.85 × the forecast for the same feed at 22 °C (spec §14.1; warm spot about 0.80). | auto, T4 + QA |
+| AC-19.6 | `getting_stretchy` (info, one-time per starter) | `maturity` crosses 0.33 | Maturity already ≥ 0.33 at load | Fires once per starter. `stage_steady` is journal only. The P1 chips open with it (AC-17.6). | auto, T4 + QA |
+| AC-19.7 | `big_bubble` (info, ambient, 48 h, ≤ 1 a day) | `rise_phase` enters `near_peak` with `feed_u` ≥ 0.85 | `feed_u` 0.8499; a second qualifying cycle within 48 h | Fires on the entering step, and the jar shows it (`VisualParams.big_bubble`, CLAUDE.md rule 2). Variant `_TOAST_<1 + feed_count % 3>`. The first line dropped from a return summary. | auto, T4 + QA |
+| AC-19.8 | `trait_revealed` (info, one-time per trait) | Stage `steady` (AC-16.1), and a drift (AC-16.3) | The same trait again | Once per trait. A drift uses `EVENT_TRAIT_DRIFT_*`. | auto, T4 + QA |
+
+| ID | Given | When | Then | Check |
+|---|---|---|---|---|
+| AC-19.9 | All 16 rules (D-048's 8 plus these 8), every place and flour | 30-day random schedules, 1,000 seeds | AC-10.2 and AC-10.3 still hold: per local date ≤ 2 nudges, ≤ 1 attention created, ≤ 4 live info toasts, never more than 1 attention waiting, every cooldown. | auto, QA |
+| AC-19.10 | Two or more rules fire on one step | Release | One fixed tie order over all 16 (D-048's order plus T4's for the new 8, TBD-T4). The same input gives the same order (PROP-12). | auto, T4 |
+| AC-19.11 | `unhealthy` or `moldy` | Any step | No good-news event fires (D-048, extended): `waking_up`, `warm_and_quick`, `big_bubble`, `getting_stretchy` and `trait_revealed` join the list. | auto, T4 + QA |
+| AC-19.12 | All 16 rules | PROP-12, PROP-13 | Events use no RNG. Removing any one rule leaves every starter field byte-identical. | auto, QA |
+| AC-19.13 | The full registry | PERF-03 | The 14-day catch-up median ≤ 250 ms (Mac estimate, D-051). The same catch-up on the iPhone 13 Pro is recorded (MAN-D7). | auto (timed) + manual |
+
+### AC-20 The warning-signs notification (`Notifier`, D-057)
+
+Tested with a stand-in backend that records every call (TBD-T1). The real iOS plugin waits for an approved download and the iPhone (D-057).
+
+| ID | Given | When | Then | Check |
+|---|---|---|---|---|
+| AC-20.1 | A new game | Any play | Off by default. No permission request until the player turns it on. While off, 0 `schedule` calls reach the backend. | auto, QA |
+| AC-20.2 | On, a starter that isn't `unhealthy` or `moldy` | Backgrounded (`on_background()`) | Exactly 1 `schedule` call with `NOTIF_WARNING_TITLE` and `NOTIF_WARNING_BODY` (with `{name}`), at the first minute the sim derives `unhealthy` if nothing more is done: the same step function and environment, from the saved state, ± 60 s. | auto, QA |
+| AC-20.3 | On | Any sequence of backgrounds, resumes, relaunches and kills | The backend never holds more than 1 pending notification. | auto, QA |
+| AC-20.4 | A pending notification | Resume or relaunch | It is cancelled before `resumed` or `session_ready` fires. While the app is in the foreground, 0 are pending. | auto, QA |
+| AC-20.5 | The forecast time falls between 22:00 and 08:00 local | Schedule | Moved to 08:00 local the next morning: later, never earlier, because the copy says it "is showing warning signs" (TBD-GD to confirm). The offset is the one read at background (CLK-06, CLK-07). | auto, QA |
+| AC-20.6 | On | Background with: a fridge starter that stays out of `unhealthy` for 14 days; `unhealthy` already; `moldy`; the empty jar; a debug time-scale run | Nothing is scheduled in any case. Never a notification about mold (game-copy §15). | auto, QA |
+| AC-20.7 | Any play | The backend log | Only `NOTIF_WARNING_*` keys are ever scheduled. `NOTIF_PEAK_SOON_*` and `NOTIF_HUNGRY_*` stay unused (D-025: one notification). | auto, QA |
+| AC-20.8 | The same save, clock and offset | Background twice from identical states | The same `at_unix`. The forecast takes no RNG draw (`sim_state` unchanged). | auto, QA |
+| AC-20.9 | The forecast on background | Timed | ≤ 250 ms, Mac estimate (TBD-ARCH; at most 14 days of steps without rules). The device time is recorded in MAN-D7, because iOS gives the pause notification only a few seconds. | auto (timed), QA |
+| AC-20.10 | The iOS plugin wired | iPhone 13 Pro | The permission prompt shows once, after opting in. With the app closed, the notification arrives at its time. Tapping it opens the game, and returning cancels any other pending one. | manual (MAN-D6) |
+| AC-20.11 | `NOTIF_WARNING_*` | Copy lint | Within 30 and 90 characters, in the LINT-06 safety set, no guilt. | auto (lint copy) |
+
+### AC-21 Haptics through the hook
+
+| ID | Given | When | Then | Check |
+|---|---|---|---|---|
+| AC-21.1 | `src/**` | Lint | `Input.vibrate_handheld` appears only in T1's haptics hook (TBD-T1). **Today** `src/view/orbit_camera.gd` calls it directly for the pinch-limit tick (Android only, ignoring the haptics setting). | auto (lint), QA |
+| AC-21.2 | Haptics off | A full feed with hooch, a smell, 10 pokes, a pinch to both limits, a long press, a discard | 0 calls reach the backend (A11Y-06). With haptics on, the same script reaches it at least once, so the spy is live. | auto, QA |
+| AC-21.3 | Haptics on, a fake clock | Each moment | The ux §6, §8, §9 and §15 pattern: poke, glass tap, pill tap, chip select, long press and pinch limit are light. Feed: hooch light, scrape light, flour medium, water 3 × light 150 ms apart, stir light every 180 ms, settle firm. Reduce motion feed: one firm. Smell: light, light, medium, 330 ms apart. Discard: firm. Timings within 1 frame. | auto, T2 + T3 |
+| AC-21.4 | The level table | Read by the test | light, medium and firm map to one pure table: ux §15 (10 ms at 0.3, 20 ms at 0.6, 35 ms at 1.0), or the iOS values the user picks on the iPhone (D-059). | auto, T1 |
+| AC-21.5 | Every haptic moment | The audio trigger list | Also has a sound (ux §15: haptics are never the only cue). | auto, QA |
+| AC-21.6 | The iPhone 13 Pro | MAN-D4 | Every item is ticked. | manual |
+
+### AC-22 Audio
+
+| ID | Given | When | Then | Check |
+|---|---|---|---|---|
+| AC-22.1 | `assets/audio/**` | Lint | WAV for one-shots, Ogg Vorbis for anything longer than about 2 s, 44.1 or 48 kHz, mono unless `audio-direction.md` says otherwise, ≤ 2 MB in total. Every file has a line in `art/audio/LICENSES.md`: synthesized with its script, or CC0 with its source URL. | auto (lint), QA |
+| AC-22.2 | Each file | Sample scan | Peak ≤ −3 dBFS (0.708 of full scale). The first and last samples are within TBD-SND of zero, so nothing clicks. Short effects are near −20 LUFS by sound-designer's measurement, which is reported, not gated. | auto (lint), QA |
+| AC-22.3 | Each synthesized file | Its script rerun into a temp folder | Byte-identical to the committed file. | auto (lint), QA |
+| AC-22.4 | Sound off | A feed, a smell, pokes, the time-lapse, the room tone | 0 sounds start, and the room tone stops within 1 frame. Sound back on resumes the room tone. The setting persists in `settings.cfg`. | auto, T2 |
+| AC-22.5 | The volume setting (TBD-UX: steps or a slider) | Each value | Maps monotonically to the bus level. The lowest value is silent. It persists. | auto, T2 |
+| AC-22.6 | Every sound | The trigger list in `audio-direction.md` | Each plays only from its Bus signal or Session event. Every sound moment also has a visual cue, so nothing depends on sound. | auto, T2 + QA |
+| AC-22.7 | 100 pokes in 1 s, then a feed with bubble pops | Count voices | Never more than the voice limit playing at once (TBD-SND), with the stealing rule from `audio-direction.md`. | auto, T2 |
+| AC-22.8 | The loudest overlap: the feed sequence, pops and the room tone | The master bus | Peak ≤ 0 dBFS (headroom or a limiter, TBD-SND). | capture (Mac), T2 |
+| AC-22.9 | The app backgrounded; the iPhone's silent switch | Sound playing | Stops in the background and resumes on return. The silent switch mutes the game (proposed: the ambient iOS audio session category, checked as a project setting, TBD-SND and T2). | auto (setting) + manual (MAN-D5) |
+
+### AC-23 Battery
+
+| ID | Given | When | Then | Check |
+|---|---|---|---|---|
+| AC-23.1 | The app open | `interaction_ended`, then 3 s (`IDLE_AFTER_S`) with no input | `Engine.max_fps` is 30. On `interaction_started` it is 60 again at once (PERF-02). | auto, QA |
+| AC-23.2 | Any animation that isn't a camera move: a sheet opening, the feed sequence, the smell moment, the time-lapse, a card, the demo | While it runs | `Engine.max_fps` stays 60, and the 3 s idle timer restarts when it ends. **Fails today (QA, from the code):** only `OrbitCamera` emits `interaction_started` and `interaction_ended`, and `Session.start()` arms the idle timer at boot, so 3 s after launch every non-camera animation runs at 30 fps. | auto, T2 |
+| AC-23.3 | An opaque full-screen sheet (journal, settings) | Open, then closed | While open, low-processor mode is on or `World` is hidden, so 3D draw calls are 0 (PERF-09). Off again within 1 frame of closing. Never while the jar is visible, because the starter breathes (TBD-ARCH, T2). | auto, T2 |
+| AC-23.4 | `project.godot` | PERF-10 | `keep_screen_on` = false, render scale 0.75, MSAA 2x, unless a decision row moves them. | auto, QA |
+| AC-23.5 | The iPhone 13 Pro | MAN-D7 | 10 minutes idle on the main screen: battery drop, Xcode's Energy Impact level and whether the phone gets warm are recorded, labeled "iPhone 13 Pro". | manual |
+
+### AC-24 The compact feed sheet
+
+| ID | Given | When | Then | Check |
+|---|---|---|---|---|
+| AC-24.1 | 390 × 844 pt (the iPhone 13 Pro), 100% text, every P1 option open, hooch present | Open the feed sheet | Every control is visible with no scrolling: the hooch step, 3 schedule rows, 4 flour chips, 3 water chips, the early note, "Same as last time" and Mix. | auto, T3 |
+| AC-24.2 | Every phone in §9, at 100%, 125% and 150% | Same | Mix is pinned and fully visible. If the sheet scrolls, Mix doesn't scroll away. No text clips. | auto, T3 |
+| AC-24.3 | Same | Targets | Every control ≥ 44 pt (48 standard), schedule rows ≥ TBD-UX (64 pt in the slice), no overlap (AC-12.1). | auto, T3 |
+| AC-24.4 | The jar above the sheet | A ratio picked | The ghost band line stays visible in the band above the sheet at every size (ux §8). | auto, T2 + T3 |
+| AC-24.5 | Feed like last time | Feed, Mix | Still 2 taps (AC-05.3, AC-14.6). | auto, T3 |
+
+### AC-25 The journal: merged quick place moves (OD-22)
+
+| ID | Given | When | Then | Check |
+|---|---|---|---|---|
+| AC-25.1 | Several moves within the merge window (TBD-GD and T1: OD-22 proposed a few minutes) | Moves | One journal line, naming the final place. A move after the window starts a new line. | auto, QA |
+| AC-25.2 | Same | The sim | Starter and environment bytes equal the unmerged run (AC-06.5). Merging touches only the journal. | auto, QA |
+| AC-25.3 | An open merge window | Save and reload, or a kill | The merged line survives a reload. A kill leaves at most one line for the window. | auto, QA |
+| AC-25.4 | A fridge move inside a window | `off_to_nap` | The event's own entry is kept (game-copy §11), and its cooldown is unchanged. | auto, QA |
+| AC-25.5 | 50 flips a minute for a day | SAVE-13 | The journal stays inside its caps and the save inside 128 KB. | auto, QA |
+
+### AC-26 Saves for the Phase 4 fields
+
+| ID | Given | When | Then | Check |
+|---|---|---|---|---|
+| AC-26.1 | Every new saved field: trait scores and buckets, unlocks, the empty jar, notification opt-in and its pending id, the onboarding path, the merge window | Save and load, and the `save.prev` fallback | Bit for bit (SAVE-01). Corrupt values in the new fields are quarantined like any other (SAVE-05, SAVE-20). | auto, QA |
+| AC-26.2 | `tests/fixtures/saves/v1_slice.json` (the frozen Phase 3 save) | Loaded by the Phase 4 build | It loads with no trait yet, notifications off, and unlocks derived from its history and maturity (TBD-GD: a v1 player past `steady` gets the `steady` unlocks at once, never locked out of what they had). If the empty jar bumps the save version (D-051), this is AC-11.4's migration test. | auto, QA |
+
+### 3A.14 Carried from Phase 3 (D-052)
+
+| Row | Phase 4 proof | Check |
+|---|---|---|
+| AC-02.1 | art-director's alive and calm bounds (TBD-ART, proposed 0.3% to 5% mean pixel change in 2 s) on Mac captures, plus the feel on the iPhone (MAN-D3) | capture + manual |
+| AC-02.3 | art-director's visible delta per `VisualParams` field, then an auto test over the 5 pairs | auto, QA |
+| AC-10.7 | The Phase 4 milestone pairs: `off_to_nap` with `first_nap`, `waking_up` with `first_wake`, `getting_stretchy` with `stage_steady`, `trait_revealed` with its milestone. One toast each, and the milestone in the journal only. | auto, QA |
+| AC-11.4 | The first save-version bump (D-051) migrates `v1_slice.json` to a frozen expected payload (AC-26.2) | auto, QA |
+| BT-12 | AC-13.2 to AC-13.6 | auto |
+
+### 3A.15 Traceability (Phase 4)
+
+Updated as tests land. **planned** means the row waits for the named track's code. `today` means QA built it against the API on `phase-4-polish` before T1's contracts.
+
+| Group | Rows | auto | manual, capture or review | Covered now |
+|---|---|---|---|---|
+| AC-13 Onboarding | 12 | 11 | 1 | see below |
+| AC-14 Flours and hydration | 7 | 7 | 0 | |
+| AC-15 Places | 7 | 6 | 1 | |
+| AC-16 Traits and renaming | 6 | 6 | 0 | |
+| AC-17 Inspection | 7 | 7 | 0 | |
+| AC-18 Empty jar | 7 | 6 | 1 | |
+| AC-19 Events | 13 | 13 | 0 | |
+| AC-20 Notification | 11 | 10 | 1 | |
+| AC-21 Haptics | 6 | 5 | 1 | |
+| AC-22 Audio | 9 | 8 | 1 | |
+| AC-23 Battery | 5 | 4 | 1 | |
+| AC-24 Compact feed sheet | 5 | 5 | 0 | |
+| AC-25 Journal merge | 5 | 5 | 0 | |
+| AC-26 Saves | 2 | 2 | 0 | |
+| **Total** | **102** | **95** | **7** | |
+
+Plus the 4 carried rows and BT-12 (§3A.14). AC-17.5 counts as auto with a capture part, and AC-15.7 as capture plus review. AC-19.13, AC-20.9 and AC-22.9 have a device part in MAN-D.
+
 ---
 
 ## 4. Sim and time tests tied to the specs
@@ -864,7 +1138,14 @@ Each check time below sits at least 0.3 h inside its window, to absorb jitter an
 | EC-22 | Android split screen or a resized window | Height down to 50% | No crash. Layout follows the safe area. | manual (Phase 5) |
 | EC-23 | Low power mode or a hot phone | Device | The frame cap still applies. No sim or visual difference. | manual (device) |
 | EC-24 | Taps the starter 100 times | INT-08 | The sim is byte-unchanged. | auto |
-| EC-25 | Kills the app during the discard ceremony | (a) After the new name is confirmed (`DiscardStarterAction` applied). (b) Before it: the memorial page or naming is showing. | (a) Relaunch shows the new starter, and the memorial exists exactly once. (b) Nothing was saved (D-047: discard and adopt are one atomic save), so the relaunch is the moldy jar with no memorial, and the flow runs again. `int/ac04::ec_25_discard_survives_a_kill_and_leaves_one_memorial`, `::ec_25_kill_before_the_name_is_confirmed_keeps_the_moldy_jar`. | auto |
+| EC-25 | Kills the app during the discard ceremony | **Phase 4 (the discard commits at "Discard", D-059):** (a) the mold sheet or the confirmation is showing; (b) right after "Discard", on the memorial or restart page; (c) during naming after "Start again"; (d) after the new name is confirmed. | (a) Nothing was saved: the moldy jar, no memorial, and the flow runs again. (b) and (c) The relaunch is the empty jar (AC-18.3), never the moldy jar, with exactly one memorial; "Start again" works from there. (d) The new starter, with exactly one memorial. Never two starters, never a lost memorial. The slice's version (discard and adopt as one atomic save at naming, D-047) is proved by `int/ac04::ec_25_discard_survives_a_kill_and_leaves_one_memorial` and `::ec_25_kill_before_the_name_is_confirmed_keeps_the_moldy_jar`; the second one flips to (c) in the commit that lands T1's empty jar. | auto |
+| EC-26 | Takes a phone call during the B6 demo | Background mid-demo for 2 days, then return | The demo restarts or resumes on its copy. The adopted starter is fresh at the moment of naming (AC-13.5), not 2 days old, and no catch-up summary shows for an unnamed starter. | auto |
+| EC-27 | Parks it in the proofing box at 30 °C and leaves | 14 days | The fastest legal mold. Warning to mold ≥ 59 h (AC-15.4). The memorial's `{days}` is ≥ 6 and the plural is right. With notifications on, exactly one warning notification was scheduled, at the unhealthy onset (AC-20.2). | auto |
+| EC-28 | Turns on the notification, then keeps the starter in the fridge for a month | Background in the fridge | Nothing is scheduled (AC-20.6), because the fridge never reaches `unhealthy` inside the 14-day cap. Out of the fridge and back to the counter, the next background schedules it. | auto |
+| EC-29 | Switches flour or hydration at every feed | 20 feeds alternating rye 60% and white 125% | Every feed accepted (AC-14.1). `flour_mix` shares sum to 1 and `culture_hydration` stays in 40 to 200 (PROP-03). The surface and consistency words follow the main flour. `sensitive` can win the trait, and nothing else changes in the sim (AC-16.2). | auto |
+| EC-30 | Leaves the empty jar for a year | Relaunch at +365 d | Still the empty jar, no catch-up, no summary, no events, no crash, no notification (AC-18.3). "Start again" gives a fresh starter at now. | auto |
+| EC-31 | Renames the starter 200 times | `RenameAction` 200 times | Each applies. The journal stays inside its caps (SAVE-13), and the old names never appear on the main screen. | auto |
+| EC-32 | Skips onboarding, then discards on day one | Skip path, then force mold with F3 | The first restart uses `first_restart` (the cold spare), and the unlocks from the skip path survive (progression §3: unlocks are per player). | auto |
 
 ---
 
@@ -875,12 +1156,14 @@ Each check time below sits at least 0.3 h inside its window, to absorb jitter an
 | Beauty of the jar, glass and starter | Taste. Pixel diffs only catch regressions. | MAN-01, MAN-02 vs. `art/previews/jar_v0_<state>.png` for the 8 rendered states (`freshly_fed`, `active`, `at_peak`, `collapsing`, `hungry`, `dormant`, `unhealthy`, `moldy`). The other 3 states are checked against their UX §11 jar cues. |
 | "Alive but calm" motion | AC-02.1 is only a proxy | MAN-02 |
 | Gesture feel, one-handed reach | Needs a hand on a real screen | MAN-03, A11Y-07 |
-| Haptics | Not produced in a simulator or headless run | MAN-05, device only (D-004) |
+| Haptics | Not produced in a headless run. The hook's calls are tested (AC-21.2, AC-21.3); the feel needs a phone | MAN-D4 on the iPhone 13 Pro (D-058, D-059) |
+| Sound | Headless audio is a dummy driver. Files and routing are tested (AC-22); the mix needs ears | MAN-D5 |
 | Smell moment delight | Taste | MAN-07 |
 | Copy tone | Taste | MAN-09 (narrative), scientist safety sign-off |
-| Screen readers | Needs Godot 4.8 (D-012) | A11Y-09 |
-| Release-build behavior | Needs export templates (OD-9) | CLK-13, release smoke test |
-| Real frame time, thermals, battery | No device yet | PERF-05, PERF-08 |
+| Screen readers | Dropped (D-055) | none |
+| Release-build behavior | Needs a release export | CLK-13, release smoke test (Phase 5) |
+| Real frame time, thermals, battery | Needs a phone. Now the iPhone 13 Pro, labeled "iPhone 13 Pro" (D-058) | MAN-D7, PERF-05, PERF-08 |
+| A real notification | Needs the iOS plugin and the phone (D-057) | MAN-D6 |
 
 **Visual regression aid.** `--capture` images are diffed against `tests/visual/approved/<renderer>/`. A mean difference over 2%, or any 32 × 32 tile over 10%, flags the image for review. It never fails the build alone. Approvals are per renderer and per machine.
 
@@ -1032,11 +1315,97 @@ Start from your named starter. Feed it, open F3, and use "+3 d" three times (onc
 - [ ] A: Leave it on the counter, set the date 16 days ahead and reopen. The card says it was a long time. The time-lapse shows the warning signs, then mold and the discard path. No blame.
 - [ ] A: Do the same with the starter in the fridge. It's sleepy and fine, never moldy, and one or two feeds wake it.
 
+**Phase 4 note (D-054):** every **A** box above moves to the Android phase. Their iOS versions are in MAN-D.
+
+### iPhone play session (Phase 4, D-058)
+
+The user's iPhone 13 Pro (390 × 844 pt, iOS 27.2.1). Every number here is a real device number: label it "iPhone 13 Pro" with the build's commit, and it replaces a Mac estimate where one exists (D-058). For any fail, note what you saw and the time, and send it to the director.
+
+**Not reachable on the phone yet:** the dev overlay opens with F3, and a phone has no F3 key. QA asked T1 for a touch way to open it in debug builds. Until it lands, skip the items marked **F3**.
+
+#### MAN-D0 Run steps
+
+1. One-time setup, which only you can do, is in the board's "Waiting on the user": sign in to Xcode, turn on Developer Mode, and trust the developer after the first install.
+2. Build and install with t1-toolchain's device script (its name and flags will be in `tools/build/README.md`). Keep the phone unlocked and nearby.
+3. To read the game's log: in Xcode, Window, then Devices and Simulators, select the phone, then Open Console. Or use the script's own log output.
+4. For a true first launch, delete the app from the home screen (this deletes its save), then install again.
+
+#### MAN-D1 Install, first launch and the renderer line
+
+- [ ] The build installs, the icon appears, and the first launch shows the jar within a few seconds with no error.
+- [ ] The log's renderer line names **Metal** and **Forward Mobile**, never OpenGL or Compatibility. Copy the exact line into your report.
+- [ ] From launch to the main screen, the log has no "SCRIPT ERROR" or "ERROR:" line. Copy any you see.
+- [ ] The top plate clears the notch, the action bar clears the home indicator, and no text is cut off.
+
+#### MAN-D2 Onboarding
+
+- [ ] The guided start comes in this order: M.'s note and the jar, a prompt to turn and zoom, a smell, a look at the bubbles, the sped-up rise, naming, the first feed with "When will you check on it next?", then a line about the fridge.
+- [ ] The sped-up rise takes about one and a half to two minutes and stops at the peak. It looks like a real rise, only faster.
+- [ ] Coach marks come one at a time, are short and easy to read, and the ring clearly shows what to touch.
+- [ ] Lock the phone during the sped-up rise, wait a minute, unlock. No crash, and the start carries on or restarts calmly.
+- [ ] Delete and reinstall, then pick "I've kept a starter before". The turn, smell, bubbles and sped-up lessons are skipped. Naming and the "When will you check" question still come, and all flours, water choices, 5 places and 5 inspect choices are open at once.
+
+#### MAN-D3 Feel
+
+- [ ] Left alone, the starter looks alive but calm, with no flicker or stutter.
+- [ ] Turning the jar with either thumb is comfortable, and it stops softly near the sides. Pinch zoom is smooth, with no jump when the second finger lands. Double-tap resets the view.
+- [ ] Start a drag on the jar and slide over the action bar. The jar keeps turning, and no button fires.
+- [ ] Feed, then Mix (2 taps). The feed plays smoothly the whole way, never choppy. At the standard text size, the feed sheet shows every choice without scrolling.
+- [ ] Smell, and every Inspect choice (Consistency and Development once open). Camera moves are smooth, and cards appear promptly.
+- [ ] Move to every place, including the window sill and the proofing box. The jar moves and the light changes, with nothing popping. The proofing box's minus and plus buttons are easy to hit.
+- [ ] Text size Largest: nothing is cut off on the main screen, the feed and place sheets, or any card.
+- [ ] Reduce motion on: no camera glide, sheets fade instead of sliding, and the starter still rises.
+- [ ] Discard a moldy starter (**F3**), then pick "Not today". The empty jar is calm, nothing nags, and "Start again" works.
+
+#### MAN-D4 Haptics
+
+- [ ] Haptics on: the feed has small taps on its steps and a firmer one when the band snaps on. Every pulse is short and soft, never a long buzz.
+- [ ] Smell: three soft swells as it "breathes in".
+- [ ] Poke the starter: one light tap. Pinch to the zoom limit: one light tick.
+- [ ] Haptics off in Settings: no vibration at all through a feed, a smell, pokes and a pinch to the limit.
+- [ ] Your verdict for D-059, in one line: are the built-in pulses good enough, or should we ask for an iOS haptics plugin?
+
+#### MAN-D5 Sound
+
+- [ ] Sound on, ringer on, medium volume: the room tone is quiet, and pops, lid, pour and stir match what you see. Nothing is loud, harsh or crackly.
+- [ ] Sound off in Settings: silence through a feed and a smell.
+- [ ] Each lower volume step is quieter, and the lowest is silent.
+- [ ] Flip the ring/silent switch to silent. Write down whether the game goes quiet.
+- [ ] Play music in another app, then open the game. Write down whether the music keeps playing.
+- [ ] Swipe home while a sound plays: it stops. Back in the game, the room tone returns.
+
+#### MAN-D6 Day and night, a real absence, the notification
+
+- [ ] Play once in daylight and once in the evening at normal speed. The kitchen looks like day and then evening, text stays easy to read, and the status keeps its icon and word.
+- [ ] Feed, then swipe home (don't close the app). Come back within an hour: no time-lapse and no "while you were away". Come back after an hour or more: a short time-lapse (a tap skips it) and at most 3 lines, with no blame. The action buttons may be briefly unavailable while it catches up.
+- [ ] Feed, then swipe the app away in the app switcher at once. Reopen: the feed is there once, in the jar and the journal (AC-11.3).
+- [ ] Once the notification is wired: turn it on in Settings, and the permission prompt shows once. Close the app with the starter on the counter. The warning arrives about when the starter would show warning signs (4 to 5 days at the counter, so use **F3**), never between 22:00 and 08:00. Tapping it opens the game.
+- [ ] With the notification off in Settings, nothing ever arrives.
+
+#### MAN-D7 Numbers to record
+
+Label each "iPhone 13 Pro" with the commit.
+
+| What | How | Target | Result |
+|---|---|---|---|
+| Launch to the first jar frame | Stopwatch from tapping the icon to the jar. 3 cold launches (swipe the app away in between), take the middle one | ≤ 2 s (PERF-05, AC-09.7) | |
+| Frame rate while turning the jar | Xcode's FPS gauge (Debug navigator), or the F3 frame line once T1 adds it. 60 s of turning | a steady 60 (PERF-01) | |
+| CPU and GPU time per frame while turning | Xcode's GPU report | CPU ≤ 8 ms, GPU ≤ 10 ms (PERF-01) | |
+| Frame rate with no touch | After 3 s idle on the main screen | 30 (AC-23.1) | |
+| Frame rate during the feed with no touch | Same gauge | 60 (AC-23.2) | |
+| 14-day catch-up | The catch-up log line (asked of T1) after an **F3** jump | recorded (Mac estimate budget 250 ms) | |
+| The notification forecast on background | Its log line (asked of T1) | recorded (AC-20.9) | |
+| Memory | Xcode's memory gauge, highest value in a session | recorded | |
+| Battery, 10 min idle on the main screen | Battery % before and after, Xcode's Energy Impact, warm or not | recorded (PERF-08, AC-23.5) | |
+| Heat after 15 min of play | Is the phone warm to the touch? | not hot | |
+
 ---
 
 ## 7. Performance
 
-**Labeling rule:** every reported number says "Mac estimate", "simulator estimate" or "device". There's no phone yet (D-004).
+**Labeling rule:** every reported number says "Mac estimate", "simulator estimate" or "iPhone 13 Pro" (a real device number, D-058). From Phase 4 the user's iPhone 13 Pro numbers replace Mac estimates where both exist (MAN-D7).
+
+**PERF-03 under load (Phase 4, measured 2026-11-27, M4, Mac estimate):** with about ten other agents' Godot processes running (load average 7 to 14), the first strict gate failed PERF-03 with a median of 262.4 ms (runs 229.9 to 308.7 ms), and a run of `tests/perf/` alone with `--verbose` gave 316.8 ms and failed PERF-04 too (21.6 ms median, min 6.19). The full suite passed both an hour later in the same worktree with no code change. The code didn't regress; the machine was busy. Proposal OD-26.
 
 The Mac and simulators use **regression gates**: fail on a slowdown of more than 20% against the approved baseline for the same machine and renderer. Absolute phone targets (architecture §11) are checked on a device.
 
@@ -1067,10 +1436,10 @@ The Mac and simulators use **regression gates**: fail on a slowdown of more than
 | A11Y-03 | Contrast: text 4.5:1, non-text 3:1, plates over the scene in the worst case | AC-12.3, AC-12.4 |
 | A11Y-04 | Status never by color alone | AC-08.1, AC-08.6 |
 | A11Y-05 | Reduce motion disables exactly the UX §15 list and keeps the sim-driven starter motion | AC-02.6, AC-12.8 |
-| A11Y-06 | Haptics off: 0 calls to `Input.vibrate_handheld` during a full feed flow | auto (spy on the haptics wrapper) |
+| A11Y-06 | Haptics off: 0 calls to `Input.vibrate_handheld` during a full feed flow | auto (spy on T1's haptics hook): AC-21.2 |
 | A11Y-07 | Reach: the five actions are in the UX §5 thumb zone on the 17 Pro Max | capture |
-| A11Y-08 | Every interactive Control has an `accessibility_name` through `tr()`, ≤ 40 characters | auto (the property exists in 4.7.2, per architecture) |
-| A11Y-09 | VoiceOver and TalkBack: read the status, use the five actions, finish a feed | manual, after the 4.8 upgrade (D-012) |
+| A11Y-08 | Every interactive Control has an `accessibility_name` through `tr()`, ≤ 40 characters | **frozen (D-055):** the existing check stays for existing Controls. No new work for Phase 4 Controls |
+| A11Y-09 | VoiceOver and TalkBack: read the status, use the five actions, finish a feed | **dropped (D-055)** |
 | A11Y-10 | No flashing above 3 per second (WCAG 2.3.1), including bubble pops and VFX | review |
 | A11Y-11 | Gestures are optional: every 3D action (reset, inspect framing) has a button path, and nothing requires a hold or multiple fingers | auto (UX §16) |
 | A11Y-12 | Nothing auto-confirms. Cards stay until dismissed when "Keep messages on screen" is on | auto |
@@ -1078,9 +1447,11 @@ The Mac and simulators use **regression gates**: fail on a slowdown of more than
 
 ---
 
-## 9. Device and screen matrix (Phase 5)
+## 9. Device and screen matrix (the iPhone 13 Pro now, the rest in Phase 5)
 
-**iOS simulators.** Verified installed with `xcrun simctl list devicetypes` (Xcode 27.2): iPhone SE (3rd generation), iPhone 17e, 17, 17 Pro and 17 Pro Max. The device-type plists don't contain screen sizes (checked), so the sizes below come from UX §2, and the 17e is marked assumed by UX. Confirm each from the booted simulator in Phase 2 and record it here.
+**The real device (Phase 4, D-058).** The user's iPhone 13 Pro, iOS 27.2.1, 390 × 844 pt (the same size as the 17e row below), notch, ProMotion. It runs MAN-D0 to MAN-D7, and its numbers are labeled "iPhone 13 Pro". The safe-area insets (expected top 47, bottom 34) are read from the device in MAN-D1, not assumed.
+
+**iOS simulators.** They can't render this project (D-044), so they are only for boot and log checks. Verified installed with `xcrun simctl list devicetypes` (Xcode 27.2): iPhone SE (3rd generation), iPhone 17e, 17, 17 Pro and 17 Pro Max. The device-type plists don't contain screen sizes (checked), so the sizes below come from UX §2, and the 17e is marked assumed by UX. Confirm each from the booted simulator in Phase 2 and record it here.
 
 | Device | Points (UX §2) | Why | Runs |
 |---|---|---|---|
@@ -1089,7 +1460,7 @@ The Mac and simulators use **regression gates**: fail on a slowdown of more than
 | iPhone 17 Pro | 402 × 874 | Reference size, ProMotion | All capture rows, PERF-01 (simulator estimate) |
 | iPhone 17 Pro Max | 440 × 956 | Largest, hardest reach | A11Y-07, MAN-03, AC-12.6 |
 
-**Android emulator.** Blocked: the SDK lacks platform 36, build-tools 36.1.0 and the NDK (OD-10). Verify the profiles against the installed AVDs.
+**Android emulator: Android phase (D-054).** Nothing below runs until iOS is done. The 360 × 640 and 411 × 914 headless layout profiles still run in every gate (D-054). Before that phase, the SDK still lacks platform 36, build-tools 36.1.0 and the NDK (OD-10). Verify the profiles against the installed AVDs.
 
 | Profile | Size | Why |
 |---|---|---|
@@ -1107,7 +1478,7 @@ Every number from this matrix is an estimate until a device exists.
 
 ---
 
-## 10. Definition of done (Phases 2 and 3)
+## 10. Definition of done (Phases 2 to 4)
 
 A feature is done when:
 
@@ -1139,6 +1510,17 @@ A feature is done when:
 - Every row in §3.13 is covered or manual only, or has a written waiver from the director.
 - `tests/run.sh --strict` is green on a fresh clone.
 - The user has run MAN-S0 to MAN-S5 on the Mac and the Android emulator (D-046).
+
+**Phase 4 features** are also done only when:
+- every AC-13 to AC-26 row the feature touches is covered or manual only in §3A.15, updated in the same commit
+- its tests land in the same commit as the code they test, so `tests/run.sh --strict` never sees a skip
+- anything on the device (feel, haptics, sound, frame time, battery, the notification) has its MAN-D item run on the iPhone 13 Pro, with the numbers labeled
+- no new Android-only work (D-054) and no new screen-reader work (D-055)
+
+**Phase 4 exit (D-059):**
+- Every row in §3A is covered or manual only, or has a written waiver from the director. The 4 carried rows (§3A.14) too.
+- `tests/run.sh --strict` is green on a fresh clone, with the R-0 import note quoted if a retry happened.
+- The build runs on the iPhone 13 Pro, and the user has run MAN-D0 to MAN-D7.
 
 ---
 
@@ -1178,6 +1560,7 @@ All of these were accepted by tech-architect. The names are from `architecture.m
 | Perf | `PerfLog`, added by Main when `--perf-log=<csv>` is passed (debug builds) | PERF-* |
 | Integration harness (Phase 3) | `SliceHarness` and `SliceCase` in `tests/integration/` (§2.6) | AC-04 to AC-11 |
 | Phase 3 contracts (`p3_contracts`, agreed with T1 2026-11-27) | `Session.shutdown()` (debug only, so tests can boot the real `Main` again). `Session.get_return_summary()`, a pure `ReturnSummary.build()` with keys and args, no `tr()`. `Session.last_feed_action()`. `event_raised` once per event, `event_withdrawn(uid)` when stale (the hold is T3's EventPresenter). `NightFade.factor()` and `NightFade.at_unix()`, both pure. `is_time_traveling()`: a debug time scale saves to `<save dir>_time_travel`, never the real save. `is_first_run()` means "no name yet", plus `recovered_this_launch()`. The journal is in uid order. | AC-03.10, AC-05.3, AC-09.2 to 09.4, AC-10.8, CLK-06, 07, MAN-S0 |
+| Phase 4 contracts (asked of T1 2026-11-27, names TBD-T1) | A `Milestones` id for the contracts. A stand-in `Notifier` backend that records `schedule` and `cancel`, and a pure warning-time function from the state, environment, now and offset. A haptics hook with an injectable sink that records the level and time. The B1 start state as a named preset. How the save marks the empty jar. A touch way to open the dev overlay, and a debug log line per catch-up and per forecast. | AC-13, AC-18, AC-20, AC-21, MAN-D |
 
 ---
 
@@ -1204,7 +1587,20 @@ All of these were accepted by tech-architect. The names are from `architecture.m
 | OD-19 | **A debug time scale wrote saves ahead of the real clock** (QA, from reading `debug_clock.gd` and `start()`). After 10 min at `--time-scale=60`, the save sat about 10 h in the future. The next normal launch froze the starter for up to 6 h, or re-anchored. | t1-sim-core | **Resolved in `p3_contracts`**: the real save is written once at real time, then scaled runs save to `<save dir>_time_travel`. `int/p3_contracts::time_travel_never_touches_the_real_save` proves it with a real `DebugClock`: after the switch, an 8 h `debug_advance` and a feed leave the real `save.json` byte-identical, and the next normal launch neither re-anchors nor catches up more than 5 steps. MAN-S0 checks it by hand. The sandbox folder outlives the run, so a later `--time-scale` launch starts from its future-dated save (dev only). |
 | OD-20 | Tests could boot the real `Main` only once per process (the autoload's `_booted` latches) | t1-sim-core | **Resolved in `p3_contracts`**: `Session.shutdown()`, debug only. Unblocks AC-03.2b, 03.10 and 03.11. |
 | OD-21 | After every save file is bad, the new starter had no name and `is_first_run()` was false | t1-sim-core, t3-ui | **Resolved in `p3_contracts`**: `is_first_run()` means "no name yet", so T3 runs M.'s note and naming. `recovered_this_launch()` drives the calm notice (OD-3 copy still needed). QA's AC-11 total-loss test flips its first-run assertion in the merge that brings the contracts. |
-| OD-22 | 50 place flips in a minute write 50 journal lines (measured). EC-10 says "no spam". The sim is untouched, so this is about the journal only. | game-designer | Proposal: merge moves made within a few minutes into one line, or keep each one. QA tests whichever is chosen. |
+| OD-22 | 50 place flips in a minute write 50 journal lines (measured). EC-10 says "no spam". The sim is untouched, so this is about the journal only. | game-designer, T1 | **In T1's Phase 4 contracts (D-059).** AC-25 tests the merge; the window length is still TBD-GD. |
 | OD-23 | When to freeze the first migration fixture (SAVE-11, AC-11.4) | director | Proposal: freeze `tests/fixtures/saves/v1_*.json` from the build the user plays at the Phase 3 exit. That is the first save a person keeps, and later schema changes must migrate it. |
 | OD-24 | A journal entry made while the clock is held (clock set back under 6 h) carries the wall time, which is earlier than older entries. `int/ac09::clock_back_holds_and_a_feed_applies_at_the_anchor` asserts it: an inspect at T0 + 2 h, the clock back to T0 + 1 h, then a feed stamped T0 + 1 h with the later uid. | t1-sim-core, t3-ui | **Resolved**: the journal's order is uid order, never `at_unix` (stated in T1's journal API). T3 must not sort by time. |
 | OD-18 | **A JSON save round trip is not bit-exact in 4.7.2.** The number parser isn't correctly rounded: 0.00038268223404884337 reads back as 0.00038268223404884, and 1.9469610637576158 (a `peak_rise` from T1's Session) as 1.946961063757616. QA measured 29,798 of 100,000 random doubles (1e-6 to 1e3) coming back 1 ulp off. `String.to_float()` and `var_to_str` are no better. `var_to_bytes` is exact. ADR-005's evidence (1/3) has no leading zeros, so it passed. A Session reloaded from its own save differs from the in-memory one (seen: `food` 1 ulp). That breaks SAVE-01 deep-equal, PROP-02 "byte-identical with a save and load midway" and the exactness of PROP-01. | tech-architect | **Resolved: option (a).** Every float in the payload is a 16-char hex string of its IEEE-754 bytes (`encode_double`, then `hex_encode()`, little-endian; data-models §1, §9.2, ADR-005). PROP-01, PROP-02 and SAVE-01 stay exact with no tolerance. Tests: the encoding (`test_save_engine_facts.gd`, runs now) and the real save path (`test_save_payload.gd`: a reload is bit-exact, and the stored payload has no decimal numbers; waits for m4_save and m5_catchup). |
+| OD-25 | **Hydration presets are rejected today** (AC-14.1). `FeedAction.from_ratio(f, f, flour, h)` keeps `w = f`, so 1:1:1 at 60% is 50 / 50 / 30 g (130 g) and at 125% 162.5 g, and `validate` rejects all 6 non-100% presets with `REASON_MASS`. QA ran a probe over the 9 combinations. | T1, game-designer | Sent to T1 2026-11-27. Proposal: keep derives from `1 + f + f × h / 100`, which keeps every total in 147 to 152 g and keeps V6's inoculum fraction. AC-14.1 lists the grams. |
+| OD-26 | **PERF-03 is flaky under machine load.** With about ten agents' Godot processes running, the median went to 262 ms, then 317 ms with `--verbose`, against 250 ms, with no code change (§7). T4's 8 rules will add cost too. | director | Keep the 250 ms budget, but gate on the **fastest of 7 runs** (load only ever adds time, so the minimum tracks the code), and print the median and spread. Or run `tests/perf/` as its own step only when the machine is quiet. QA changes neither without the director's OK. |
+| OD-27 | **The idle frame cap slows non-camera animations** (AC-23.2). Only `OrbitCamera` emits `interaction_started` and `interaction_ended`, and `Session.start()` arms the 3 s idle timer at boot, so sheets, the feed sequence, the smell moment, cards and the time-lapse run at 30 fps unless the camera moved in the last 3 s. Found by reading the code. | T2, tech-architect | Every tween owner (sheets, feed sequence, smell moment, time-lapse, demo) raises a "busy" count on Bus while it runs, and the cap drops only when the count is 0 and 3 s have passed. QA tests it in AC-23.2. |
+| OD-28 | A warning notification that falls in quiet hours: move it later (08:00) or earlier (before 22:00)? | game-designer | Later. Earlier would say "is showing warning signs" before it is, and warning to mold is ≥ 59 h anywhere, so 10 h later is safe (AC-20.5). |
+| OD-29 | Unlocks for a save made before Phase 4 (the user's own Phase 3 save, `v1_slice.json`) | game-designer, T1 | Derive them at load from maturity and history, so a player already past `steady` gets the `steady` unlocks at once (AC-26.2). |
+| OD-30 | `src/view/orbit_camera.gd` calls `Input.vibrate_handheld(10, 0.3)` directly for the pinch-limit tick, on Android only, ignoring the haptics setting | T2 (through T1's hook) | Route it through the hook. AC-21.1's lint fails on any direct call outside the hook. S3 today (iOS gets no tick), S2 in the Android phase. |
+| OD-31 | iOS audio session: should the silent switch mute the game, and should other apps' music keep playing? | sound-designer, T2 | The ambient category: it follows the silent switch and mixes with other audio, as a calm game should. AC-22.9 and MAN-D5. |
+| OD-32 | The "richer journal" (mvp-scope P1: rise sketches, stage snapshots, name and trait pages) is not in D-059's work list | director | Either list it for T3 in Phase 4 or move it to P2 in `mvp-scope.md`. No AC rows until then. |
+| OD-33 | The F3 dev overlay can't be opened on a phone (no F3 key), and the device has no catch-up or forecast timing in its log | T1 | Asked 2026-11-27: a touch way to open it in debug builds, plus one debug log line per catch-up and per notification forecast. MAN-D marks the F3 items. |
+| OD-34 | **"6 ObjectDB instances were leaked at exit": found.** Only `tests/unit/view/test_touch_gestures.gd` leaks (QA ran every folder, then every file, with `--verbose`). The test holds `g: TouchGestures`, and `before_each` connects g's signals to lambdas that write the test's members, so the two hold each other. | T2 | Add `func after_each() -> void: g = null`. Verified on a scratch copy: 5 passed, 0 leaked, and the 3 "resources still in use" are gone. Then QA proposes that `run.sh --strict` fails on any "leaked at exit" line, so a new leak shows up in the commit that adds it. |
+| OD-35 | `first_acetone` is "one-time per player" in events-catalog §4.1 and "One-time" in game-mechanics §7.4 | game-designer, narrative | AC-19.1 follows the catalog (per player, so it doesn't repeat for a new starter) unless told otherwise. |
+| OD-36 | Spec v1.1 (scientist, 2026-11-27): `pleasantly_tangy` peaks at acid 0.80, was 0.72. `tests/property/test_smell_rules.gd` transcribes 0.72 | QA, T1 | QA changes its copy in the merge that brings T1's `SmellModel` change, so the gate never sees one without the other. The other v1.1 changes are AC-14.4, AC-16.1 and AC-17.4. |
+| OD-37 | `mvp-scope.md` still says Godot 4.8 before any store release, and `roadmap.md` Phase 4 still lists the 4.8 upgrade and a screen-reader pass | director | Both are superseded by D-055. |
