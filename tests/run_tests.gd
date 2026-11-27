@@ -12,6 +12,9 @@ const LoggerScript := preload("res://tests/lib/error_logger.gd")
 const CaseScript := preload("res://tests/lib/case_base.gd")
 const Files := preload("res://tests/lib/qa_files.gd")
 const TEST_ROOT := "res://tests"
+## Timing tests run first, in a fresh process. Measured 2026-11-27: the 14-day catch-up took a median of
+## about 228 ms alone but 256 to 283 ms after the ~300 other tests in the same process.
+const RUN_FIRST_DIR := "res://tests/perf/"
 
 var _logger: LoggerScript
 var _passed: int = 0
@@ -34,7 +37,15 @@ func _run_all() -> void:
 		_record_fail("<runner>", "<args>", PackedStringArray([arg_error]))
 	else:
 		_logger.take()
-		for path: String in Files.find(TEST_ROOT, ".gd", "test_"):
+		var paths: PackedStringArray = Files.find(TEST_ROOT, ".gd", "test_")
+		var ordered: PackedStringArray = PackedStringArray()
+		for path: String in paths:
+			if path.begins_with(RUN_FIRST_DIR):
+				ordered.append(path)
+		for path: String in paths:
+			if not path.begins_with(RUN_FIRST_DIR):
+				ordered.append(path)
+		for path: String in ordered:
 			await _run_file(path)
 		var stray: PackedStringArray = _logger.take()
 		if not stray.is_empty():

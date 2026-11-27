@@ -71,7 +71,7 @@ Numbers taken from a draft are tagged, and they move when the owning spec moves.
 |---|---|
 | R-0 | `run.sh` first runs `godot --headless --path . --import`. If that import dies by a signal (exit 129 to 159, except 142, our own timeout, and 130 and 143, a person stopping the run), `run.sh` keeps the first log in `build/logs/import_crash_<time>.txt`, prints `WARN godot --import crashed (signal N, exit C), retrying once` with the log's tail, and imports once more. A second crash fails the run. A normal non-zero exit fails at once, never retried. After a retry the `RUN:` line ends with `import retried after signal N`, even under `--strict`, and every phase-exit report must quote that note (director, 2026-11-27). |
 | R-1 | `run_tests.gd` extends `SceneTree`, runs from `_initialize()` and holds no test logic. |
-| R-2 | Discovers `res://tests/**/test_*.gd`. A file that fails `can_instantiate()` counts as a failure. |
+| R-2 | Discovers `res://tests/**/test_*.gd`. A file that fails `can_instantiate()` counts as a failure. Files under `res://tests/perf/` run first, while the process is fresh, then the rest in path order. Measured 2026-11-27: the 14-day catch-up's median was about 228 ms alone but 256 to 283 ms after about 300 other tests in the same process, so a timing test run last would measure the suite, not the code. |
 | R-3 | A `Logger` subclass registered with `OS.add_logger()`. Any `_log_error` during a test (a null call, `push_error`, an `assert`) fails that test. |
 | R-4 | Tests extend `TestCase` (`tests/lib/case_base.gd`) and assert through its `check*` methods. A test with 0 checks fails. Tests never rely on `assert()`, which release builds strip. `skip(reason)` marks a test skipped. A failure recorded before the skip still fails it. `expect_error(fragment)` declares one logged error, which then fails the test only if it never appears. |
 | R-5 | One `PASS`, `SKIP <file>::<test> <reason>` or `FAIL <file>::<test> <message>` line per test (a FAIL may add indented detail lines). The last line is exactly `RESULT: <n> passed, <m> failed, <k> skipped`. Then `quit(1 if m > 0 else 0)`. |
@@ -466,7 +466,7 @@ Slice events (game-mechanics §7.4):
 
 | ID | Given | When | Then | Check |
 |---|---|---|---|---|
-| AC-10.1 | Each slice event | Positive and negative scenarios | It fires in the positive scenario, with the right tier and payload, and never in the negative one. The thresholds are tested at value ± ε: `first_rise` when rise crosses 1.4, `hooch_forming` when hooch crosses 0.1, `warning_signs` when `mold_risk` crosses 0.5. | auto |
+| AC-10.1 | Each slice event | Positive and negative scenarios | It fires in the positive scenario, with the right tier and payload, and never in the negative one. The thresholds are tested at the exact step they are crossed: `first_rise` when rise crosses 1.25 (spec §14.1 `RISE_NOTICEABLE`; this row said 1.4 before the spec's number was checked), `hooch_forming` when hooch crosses 0.1, `warning_signs` when `mold_risk` crosses 0.5 (the unhealthy onset). | auto |
 | AC-10.2 | 30-day random schedules, 1,000 seeds | Evaluate | Per local date: ≤ 2 nudges and ≤ 1 attention created, ≤ 4 live info toasts, all info logged. **Never more than 1 attention waiting.** | auto |
 | AC-10.3 | Same | Same | Each cooldown in §4.2 holds. | auto |
 | AC-10.4 | Quiet hours 22:00 to 08:00 local, including DST and offset-change days | Evaluate | Info is logged. A nudge is deferred to 08:00, re-checked, and dropped if stale. Attention is never deferred or dropped. | auto |
@@ -525,7 +525,7 @@ As of 2026-11-27, on top of `phase-3-slice` at `51f844b` and later merges (T1's 
 
 T1, T2 and T3 tests are mapped by name and a read of the test. Their owners confirm the mapping in review.
 
-**Summary: 107 rows. 27 covered, 69 planned, 11 manual only.**
+**Summary: 107 rows. 34 covered, 62 planned, 11 manual only.**
 
 | Group | Rows | Covered | Planned | Manual only |
 |---|---|---|---|---|
@@ -538,7 +538,7 @@ T1, T2 and T3 tests are mapped by name and a read of the test. Their owners conf
 | AC-07 Smell | 8 | 0 | 7 | 1 |
 | AC-08 Condition display | 8 | 1 | 6 | 1 |
 | AC-09 Offline | 8 | 2 | 6 | 0 |
-| AC-10 Events | 12 | 0 | 12 | 0 |
+| AC-10 Events | 12 | 7 | 5 | 0 |
 | AC-11 Save and load | 4 | 1 | 2 | 1 |
 | AC-12 Mobile UI | 15 | 4 | 10 | 1 |
 
@@ -662,27 +662,27 @@ Most planned rows wait on T1's contracts (`p3_contracts`), T4's event rules, or 
 | 09.4 | | Attention pending on return (QA int after T4, T3) | | planned |
 | 09.5 | `int/ac09::time_lapse_frames_are_bounded_and_end_on_the_jar` (1 to 30 frames, none when no time passed, the last is the jar shown), `int/p3_contracts::keyframes_keep_every_transition` (at most 30 keyframes, ordered, every state change kept, plays only with the setting on) | 3 to 6 s, tap skips, reduce-motion stills, setting off (T2, T3) | MAN-S1, MAN-S4 | planned |
 | 09.6 | `int/ac04::time_lapse_frames_pass_the_warning_stage` (warning frames before mold, mold latched, no mold before moldy) | The summary names when the warnings began, then `mold_found` (QA int after T4) | MAN-S2 | planned |
-| 09.7 | | PERF-03, a timed 14-day catch-up with T4's rules (QA, Mac estimate) | | planned |
+| 09.7 | `perf/catch_up::perf_03_fourteen_day_catch_up_with_every_rule` (the synchronous 14-day catch-up with all 8 rules, median of 5 at most 250 ms, Mac estimate; D-051) | The first jar frame within 2 s (capture, device target) | | planned |
 | 09.8 | `clock/*`, `t1/session`: CLK-01 to 05, 08, 09, 11, 12, 14, 16, 17. `int/ac05`: CLK-10 (sheet open across 8 h), CLK-18 (two feeds in a minute). | CLK-06, 07 and 15 (quiet hours, `NightFade`, after T4). CLK-13 needs a release export. | | planned |
 
 #### AC-10 At least five contextual events
 
-All rows wait for T4's rules. The engine pieces T1 already tests are listed.
+Tested through the Session with T4's rules live (`p3_rules`), in `int/ac10` (`tests/integration/test_ac10_events.gd`). The tests compare against the published numbers written out in the test (spec §14.1, game-mechanics §7.3), never against the rule code's own constants. Four planted bugs in the rule code were each caught, then reverted (2026-11-27): quiet hours starting at 23:00, the `mold_found` override removed, a 12 h hooch cooldown, and a first-rise threshold of 1.30. The engine pieces T1 tests are also listed.
 
 | Row | Automated today | To add (owner) | Manual | Status |
 |---|---|---|---|---|
-| 10.1 | | Each slice event, positive and negative, at value ± ε (QA int) | | planned |
-| 10.2 | `t1/event_engine::daily_caps_per_tier`, `::one_attention_waiting_and_the_mold_override` (engine, test rules) | 30-day schedules, 1,000 seeds, real rules (QA, `tests/property/`) | | planned |
-| 10.3 | `t1/event_engine::cooldown_and_one_time` (engine) | Each §4.2 cooldown with the real rules (QA int) | | planned |
-| 10.4 | `t1/event_engine::quiet_hours_defer_nudges_to_8am` (engine) | DST and offset-change days (QA, CLK-06 and 07) | | planned |
-| 10.5 | | A nudge dropped when the player fed first (QA int) | | planned |
-| 10.6 | `t1/event_engine::one_attention_waiting_and_the_mold_override` (engine) | With `warning_signs` and `mold_found` (QA int) | | planned |
-| 10.7 | | An event and a milestone at once (QA int) | | planned |
+| 10.1 | `int/ac10`: `first_rise_at_its_crossing_once_per_starter` (at the exact step the rise reaches 1.25; once per starter; never unfed), `hunger_and_hooch_at_their_crossings_and_cooldowns` (`hungry_again` at the hungry onset, `hooch_forming` at the 0.10 step; neither when fed first), `warning_then_mold_at_the_counter` (`warning_signs` at the unhealthy onset, `mold_found` at the moldy step), `peak_closed_versus_open`, `back_to_strength_after_the_fridge`. BT-9 is the warning's negative case. | | | covered |
+| 10.2 | `int/ac10::caps_cooldowns_and_quiet_hours_over_random_months`: random 30-day months (feeds, moves, absences from 2 h to 9 days, acks, discards, four UTC offsets). Per local date at most 4 info, 2 nudges and 1 attention; never more than one attention waiting. 5 months per commit (`--seeds=n` gives n/20). Engine: `t1/event_engine::daily_caps_per_tier`. | The 1,000-seed nightly set (QA) | | covered |
+| 10.3 | `int/ac10`: the random months (`hungry_again` 12 h, `hooch_forming` 24 h, `back_to_strength` 24 h; `first_rise` and `mold_found` once per starter), the hooch and hunger cooldowns at their edges, `peak_now` and `peaked_while_away` once per cycle, one `warning_signs` per episode. Engine: `t1/event_engine::cooldown_and_one_time`. | | | covered |
+| 10.4 | `int/ac10::quiet_hours_and_stale_nudges` (a nudge created at 22:36 waits until 08:00), and the random months (every quiet-hours nudge waits until 08:00; info and attention never wait). Engine: `t1/event_engine::quiet_hours_defer_nudges_to_8am`. | DST and offset-change days (QA, CLK-06 and 07) | | planned |
+| 10.5 | `int/ac10::quiet_hours_and_stale_nudges`: fed at 02:00, the held nudge goes stale and is never shown; a nudge already shown is withdrawn (`event_withdrawn` with its uid) when fed | | | covered |
+| 10.6 | `int/ac10::warning_then_mold_at_the_counter` (the unacknowledged warning is replaced, one attention waits, `mold_found` is the prompt), the random months (never two waiting). Engine: `t1/event_engine::one_attention_waiting_and_the_mold_override`. | A second attention held, then admitted after the ack (QA int) | | planned |
+| 10.7 | | The slice's only milestone is the Day one journal page, which is never shown as an event, so nothing can collide. The row applies when P1's displayed milestones land (QA int). | | planned |
 | 10.8 | | The hold lives in T3's EventPresenter (T1's answer). Session raises each event once and sends `event_withdrawn(uid)` when one goes stale (T3, QA int). | | planned |
-| 10.9 | | BT-1, 2, 3, 9: 0 attention events (QA, `tests/scenario/`) | | planned |
-| 10.10 | `int/ac04::neglect_states_through_catch_up` (unhealthy at least 72 h before moldy at the counter, sim side), `t1/sim_vectors::v9` | The `warning_signs` and `mold_found` events themselves, and the 4 to 40 °C sweep (QA) | | planned |
-| 10.11 | | `back_to_strength` at 85% (QA int) | | planned |
-| 10.12 | | `peaked_while_away` closed, `peak_now` open, once per cycle (QA int) | | planned |
+| 10.9 | `int/ac10`: `twice_daily_for_a_month_needs_no_attention` (BT-1 and BT-9: 1:2:2 at 08:00 and 20:00 for 30 days; no attention, at most 2 nudges a day, never unhealthy, mold under 0.3, an at_peak and at most 4 h hungry every day), `bt_2_once_daily_one_to_five` (1:5:5 at 19:00 for 14 days; at_peak 9 to 13 h after each feed), `bt_3_late_evening_feeds_create_no_night_nudges` | | | covered |
+| 10.10 | `int/ac10`: `warning_then_mold_at_the_counter` (the events at least 72 h apart), `warning_gap_at_the_warm_spot` (at least 59 h). The fridge never molds within the cap (V13). `int/ac04::neglect_states_through_catch_up`, `t1/sim_vectors::v9`. | The 4 to 40 °C sweep for P1's places (SIM-WARN-03, QA) | | planned |
+| 10.11 | `int/ac10::back_to_strength_after_the_fridge` (fires in the first strong counter cycle after 3 days in the fridge, with the peak at least 85% of the reference at that moment; never for a starter that wasn't neglected) | | | covered |
+| 10.12 | `int/ac10::peak_closed_versus_open` (closed: `peaked_while_away` once, with the peak's time; open: `peak_now` once, at the first at_peak step; never both) | | | covered |
 
 #### AC-11 Save and load
 
@@ -1026,7 +1026,7 @@ The Mac and simulators use **regression gates**: fail on a slowdown of more than
 | PERF-01 | Frame while interacting (60 s scripted orbit) | Device: 60 fps, CPU ≤ 8 ms, GPU ≤ 10 ms (2021 mid-range). Mac and simulator: regression gate. Mac GPU numbers run only with `--rendering-driver vulkan` (MoltenVK). In 4.7.2, `viewport_get_measured_render_time_gpu` returns 0 on Metal, opengl3 and ANGLE. Compatibility uses uncapped frame time as its upper bound. | capture |
 | PERF-01b | `PerfLog` on a driver that can't measure GPU time (Metal, Compatibility) | `gpu_ms` is written empty ("not measured"), never 0, and gates skip it. A logged 0 would silently pass every GPU gate. | auto |
 | PERF-02 | Idle frame cap | `Engine.max_fps` = 30 after 3 s with no touch and no tween. Back to 60 within 1 frame of `interaction_started`. | auto (scripted, windowed) |
-| PERF-03 | 14-day catch-up (20,160 steps) | ≤ 250 ms Mac estimate. Architect's toy loop: 22 ms on M4. If over, `WorkerThreadPool`. | auto (timed) |
+| PERF-03 | 14-day catch-up (20,160 steps), synchronous, the full rule registry | Median of 5 runs ≤ 250 ms, Mac estimate (D-051). `tests/perf/test_perf_catch_up.gd` prints every run. Measured 2026-11-27 (M4, other agents' Godot processes running, load average about 4): medians 227.0 to 241.5 ms over 7 gate runs, single runs 225.9 to 394.2 ms. Headroom 8.5 to 23 ms (3 to 9%). The median absorbs a single slow run; heavier load could still turn it red. Report the spread rather than raising the budget. The app runs long catch-ups on a worker thread (D-050), so this is the budget, not a frame hitch. | auto (timed) |
 | PERF-04 | Save | ≤ 128 KB, write < 10 ms (Mac estimate) | auto |
 | PERF-05 | Launch to first jar frame | Device ≤ 2 s. Mac recorded as an estimate. | capture |
 | PERF-06 | Scene | ≤ 16k triangles, < 10 jar draw surfaces, < 30 draw calls | capture |
