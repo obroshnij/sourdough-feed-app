@@ -1,15 +1,16 @@
 # Test plan
 
-Owner: `qa-engineer`. Status: Phase 1 draft (wave A). Last updated 2026-11-26.
+Owner: `qa-engineer`. Status: Phase 3 (vertical slice). Last updated 2026-11-27.
+
+**Phase 3 additions:** the AC integration harness (§2.6), the traceability table that says what proves each AC row (§3.13), and the slice play-session checklists (§6, MAN-S0 to MAN-S5).
 
 **Built on:**
 - `vision.md`, `decisions.md`
 - `architecture.md`, `data-models.md`, `technical-decisions.md`
 - `starter-simulation-spec.md` v1 (ranges §1, mold §10, derivation §12, smell §13, inspection §14, vectors V1 to V17 §18)
 - `game-mechanics.md` (BT-1 to BT-16, L-1 to L-11), `events-catalog.md`, `game-copy.md`, `ux-design.md`
-- The art-director's reference-render plan (by message)
-
-**Not landed yet:** `art-direction.md`.
+- `art-direction.md` (state tells §6, `max_delta` §8)
+- `decisions.md` D-038 to D-046
 
 Numbers taken from a draft are tagged, and they move when the owning spec moves. **QA never tunes a number. It tests the number the owner publishes.**
 
@@ -73,7 +74,7 @@ Numbers taken from a draft are tagged, and they move when the owning spec moves.
 | R-3 | A `Logger` subclass registered with `OS.add_logger()`. Any `_log_error` during a test (a null call, `push_error`, an `assert`) fails that test. |
 | R-4 | Tests extend `TestCase` (`tests/lib/case_base.gd`) and assert through its `check*` methods. A test with 0 checks fails. Tests never rely on `assert()`, which release builds strip. `skip(reason)` marks a test skipped. A failure recorded before the skip still fails it. `expect_error(fragment)` declares one logged error, which then fails the test only if it never appears. |
 | R-5 | One `PASS`, `SKIP <file>::<test> <reason>` or `FAIL <file>::<test> <message>` line per test (a FAIL may add indented detail lines). The last line is exactly `RESULT: <n> passed, <m> failed, <k> skipped`. Then `quit(1 if m > 0 else 0)`. |
-| R-6 | `run.sh` applies the outer timeout `perl -e 'alarm 300; exec @ARGV'` (`RUN_TIMEOUT_S`). It passes only if the exit code is 0, the last stdout line matches `^RESULT: [0-9]+ passed, 0 failed, [0-9]+ skipped$`, and n > 0. Skips are printed and counted, never passes. `run.sh --strict` (the phase exit gate) also fails on any skip. Before the runner it runs four Python lints: `check_copy.py`, `build_catalog.py --check`, `sim.py vectors`, and golden-fresh (the committed traces equal a fresh `sim.py trace`). |
+| R-6 | `run.sh` applies the outer timeout `perl -e 'alarm 300; exec @ARGV'` (`RUN_TIMEOUT_S`). It passes only if the exit code is 0, the last stdout line matches `^RESULT: [0-9]+ passed, 0 failed, [0-9]+ skipped$`, and n > 0. Skips are printed and counted, never passes. `run.sh --strict` (the phase exit gate) also fails on any skip. Before the runner it runs five Python lints: `check_copy.py`, `build_catalog.py --check`, `sim.py vectors`, `verify_glb.py` on `assets/3d/jar_v0.glb` (AC-01.1, D-031, added in Phase 3), and golden-fresh (the committed traces equal a fresh `sim.py trace`). |
 | R-7 | User args after `--`: `--filter=<substring of file::test>` and `--seeds=<n>` (default 100). `--update-golden` is refused when `CI=1`. Any other argument fails the run. Every test file is loaded before filtering, so a filter never hides a broken file. |
 | R-8 | Loads every `.gd` under `res://src/` and fails on any that can't instantiate (LINT-03, `tests/lint/test_lint_03_typing.gd`). |
 | R-9 | `run.sh --selftest` runs each case in `tests/runner_selftest/cases/` as a throwaway project through `run.sh`'s own judge, and checks both the outcome and the reason (`expect_output`). 33 cases: a positive control, a parse error, an untyped declaration, a non-TestCase file, an empty suite, a null call, `push_error`, a failed `assert`, an error in a test's `_init`, 0 checks, skips (counted, can't hide a failure, fail under `--strict`, milestone gate), a hang, no tests, a runner parse error, a runner exiting 0 with failures or 1 without, output after `RESULT`, the filter (and that it can't hide a parse error), `--update-golden` under `CI=1`, an unknown argument, a fresh checkout and a stale `.godot/` (each also run without `--import` to prove R-0 is what makes it come out right), and planted LINT-01 and LINT-03 violations plus a clean near-miss file. |
@@ -267,6 +268,24 @@ Rules are from architecture §5.3, with `gap = sim_time_unix − now` and `CLOCK
 ### 2.6 Integration (L7)
 
 `Session` with `FakeClock`, a temp `SaveStore`, a seeded `sim_rng` and no rendering.
+
+**The harness** (`tests/integration/slice_harness.gd`, Phase 3). One `SliceHarness` is one simulated phone: a `FakeClock`, a temp save folder with its own `settings.cfg`, and the real `GameSession` node in the scene tree. Tests extend `SliceCase` (`tests/integration/slice_case.gd`), which frees every phone after each test.
+
+| Call | What it stands for |
+|---|---|
+| `seed_save(starter, env, rng_seed)` | A complete, valid `save.json` (all 8 sections), so the normal launch path loads it. The seed fixes the one draw per feed. `first_draw(seed)` predicts it, and `seed_for_draw(0.5)` finds a seed that matches the reference model's `feed_u` 0.5. |
+| `launch()` | `Main`'s path through `Session.start()`: `setup()` with the fakes, `load_settings()`, `boot()`. The 60 s timer is replaced by `play()`. |
+| `apply(action)` | A sheet's confirm button: `Session.apply()`. |
+| `play(s)`, `play_irregular(s)`, `play_until(cond, max)` | The app open in the foreground, the grid timer ticking (irregular lengths, as a real timer drifts). |
+| `close()` | Backgrounded (`on_background()` saves), then the process is gone. |
+| `kill()` | The process dies with no warning: no background save. |
+| `reopen_at(t)`, `resume_at(t)` | Close and launch at `t`. Background and resume the same process at `t`. |
+| `store.fault_point` | Kills the next save midway (SAVE-08). |
+| `heard` | Every script signal on `Session` and on the `Bus` autoload, in order, with the fake time. New signals from T1's contracts are recorded with no harness change. |
+
+Rules: synthetic data only (the starter is "Bramble", id `0123456789abcdef`). Integration tests gate on `require()` for T1's milestones (`m2_sim`, `m4_save`, `m5_catchup`, and `p3_contracts` for the Phase 3 API). Exact state comparisons use the saved payload text (floats in hex, D-040), never a tolerance.
+
+**Proving the tests can fail.** On 2026-11-27, four mutants were planted in T1's code and run against the suite. Each was caught by the test meant to catch it: humidity taken from the caller (AC-06.1), an extra RNG draw per feed (AC-05.1), the 14-day hold not moving the clock (AC-09.1, 30 days), and state changes not journaled at launch (AC-04.2, AC-09.1). All four were reverted.
 
 | ID | Action | Expected |
 |---|---|---|
@@ -488,6 +507,211 @@ Slice events (game-mechanics §7.4):
 | AC-12.14 | Strings | LINT-04, LINT-06, LINT-08, LINT-11, LINT-12 | Pass. | auto |
 | AC-12.15 | Every phone in the §9 matrix, text at 100% and 150% | Layout under the harness's fixed-size root | The jar region is ≥ 55% of the screen height on every iPhone at every text size, and ≥ 51% on 360 × 640 at every text size (T3 measured 52% at 100%, 51% at 150%, iPhones 61 to 66%). The larger Android profiles in §9 (Medium Phone, about 411 × 914, and the Pixel Pro XL class) are ≥ 55% at every text size (ux estimate for 411 × 914: 64 to 67%, not yet measured, so T3's layout test must add that profile). The bar plate is exactly 72 on every phone (no compact-height mode). The StatusPill is ≥ 44 tall. T3's layout test is the check. Source: D-043 and ux-design §1, §2, §4, §17 (7ef8608). | auto |
 
+### 3.13 Traceability: what proves each row (Phase 3)
+
+As of 2026-11-27, on top of `phase-3-slice` at `51f844b` plus QA's `tests/integration/`. `tests/run.sh --strict`: `RESULT: 209 passed, 0 failed, 0 skipped`.
+
+**Status:**
+- **covered**: a test in `tests/run.sh --strict` asserts the whole Then today.
+- **planned**: it can be automated, and the "To add" column names the test and its owner. Partial coverage today is listed, but the row stays planned until the whole Then is asserted.
+- **manual only**: it needs eyes, hands or a device. The named checklist covers it.
+
+**Where the tests live:**
+- `int/` = `tests/integration/` (QA)
+- `save/`, `clock/`, `golden/`, `lint/` = QA's suites
+- `t1/` = `tests/unit/core` and `tests/unit/sim`, `t2/` = `tests/unit/view`, `t3/` = `tests/unit/ui`
+- `lint copy`, `lint catalog`, `lint sim-vectors` = the Python lints in `run.sh`
+
+T1, T2 and T3 tests are mapped by name and a read of the test. Their owners confirm the mapping in review.
+
+**Summary: 107 rows. 25 covered, 71 planned, 11 manual only.**
+
+| Group | Rows | Covered | Planned | Manual only |
+|---|---|---|---|---|
+| AC-01 Jar | 7 | 3 | 2 | 2 |
+| AC-02 Animated starter | 7 | 1 | 3 | 3 |
+| AC-03 Rotate and zoom | 14 | 6 | 7 | 1 |
+| AC-04 Lifecycle | 6 | 3 | 3 | 0 |
+| AC-05 Feeding | 11 | 2 | 8 | 1 |
+| AC-06 Temperature | 7 | 3 | 4 | 0 |
+| AC-07 Smell | 8 | 0 | 7 | 1 |
+| AC-08 Condition display | 8 | 1 | 6 | 1 |
+| AC-09 Offline | 8 | 1 | 7 | 0 |
+| AC-10 Events | 12 | 0 | 12 | 0 |
+| AC-11 Save and load | 4 | 1 | 2 | 1 |
+| AC-12 Mobile UI | 15 | 4 | 10 | 1 |
+
+Most planned rows wait on T1's contracts (`p3_contracts`), T4's event rules, or T3's sheets and cards. Each one turns covered in the commit that lands its test.
+
+#### AC-01 A beautiful 3D jar
+
+| Row | Automated today | To add (owner) | Manual | Status |
+|---|---|---|---|---|
+| 01.1 | `t2/starter_uniforms::glb_matches_the_mesh_contract`. The visible-set budgets live in art's `verify_glb.py` (`lint glb` in `run.sh`). | | | covered |
+| 01.2 | `t2/quality_tier::tier_a_draws_back_faces_before_front_faces`, `t2/starter_uniforms::liner_is_alpha_scissor_and_everything_inside_is_opaque` | | | covered |
+| 01.3 | | T2 capture scrubber, 36 yaw steps | MAN-01, art review | manual only |
+| 01.4 | | | MAN-01 (signed off in Phase 2, D-037). Re-run after each look change. | manual only |
+| 01.5 | Triangles: `lint glb` | Draw surfaces and calls: PERF-06 capture once `--perf-log` lands (QA) | | planned |
+| 01.6 | `t2/orbit_camera::jar_region_shifts_the_frame`, `t3/hud_layout::insets_gutters_and_jar_region` (partial) | Projected jar AABB centered within ±4% at SE and 17 Pro Max sizes (T2). Needs the TBD-UX fill share. | | planned |
+| 01.7 | `t2/quality_tier`: `tier_a_never_samples_the_screen`, `no_bool_uniform_switches_glass`, `switching_tiers_swaps_the_glass_material`, `choose_by_renderer_and_reduce_effects` | | | covered |
+
+#### AC-02 An animated starter
+
+| Row | Automated today | To add (owner) | Manual | Status |
+|---|---|---|---|---|
+| 02.1 | | Two frames 2 s apart per state (QA capture script). Needs the TBD-ART bounds. | MAN-S1 | planned |
+| 02.2 | `int/ac04::rise_cycle_with_the_app_open`: at every tick of a 14 h cycle, Session visuals equal `VisualMapper.from_state`, and no field moves more than `max_delta`. Run at 22 °C (the counter), since the slice has no 24 °C place. Also `t1/sim_units::visual_mapper_rules`. | | | covered |
+| 02.3 | `t1/sim_units::visual_mapper_rules` (partial) | Pairwise deltas once art sets the visible delta (QA) | | planned |
+| 02.4 | | | MAN-02 review | manual only |
+| 02.5 | | | MAN-02, MAN-S2 | manual only |
+| 02.6 | `t2/orbit_camera::reduce_motion_has_no_inertia` (camera only) | Decorative motion off, sim motion on, per the UX §15 list (T2) | MAN-S4 | planned |
+| 02.7 | | | MAN-02, MAN-S1 | manual only |
+
+#### AC-03 Rotate and zoom
+
+| Row | Automated today | To add (owner) | Manual | Status |
+|---|---|---|---|---|
+| 03.1 | `t2/orbit_camera::orbit_rates_per_pt` | | | covered |
+| 03.2 | `t2/orbit_camera::long_drags_stay_inside_limits_plus_band_and_settle` | | | covered |
+| 03.2b | | Drag across the action bar in the real `Main` (QA, `tests/input/`). Uses T1's `Session.shutdown()` seam. | MAN-03 | planned |
+| 03.3 | `t2/orbit_camera::pinch_zoom_range_with_band`. The haptic tick is device-only. | | MAN-05 | covered |
+| 03.4 | `t2/touch_gestures::unclaimed_finger_is_ignored` | | | covered |
+| 03.5 | `t2/orbit_camera::no_orbit_during_pinch_and_back_to_orbit_after` | | | covered |
+| 03.6 | `t2/orbit_camera::double_tap_eases_home`, `t2/touch_gestures::double_tap_window_and_distance` | "The first tap's poke still plays" (T2) | | planned |
+| 03.7 | `t2/orbit_camera::inertia_decays_with_tau_250ms`, `reduce_motion_has_no_inertia` | | | covered |
+| 03.8 | | Idle 20 s eases home over 1,500 ms, off with reduce motion (T2) | | planned |
+| 03.9 | | A press on a bar button, dragged over the jar, never orbits (T3) | MAN-03 | planned |
+| 03.10 | | Jar-to-bar drag and release in the real `Main` (QA). It must fail with the spike's `--no-own-touches` behavior. | MAN-03, MAN-S1 | planned |
+| 03.11 | `t3/sheets::scrim_tap_closes_unless_disabled` (the tap) | A scrim drag never moves the camera (QA, real `Main`) | | planned |
+| 03.12 | `t2/touch_gestures::cancel_never_taps_and_frees_every_finger` (partial) | A 10,000-event fuzz on `TouchGestures` and `OrbitCamera` (QA, `tests/input/`) | | planned |
+| 03.13 | | | MAN-03 | manual only |
+
+#### AC-04 Starter lifecycle simulation
+
+| Row | Automated today | To add (owner) | Manual | Status |
+|---|---|---|---|---|
+| 04.1 | `t1/sim_vectors`: V1 to V20, each at `feed_u` 0, 0.5 and 1 (the jitter extremes, in place of 100 random seeds). `golden/diff_01` (24 traces at 1e-9). `lint sim-vectors` (243 checks). | A 1,000-seed nightly (QA) | | covered |
+| 04.2 | `int/ac04::rise_cycle_with_the_app_open` (the 7 rise phases at their §4.3 times, no flicker back, one journal line each), `int/ac04::neglect_states_through_catch_up` (hungry, dormant, unhealthy and moldy at the V9 onsets through a launch), `int/ac05::timing_class_matches_the_state_at_mix` (recovering, V9b). All 11 states. | | | covered |
+| 04.3 | `t1/sim_units::state_precedence` | | | covered |
+| 04.4 | `t1/sim_vectors` V16, V18, V19, `t1/sim_units::forecast` (parts of BT-2, BT-11, BT-17) | BT-1 to BT-17 as schedules through the Session (QA, `tests/scenario/`). BT-1, 2, 3 and 9 count attention events, so they wait for T4. | | planned |
+| 04.5 | `int/ac04::neglect_states_through_catch_up` (L-6 at the counter), `int/ac06::fridge_sleeps_and_the_counter_wakes` (L-11, cold), V7, V9, V16 | L-10 (no single action is a loss, for every fixture), L-11 for every fixture (BT-16), the SIM-WARN-03 sweep (QA) | | planned |
+| 04.6 | `t1/catch_up::one_long_catch_up_equals_many_short_ones` (PROP-01), `::rules_never_touch_the_sim` (PROP-13), `save/payload::save_01_reload_is_bit_exact` (PROP-02 across a save), `int/ac09::any_absence_equals_the_app_left_open` (PROP-01 through Session) | PROP-03, 04, 05, 08 and 09 over random schedules (QA, `tests/property/`) | | planned |
+
+#### AC-05 Feeding interaction
+
+| Row | Automated today | To add (owner) | Manual | Status |
+|---|---|---|---|---|
+| 05.1 | `int/ac05::every_preset_and_flour` (3 presets × 2 slice flours: the §2.3 grams, whole-gram discard, mass, `freshly_fed`, one journal line, one `action_applied` and one `state_changed`, the save holds it, exactly one draw), `t1/sim_units::derived_discard_presets`, `apply_feed_draws_exactly_once` | | | covered |
+| 05.2 | | Sheet preselects last time's choices (T3). Reads `Session.last_feed_action()` (`p3_contracts`). | MAN-05 | planned |
+| 05.3 | | The stored feed equals `last_feed_action()` field by field (QA int), plus the 2-tap path (T3) | MAN-S1 | planned |
+| 05.4 | | The 3-tap path from a return (T3, QA int after the return summary) | | planned |
+| 05.4b | | The 4-tap safe route (T3 after T4's `warning_signs`) | | planned |
+| 05.5 | `int/ac05::hooch_pour_off_vs_stir_in` (V20 through Session: no hooch after, hydration gain 0.5 to 1.1 points, acid identical, peaks within 0.05 h and 0.01x, journal records the choice), `t1/sim_vectors::v20` | The hooch step comes first with "Pour off" as default, and none at 0.1 − ε (T3). `hooch_forming` (T4). | | planned |
+| 05.6 | `int/ac05::timing_class_matches_the_state_at_mix` (every state's class and journal line, plus EC-09) | The non-blocking "early" line (T3) | | planned |
+| 05.7 | | Sequence length, skip, band snap, forecast words with no digits (T3, T2) | MAN-S1, MAN-05 | planned |
+| 05.8 | `int/ac05::kill_at_mix_never_duplicates_or_half_applies` (a kill after Mix keeps it exactly once; a kill at each fault point gives once or never, state and journal agree, never a new starter), `int/ac11::killed_at_each_fault_point_mid_game` | | MAN-S5 | covered |
+| 05.9 | | The sheet must guard Mix (T3). `Session.apply()` accepts every valid feed by design, and CLK-18 allows two feeds in one minute. | | planned |
+| 05.10 | | | MAN-05 | manual only |
+
+#### AC-06 Temperature control
+
+| Row | Automated today | To add (owner) | Manual | Status |
+|---|---|---|---|---|
+| 06.1 | `int/ac06::each_place_applies_with_its_fixed_climate` (the place's temperature and humidity even when the caller sends another humidity, journal line, signal, save, gap at 1/e after 1.5 h, no overshoot), `::temperature_is_not_a_free_input`, `t1/sim_units::temperature_lag_has_no_overshoot` | No confirmation, and RH never shown (T3) | | planned |
+| 06.2 | `int/ac06::a_move_is_a_move_at_its_grid_point` (17 s late equals on the grid equals the pure sim) | | | covered |
+| 06.3 | `int/ac06::warm_spot_peaks_before_the_counter` (counter at_peak inside V2's 22 °C window), `::fridge_sleeps_and_the_counter_wakes` (dormant exactly while `ferm(temp_c)` < 0.30, within 3 h; awake within 6 h of the counter) | | | covered |
+| 06.4 | `int/ac06::fridge_sleeps_and_the_counter_wakes` (the move and the cooling never pop `VisualParams`) | Sheet content (T3), the tween and light (T2) | MAN-S1 | planned |
+| 06.5 | `int/ac06::flipping_places_is_one_segment_per_stay` (50 flips in a minute change nothing; 12 stays equal the pure sim). The `off_to_nap` and `waking_up` cooldowns are P1 events. | | | covered |
+| 06.6 | | No cover, container or P1 place offered (T3) | | planned |
+| 06.7 | | The 3-tap path (T3) | | planned |
+
+#### AC-07 Smell interaction
+
+| Row | Automated today | To add (owner) | Manual | Status |
+|---|---|---|---|---|
+| 07.1 | `t1/sim_vectors::v1` (the sets at 24 and 48 h), `t1/sim_units::smell_safety_rules` | §13 formulas at their breakpoints within 1e-9, tie order, intensity bands (QA, `tests/property/`) | | planned |
+| 07.2 | `lint copy` (variant rule) | The same variant 10 times, and every variant within 3 feeds (QA int, after T3's card) | | planned |
+| 07.3 | `t1/sim_units::smell_safety_rules` (watch stage, cold) | The 0.3 − ε / 0.3 boundary from 0 to 40 °C (QA). The meaning line always shows (T3). | | planned |
+| 07.4 | `t1/sim_vectors::v1`, `lint copy` (LINT-06 hunger set) | The meaning says normal, feed it (T3) | MAN-S3 | planned |
+| 07.5 | | Meaning on the first 3 appearances, `history.seen_counts` (T3, QA int) | | planned |
+| 07.6 | | 1 tap, a 1.2 s moment, no digits (T3, T2) | MAN-S3 | planned |
+| 07.7 | | An event waits for the moment to end (T3's EventPresenter, after T4) | | planned |
+| 07.8 | | | MAN-07, MAN-S3 | manual only |
+
+#### AC-08 Starter condition display
+
+| Row | Automated today | To add (owner) | Manual | Status |
+|---|---|---|---|---|
+| 08.1 | `t3/components::status_pill_icon_word_and_kind`, `t3/hud_layout::targets_text_and_names_for_every_status`, `t3/session_fixtures::every_fixture_drives_the_pill_and_hint` (12 fixtures, dormant cold and starved) | | | covered |
+| 08.2 | | 250 ms crossfade plus pulse, crossfade only with reduce motion (T3) | MAN-S4 | planned |
+| 08.3 | | Scan every visible Label on the main screen, toasts and cards for `[0-9]` (QA, after T3's cards) | | planned |
+| 08.4 | `t1/sim_units::inspection_keys_exist_in_catalog`, `t2/orbit_camera::focus_presets_and_release`, `int/ac04::ec_07_moldy_stays_moldy_whatever_the_player_tries` (the moldy surface reading) | The card within 3 s, 2 taps, no P1 kinds (T3) | MAN-S3 | planned |
+| 08.5 | `t3/hud_layout::feed_emphasis_and_moldy_lock` (Feed), `int/ac04::ec_07_moldy_stays_moldy_whatever_the_player_tries` (feed and move refused with their reason keys, nothing written, inspect works, the sim's smell is musty only) | Smell and Place locks with reasons, "Not yet", the fixed discard card, the 2-tap discard (T3) | MAN-S2, scientist sign-off | planned |
+| 08.6 | | | MAN-12, MAN-S4 (grayscale) | manual only |
+| 08.7 | | The "new" dot (T3) | | planned |
+| 08.8 | `lint copy` (lengths) | "Show me" moves the camera (T3) | | planned |
+
+#### AC-09 Offline progression
+
+| Row | Automated today | To add (owner) | Manual | Status |
+|---|---|---|---|---|
+| 09.1 | `int/ac09::any_absence_equals_the_app_left_open` (all 10 absences: `simulated_s`, starter, environment and state journal equal the app left open; 30 days is the 14-day state, held), `clock/clock_session` CLK-01, 02, 08 | | | covered |
+| 09.2 | | The 3,599 / 3,600 s boundary on `Session.get_return_summary().show` (QA int, `p3_contracts`) | MAN-S5 | planned |
+| 09.3 | | At most 3 lines plus 1 prompt, the drop order, dropped items in the journal (QA int, after T4) | MAN-S5 | planned |
+| 09.4 | | Attention pending on return (QA int after T4, T3) | | planned |
+| 09.5 | `int/ac09::time_lapse_frames_are_bounded_and_end_on_the_jar` (1 to 30 frames, none when no time passed, the last is the jar shown) | 3 to 6 s, tap skips, reduce-motion stills, setting off (T2, T3) | MAN-S1, MAN-S4 | planned |
+| 09.6 | `int/ac04::time_lapse_frames_pass_the_warning_stage` (warning frames before mold, mold latched, no mold before moldy) | The summary names when the warnings began, then `mold_found` (QA int after T4) | MAN-S2 | planned |
+| 09.7 | | PERF-03, a timed 14-day catch-up with T4's rules (QA, Mac estimate) | | planned |
+| 09.8 | `clock/*`, `t1/session`: CLK-01 to 05, 08, 09, 11, 12, 14, 16, 17. `int/ac05`: CLK-10 (sheet open across 8 h), CLK-18 (two feeds in a minute). | CLK-06, 07 and 15 (quiet hours, `NightFade`, after T4). CLK-13 needs a release export. | | planned |
+
+#### AC-10 At least five contextual events
+
+All rows wait for T4's rules. The engine pieces T1 already tests are listed.
+
+| Row | Automated today | To add (owner) | Manual | Status |
+|---|---|---|---|---|
+| 10.1 | | Each slice event, positive and negative, at value ± ε (QA int) | | planned |
+| 10.2 | `t1/event_engine::daily_caps_per_tier`, `::one_attention_waiting_and_the_mold_override` (engine, test rules) | 30-day schedules, 1,000 seeds, real rules (QA, `tests/property/`) | | planned |
+| 10.3 | `t1/event_engine::cooldown_and_one_time` (engine) | Each §4.2 cooldown with the real rules (QA int) | | planned |
+| 10.4 | `t1/event_engine::quiet_hours_defer_nudges_to_8am` (engine) | DST and offset-change days (QA, CLK-06 and 07) | | planned |
+| 10.5 | | A nudge dropped when the player fed first (QA int) | | planned |
+| 10.6 | `t1/event_engine::one_attention_waiting_and_the_mold_override` (engine) | With `warning_signs` and `mold_found` (QA int) | | planned |
+| 10.7 | | An event and a milestone at once (QA int) | | planned |
+| 10.8 | | The hold lives in T3's EventPresenter (T1's answer). Session raises each event once and sends `event_withdrawn(uid)` when one goes stale (T3, QA int). | | planned |
+| 10.9 | | BT-1, 2, 3, 9: 0 attention events (QA, `tests/scenario/`) | | planned |
+| 10.10 | `int/ac04::neglect_states_through_catch_up` (unhealthy at least 72 h before moldy at the counter, sim side), `t1/sim_vectors::v9` | The `warning_signs` and `mold_found` events themselves, and the 4 to 40 °C sweep (QA) | | planned |
+| 10.11 | | `back_to_strength` at 85% (QA int) | | planned |
+| 10.12 | | `peaked_while_away` closed, `peak_now` open, once per cycle (QA int) | | planned |
+
+#### AC-11 Save and load
+
+| Row | Automated today | To add (owner) | Manual | Status |
+|---|---|---|---|---|
+| 11.1 | `save/store` (SAVE-02 to 10, 15, 17), `save/payload` (SAVE-01), `t1/session::rng_survives_save_and_load` (SAVE-14), `int/ac11` (SAVE-03 and 06 through Session, SAVE-12, 16, 18). SAVE-20 holds in every corrupt case, because any logged error fails the test. | SAVE-11 (the first frozen fixture, OD-23), SAVE-13 (a synthetic year), SAVE-19 (Android, Phase 5) (QA) | | planned |
+| 11.2 | `int/ac11::killed_at_each_fault_point_mid_game`, `int/ac05::kill_at_mix_never_duplicates_or_half_applies`, `save/store::save_08_kill_at_each_fault_point` | | MAN-S5 | covered |
+| 11.3 | | | MAN-S5, on the Mac and the Android emulator (the iOS simulator can't render, D-044) | manual only |
+| 11.4 | | Needs schema v2 and a frozen v1 fixture (QA) | | planned |
+
+#### AC-12 A polished mobile UI
+
+| Row | Automated today | To add (owner) | Manual | Status |
+|---|---|---|---|---|
+| 12.1 | `t3/hud_layout::targets_text_and_names_for_every_status` (HUD and bar) | Every new sheet's controls at SE and 360 × 640 (T3) | | planned |
+| 12.2 | `t3/sheets::every_sheet_fits_at_every_size`, `t3/theme::type_scale_matches_ux_17`, `t3/font_metrics` | Every new sheet and card (T3) | MAN-S4 | planned |
+| 12.3 | `t3/theme::contrast_day_and_night` | | | covered |
+| 12.4 | `t3/theme::contrast_day_and_night` (plate alpha, pure black and white behind) | | | covered |
+| 12.5 | `t3/theme::no_control_uses_the_default_theme` | It grows with every new scene (T3) | | covered |
+| 12.6 | `t3/components::safe_inset_floors`, `t3/hud_layout::insets_gutters_and_jar_region` (fixed-size roots) | Device captures (Phase 5) | | planned |
+| 12.7 | | The 12 tap paths, scripted (T3, QA) | | planned |
+| 12.8 | `t3/sheets::sheet_motion_and_reduce_motion` (sheets) | Cards, toasts, the pill (T3) | MAN-S4 | planned |
+| 12.9 | `t3/hud_layout::feed_emphasis_and_moldy_lock` (Feed) | Smell, Place and Mix reasons (T3) | MAN-S2 | planned |
+| 12.10 | `t3/components::long_press_shows_the_large_label` (500 ms, 28 pt) | | | covered |
+| 12.11 | | Android back (T3; `Session.save_and_quit()` exists) | MAN-S5 | planned |
+| 12.12 | | PERF-07 capture (QA) | | planned |
+| 12.13 | | | MAN-12 | manual only |
+| 12.14 | `lint copy` (LINT-06, LINT-08, pending CSVs), `lint catalog`, `t3/i18n_keys` (LINT-04 for `src/ui`) | LINT-04 for every scene, LINT-12 at the Phase 3 exit (QA) | | planned |
+| 12.15 | `t3/hud_layout::insets_gutters_and_jar_region` (iPhones, 360 × 640) | The 411 × 914 profile (T3, board) | | planned |
+
 ---
 
 ## 4. Sim and time tests tied to the specs
@@ -702,6 +926,92 @@ Each check time below sits at least 0.3 h inside its window, to absorb jitter an
 - [ ] Nothing on the main screen looks like a dashboard.
 - [ ] The status is readable in a grayscale capture.
 
+### Slice play session (Phase 3 exit, D-046)
+
+These are the checklists the user follows when playing the slice build on the Mac and on the Android emulator. Tick each box per platform: **M** (Mac, Mobile renderer), **C** (Mac, Compatibility renderer), **A** (Android emulator). For any fail, write down what you saw, the platform and the time, and send it to the director. Timings and smoothness on the Mac and the emulator are estimates (D-004). The emulator draws with a software GPU, so judge looks there, not speed.
+
+Some items need T3's sheets and cards and T4's events. If one isn't in the build yet, mark it "not in build" rather than fail.
+
+#### MAN-S0 Run steps
+
+Run all commands from the repo root.
+
+**Mac:**
+1. Import once after any pull: `/Applications/Godot.app/Contents/MacOS/Godot --headless --path . --import`
+2. Play (Mobile renderer): `/Applications/Godot.app/Contents/MacOS/Godot --path . res://src/main/main.tscn`
+3. Play (Compatibility renderer): add `--rendering-method gl_compatibility` before `res://`.
+4. Start in a given state: add `-- --fixture=res://tests/unit/ui/fixtures/<state>.json` at the end. States: `freshly_fed`, `developing`, `active`, `near_peak`, `at_peak`, `collapsing`, `hungry`, `dormant_cold`, `dormant_starved`, `recovering`, `unhealthy`, `moldy`.
+5. Speed time up: add `-- --time-scale=60` at the end (1 real minute is 1 game hour). With a fixture, put both after one `--`: `-- --fixture=... --time-scale=60`.
+6. F3 toggles the dev overlay.
+7. The real save lives in `~/Library/Application Support/Godot/app_userdata/Sourdough/saves/`. To start a brand-new game, quit and move that `saves` folder to the Trash yourself.
+
+**Android emulator:**
+1. `tools/build/export_android_debug.sh --run`. It boots the `Pixel_9` emulator if needed, installs a fresh debug build (no save) and launches it.
+2. Close the app: swipe it away from the recent-apps view.
+3. Move time: in the emulator, open Settings, then System, then Date & time. Turn off "Set time automatically", then change the date or time.
+4. The emulator's back button is Android back.
+
+The iOS simulator can't draw this project (D-044), so it isn't part of this session.
+
+- [ ] M C A: The game starts with no error dialog, and the jar shows within a few seconds.
+- [ ] M: A fixture run and a `--time-scale` run leave the real save alone. Note the time on `save.json` in the real `saves` folder before the run, and check it is unchanged after.
+
+#### MAN-S1 Feel, motion and the time-lapse
+
+- [ ] M C A: Left alone, the starter looks alive but calm: slow breathing and bubbles, no flicker, no swimming texture.
+- [ ] M A: Drag to turn the jar. It stops softly near ±70°, like a rubber band, not a wall. Pinch (trackpad or two fingers) zooms smoothly with no jump when the second finger lands.
+- [ ] M A: Start a drag on the jar and slide over the action bar, then let go there. The jar keeps turning, and no button fires.
+- [ ] M A: Double-tap (double-click) resets the view smoothly.
+- [ ] M C A: Feed, then Mix (2 taps) reuses last time's choices. The feed plays (about 6 s the first time, shorter after) and can be skipped after the first feed. The rubber band snaps on at the new level.
+- [ ] M C A: After feeding, the forecast is in words ("around dinner time"), never a countdown or numbers.
+- [ ] M C A: Move it to the warm spot, then the fridge, then back. Each move happens at once, with no "are you sure". The jar moves and the light changes, with nothing popping.
+- [ ] A: Feed, close the app, move the emulator's date 1 day ahead, open the app. A short time-lapse plays (3 to 6 s), and a tap skips it. Then a "while you were away" card shows at most 3 lines and no blame.
+- [ ] M: Feed in the evening, quit, open the next morning (a real night). Same as the line above.
+- [ ] A: Close and reopen within a few minutes. No time-lapse and no "while you were away" card.
+
+#### MAN-S2 The moldy flow
+
+Start with `-- --fixture=res://tests/unit/ui/fixtures/unhealthy.json --time-scale=600` (1 real minute is 10 game hours) and leave it for up to 15 minutes, or start straight from the `moldy` fixture.
+
+- [ ] M C: While `unhealthy`, the status says warning signs (icon and word). The hint sends you to look first. Hooch and sour smells are never called dangerous.
+- [ ] M C: When mold appears, the camera moves to a close-up of the mold, and a card says what happened and to discard it. It never says "scrape", "skim" or "safe".
+- [ ] M C: The mold looks clearly like mold at phone size, but not gross. There is no pink, orange or red anywhere except on the moldy starter (D-026).
+- [ ] M C: "Not yet" closes the card. A discard card then stays above the action bar and can't be closed.
+- [ ] M C: Feed, Smell and Place each show a small lock badge, not just a gray color. Tapping each explains why: Feed and Place with a short message, Smell with a "Best not" card.
+- [ ] M C: Inspect and Journal still work. Inspect, then Surface, shows the fuzz and says to discard it.
+- [ ] M C: Quit and reopen. It is still moldy, and the same cards show.
+- [ ] M C: Discard takes 2 taps ("Discard it", then "Discard"). The journal shows a memorial page with the old name, and the old entries are still there.
+- [ ] M C: The new starter starts calmly (naming first if asked). Its status makes sense. A starter just back from the fridge says it's cold, not sick.
+- [ ] M C: Quit and reopen. There is exactly one memorial, and the new starter is there.
+
+#### MAN-S3 Smell, inspect and night mode
+
+- [ ] M C A: Smell is 1 tap. A short moment plays (camera nudge, wisps, about 1 s), then a card with a smell word and what it means. There are no numbers.
+- [ ] M C: Smell twice in a row. The same line shows both times.
+- [ ] M C: On the `hungry` fixture, the smell reads as hunger (tangy, alcohol or nail-polish) and says it's normal and to feed it. Nothing says danger.
+- [ ] M C: On the `unhealthy` fixture, "musty" is listed first and is called a warning sign.
+- [ ] M C A: Inspect Height, Bubbles and Surface. Each moves the camera in about half a second and shows a card within 3 s, 2 taps from the main screen. Surface looks down into the jar and sees the top. There is no Consistency or Development choice.
+- [ ] M C: The words on each card match what the jar shows (a dome when it says domed, a layer of liquid when it says hooch).
+- [ ] M C: With `--time-scale=60`, play through an evening (about 10 to 15 real minutes). The kitchen light and the screen colors fade to night together. Text stays easy to read, and the status still has its icon and word.
+
+#### MAN-S4 Reduce motion and the text sizes
+
+- [ ] M C A: Settings, then reduce motion on. The camera stops gliding after a drag, and sheets and cards appear without sliding. The starter itself still rises, bubbles and settles.
+- [ ] M C: With reduce motion on, a return shows a before picture and an after picture instead of the time-lapse. With the time-lapse setting off, there is neither.
+- [ ] M C A: Text size at 100%, 125% and 150%. On the main screen, every sheet and every card, no text is cut off or overlapping, and every button is still easy to hit. The jar still fills at least half the screen.
+- [ ] A: Haptics off: no vibration through a whole feed.
+- [ ] M: Turn on grayscale (System Settings, then Accessibility, then Display, then Color filters). Every status can still be told apart from its icon and word.
+
+#### MAN-S5 Quit, kill and come back
+
+- [ ] M: Feed, then quit at once (Cmd+Q). Reopen: the feed is there once, in the jar and the journal.
+- [ ] M: Feed, then force quit at once (Activity Monitor, then Force Quit). Reopen: the feed is there once.
+- [ ] A: Feed, then swipe the app away. Reopen: the feed is there once.
+- [ ] A: With a sheet open, Android back closes the sheet. With no sheet, back closes the app, and reopening shows the latest state.
+- [ ] A: Set the date 1 hour back and reopen. Nothing replays, and the starter is unchanged. Set it forward again and play on normally.
+- [ ] A: Leave it on the counter, set the date 16 days ahead and reopen. The card says it was a long time. You see the warning signs in the time-lapse, then mold and the discard path. No blame.
+- [ ] A: Do the same with the starter in the fridge. It's sleepy and fine, never moldy, and one or two feeds wake it.
+
 ---
 
 ## 7. Performance
@@ -800,7 +1110,15 @@ A feature is done when:
 - `tests/fixtures/`
 - LINT-01 to LINT-11
 
-**Phase 3 exit:** all 12 AC groups are green, or each red row has a written waiver from the director.
+**Phase 3 features** are also done only when:
+- every AC row the feature touches is **covered** or **manual only** in §3.13, and the table is updated in the same commit
+- an integration test drives the feature through `Session.apply()` or the lifecycle calls, not only through its own unit
+- its MAN-S item has been run on the Mac (Mobile and Compatibility) and, for anything touch or save related, on the Android emulator
+
+**Phase 3 exit:**
+- Every row in §3.13 is covered or manual only, or has a written waiver from the director.
+- `tests/run.sh --strict` is green on a fresh clone.
+- The user has run MAN-S0 to MAN-S5 on the Mac and the Android emulator (D-046).
 
 ---
 
@@ -838,6 +1156,8 @@ All of these were accepted by tech-architect. The names are from `architecture.m
 | Capture | `time_override` uniform, `--capture=<png>` | AC-01, AC-02, AC-08.6 |
 | Presets and demo | `StarterPresets.make`, `StarterState.rebase_to`, `Demo.run` (B6 tutorial, architecture §5.5) | BT-12, §4.3 recipes, fixtures |
 | Perf | `PerfLog`, added by Main when `--perf-log=<csv>` is passed (debug builds) | PERF-* |
+| Integration harness (Phase 3) | `SliceHarness` and `SliceCase` in `tests/integration/` (§2.6) | AC-04 to AC-11 |
+| Phase 3 contracts (`p3_contracts`, agreed with T1 2026-11-27) | `Session.shutdown()` (debug only, so tests can boot the real `Main` again). `Session.get_return_summary()`, a pure `ReturnSummary.build()` with keys and args, no `tr()`. `Session.last_feed_action()`. `event_raised` once per event, `event_withdrawn(uid)` when stale (the hold is T3's EventPresenter). `NightFade.factor()` and `NightFade.at_unix()`, both pure. `is_time_traveling()`: a debug time scale saves to `<save dir>_time_travel`, never the real save. `is_first_run()` means "no name yet", plus `recovered_this_launch()`. The journal is in uid order. | AC-03.10, AC-05.3, AC-09.2 to 09.4, AC-10.8, CLK-06, 07, MAN-S0 |
 
 ---
 
@@ -861,4 +1181,10 @@ All of these were accepted by tech-architect. The names are from `architecture.m
 | OD-14 | iPhone SE is in UX §2 but not in the role-file matrix | director | Include it: it's the smallest layout, and the simulator is installed. |
 | OD-15 | Clock set back > 6 h and later corrected credits the gap (≤ 14 d) | tech-architect | Accepted limit, documented in ADR-006. Tested by CLK-17, with the boundary in CLK-16. |
 | OD-17 | Triangle budget: the art checker and architecture disagreed | art-director | **Resolved**: the checker now asserts ≤ 16k per visible cover set. It caught the cloth set at 17,408, rebuilt to 14,552. QA re-ran it: PASS. |
+| OD-19 | **A debug time scale wrote saves ahead of the real clock** (QA, from reading `debug_clock.gd` and `start()`). After 10 min at `--time-scale=60`, the save sat about 10 h in the future. The next normal launch froze the starter for up to 6 h, or re-anchored. | t1-sim-core | **Resolved in `p3_contracts`**: the real save is written once at real time, then scaled runs save to `<save dir>_time_travel`. Test planned: the real `save.json` stays byte-identical, and the next normal launch neither holds nor re-anchors. MAN-S0 checks it by hand. |
+| OD-20 | Tests could boot the real `Main` only once per process (the autoload's `_booted` latches) | t1-sim-core | **Resolved in `p3_contracts`**: `Session.shutdown()`, debug only. Unblocks AC-03.2b, 03.10 and 03.11. |
+| OD-21 | After every save file is bad, the new starter had no name and `is_first_run()` was false | t1-sim-core, t3-ui | **Resolved in `p3_contracts`**: `is_first_run()` means "no name yet", so T3 runs M.'s note and naming. `recovered_this_launch()` drives the calm notice (OD-3 copy still needed). QA's AC-11 total-loss test flips its first-run assertion in the merge that brings the contracts. |
+| OD-22 | 50 place flips in a minute write 50 journal lines (measured). EC-10 says "no spam". The sim is untouched, so this is about the journal only. | game-designer | Proposal: merge moves made within a few minutes into one line, or keep each one. QA tests whichever is chosen. |
+| OD-23 | When to freeze the first migration fixture (SAVE-11, AC-11.4) | director | Proposal: freeze `tests/fixtures/saves/v1_*.json` from the build the user plays at the Phase 3 exit. That is the first save a person keeps, and later schema changes must migrate it. |
+| OD-24 | A journal entry made while the clock is held (clock set back under 6 h) carries the wall time, which is earlier than older entries. `int/ac09::clock_back_holds_and_a_feed_applies_at_the_anchor` asserts it: an inspect at T0 + 2 h, the clock back to T0 + 1 h, then a feed stamped T0 + 1 h with the later uid. | t1-sim-core, t3-ui | **Resolved**: the journal's order is uid order, never `at_unix` (stated in T1's journal API). T3 must not sort by time. |
 | OD-18 | **A JSON save round trip is not bit-exact in 4.7.2.** The number parser isn't correctly rounded: 0.00038268223404884337 reads back as 0.00038268223404884, and 1.9469610637576158 (a `peak_rise` from T1's Session) as 1.946961063757616. QA measured 29,798 of 100,000 random doubles (1e-6 to 1e3) coming back 1 ulp off. `String.to_float()` and `var_to_str` are no better. `var_to_bytes` is exact. ADR-005's evidence (1/3) has no leading zeros, so it passed. A Session reloaded from its own save differs from the in-memory one (seen: `food` 1 ulp). That breaks SAVE-01 deep-equal, PROP-02 "byte-identical with a save and load midway" and the exactness of PROP-01. | tech-architect | **Resolved: option (a).** Every float in the payload is a 16-char hex string of its IEEE-754 bytes (`encode_double`, then `hex_encode()`, little-endian; data-models §1, §9.2, ADR-005). PROP-01, PROP-02 and SAVE-01 stay exact with no tolerance. Tests: the encoding (`test_save_engine_facts.gd`, runs now) and the real save path (`test_save_payload.gd`: a reload is bit-exact, and the stored payload has no decimal numbers; waits for m4_save and m5_catchup). |

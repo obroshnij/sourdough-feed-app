@@ -242,6 +242,8 @@ echo "== lints"
 run_lint copy tools/i18n/check_copy.py .
 run_lint catalog tools/i18n/build_catalog.py . --check
 run_lint sim-vectors tools/sim-reference/sim.py vectors
+# AC-01.1 and D-031: the jar GLB's node contract and triangle budgets (art's checker, about 0.02 s).
+run_lint glb art/blender/scripts/verify_glb.py assets/3d/jar_v0.glb
 lint_golden_fresh
 
 echo "== godot tests"

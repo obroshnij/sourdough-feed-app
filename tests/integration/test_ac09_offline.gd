@@ -79,6 +79,7 @@ func test_ac_09_clock_back_holds_and_a_feed_applies_at_the_anchor() -> void:
 	var h: SliceHarness = mature_phone("rollback", 23)
 	h.play(2 * HOUR)
 	var anchor: int = T0 + 2 * HOUR
+	var look: ActionResult = h.apply(InspectAction.new(&"height"))
 	h.reopen_at(T0 + HOUR)
 	var r: CatchUpResult = h.session.get_last_catch_up()
 	check(r.steps == 0 and not r.reanchored, "1 h back: held, not re-anchored")
@@ -87,6 +88,12 @@ func test_ac_09_clock_back_holds_and_a_feed_applies_at_the_anchor() -> void:
 	check(fed.ok, "a feed during the hold is accepted")
 	check_eq(h.session.get_starter().sim_time_unix, anchor, "it applies at the anchor")
 	check_eq(h.session.get_starter().since_feed_s, 0.0, "since_feed_s is 0")
+	# OD-24: the entry carries the wall time, earlier than the inspect made before the rollback, so
+	# only uid order is the journal's order (T1's journal API).
+	if check(look.journal_entry != null and fed.journal_entry != null, "both actions were journaled"):
+		check_eq(fed.journal_entry.at_unix, T0 + HOUR, "the feed is stamped with the wall time")
+		check(fed.journal_entry.at_unix < look.journal_entry.at_unix, "which is earlier than the inspect before it")
+		check(fed.journal_entry.uid > look.journal_entry.uid, "but its uid is later")
 	h.play(HOUR)
 	check_eq(h.session.get_starter().sim_time_unix, anchor, "no step while the wall clock is behind the anchor")
 	h.play(HOUR)
