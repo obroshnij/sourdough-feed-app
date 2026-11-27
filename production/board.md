@@ -91,6 +91,11 @@ iOS first (D-054). No screen-reader work and no Godot 4.8 (D-055). Audio from a 
 | A flaky test seen once: `test_sheets.gd::test_every_sheet_fits_at_every_size` on 360×640 at 125% | T3, QA |
 | Performance re-measure after the shader and texture changes (Mac estimates) | T2 |
 
+## Phase 4 gate notes
+
+- 2026-11-27, gate on 07bc7f5: "import retried after signal 11". Godot's first import crashed once (SIGSEGV this time, SIGABRT in Phase 3) and the retry passed: 458 passed, 0 failed. Engine-side, not our code (test-plan §1). Quote this in the Phase 4 exit report.
+- 2026-11-27, gate on 706efeb: "import retried after signal 11" again, the second fresh clone in a row, both after T2 committed the audio and places `.import` files. No longer rare. **QA to find which asset's first import crashes** and whether import order or a setting avoids it.
+
 ## Phase 4 follow-ups raised in Phase 3
 
 | Item | Owner |
