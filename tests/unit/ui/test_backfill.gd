@@ -69,7 +69,7 @@ func test_ac03_9_bar_press_dragged_away_never_acts() -> void:
 	check_eq(b.mouse_filter, Control.MOUSE_FILTER_STOP, "and so does the button")
 	b.button_down.emit()
 	var drag := InputEventScreenDrag.new()
-	drag.position = b.get_local_mouse_position() + Vector2(0, -40)
+	drag.position = Vector2(0, -40)
 	b._gui_input(drag)
 	await wait(0.7)
 	check(not b.is_popup_visible(), "a drag past the 10 pt slop cancels the long-press")

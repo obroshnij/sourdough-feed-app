@@ -125,6 +125,14 @@ func _refresh_text() -> void:
 func _gui_input(event: InputEvent) -> void:
 	var drag: InputEventScreenDrag = event as InputEventScreenDrag
 	var motion: InputEventMouseMotion = event as InputEventMouseMotion
+	# The press position comes from the press event, never from the mouse: on iOS there is no mouse, and
+	# DisplayServer.mouse_get_position() logs an engine error there (first device run, 2026-11-27).
+	var mb: InputEventMouseButton = event as InputEventMouseButton
+	var touch: InputEventScreenTouch = event as InputEventScreenTouch
+	if mb != null and mb.pressed:
+		_press_pos = mb.position
+	elif touch != null and touch.pressed:
+		_press_pos = touch.position
 	var pos: Vector2 = Vector2.INF
 	if drag != null:
 		pos = drag.position
@@ -137,7 +145,6 @@ func _gui_input(event: InputEvent) -> void:
 
 func _on_down() -> void:
 	_long_pressed = false
-	_press_pos = get_local_mouse_position()
 	_hold_timer.start()
 	UiMotion.press(self, true)
 
