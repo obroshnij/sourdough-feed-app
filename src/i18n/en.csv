@@ -198,9 +198,11 @@ INSPECT_CONSISTENCY_ACTIVE_MEAN,Good activity. It’s on track.
 INSPECT_CONSISTENCY_ACTIVE_OBS,Softer and airier as it fills with gas.
 INSPECT_CONSISTENCY_AT_PEAK_MEAN,This texture means it’s strong and ready.
 INSPECT_CONSISTENCY_AT_PEAK_OBS,"Light, stretchy and webby, like marshmallow fluff."
+INSPECT_CONSISTENCY_AT_PEAK_RYE_OBS,"Airy, bubbly and pasty, like wet clay. No strands."
 INSPECT_CONSISTENCY_AT_PEAK_STIFF_OBS,"Puffy and spongy, like a well-risen dough."
 INSPECT_CONSISTENCY_COLLAPSING_MEAN,Acid and time soften it as the food runs out. Feed soon.
 INSPECT_CONSISTENCY_COLLAPSING_OBS,Looser now. The web is breaking down.
+INSPECT_CONSISTENCY_COLLAPSING_RYE_OBS,Looser now. The bubbly paste is settling.
 INSPECT_CONSISTENCY_DEVELOPING_MEAN,Mostly fresh food so far. Give it time.
 INSPECT_CONSISTENCY_DEVELOPING_OBS,"Still thick, with a few small air pockets."
 INSPECT_CONSISTENCY_DORMANT_MEAN_COLD,The cold keeps it firm and quiet.
@@ -216,6 +218,8 @@ INSPECT_CONSISTENCY_HUNGRY_OBS,"Thin and soupy, almost pourable."
 INSPECT_CONSISTENCY_HUNGRY_STIFF_OBS,"Softer and sticky, but it still holds its shape."
 INSPECT_CONSISTENCY_NEAR_PEAK_MEAN,Strands are forming. A sign of a strong rise.
 INSPECT_CONSISTENCY_NEAR_PEAK_OBS,Light and spongy. It stretches a little off the spoon.
+INSPECT_CONSISTENCY_NEAR_PEAK_RYE_MEAN,"Rye makes a bubbly paste, not strands. Bubbles are the sign."
+INSPECT_CONSISTENCY_NEAR_PEAK_RYE_OBS,"Airy and bubbly, a little pasty, like a thick mousse."
 INSPECT_CONSISTENCY_UNHEALTHY_MEAN,"A warning sign. Check the surface, then feed it."
 INSPECT_CONSISTENCY_UNHEALTHY_OBS,Slack and lifeless under a dry skin.
 INSPECT_DEVELOPMENT_MATURE_MEAN,"A mature starter, strong enough to raise bread."
@@ -530,6 +534,9 @@ SMELL_CHEESY_TITLE,Cheesy
 SMELL_FAINT_1,Barely anything. The cold keeps its smells to itself.
 SMELL_FAINT_2,"Faint and cool. A ghost of tang, not much more."
 SMELL_FAINT_MEANING,"It’s cold, so everything slows down, smells included."
+SMELL_FAINT_MILD_1,"Mild and mixed. Mostly flour, with a little yeast."
+SMELL_FAINT_MILD_2,Soft and quiet. Flour and a touch of yeast.
+SMELL_FAINT_MILD_MEANING,Early in a rise the smell is still mild. It builds as the starter works.
 SMELL_FAINT_TITLE,Very faint
 SMELL_FRESH_YEASTY_1,"Fresh and bready, like a bakery door opening."
 SMELL_FRESH_YEASTY_2,"Warm and yeasty, like bread dough left to rise."

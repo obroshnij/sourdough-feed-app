@@ -2,7 +2,15 @@
 
 Owner: `sourdough-scientist`. This is the authority for every starter number. Science claims behind it live in [`sourdough-science.md`](sourdough-science.md) (cited as **SCI §n**).
 
-**Status:** v1, Phase 1. Every equation below is implemented in the reference model [`tools/sim-reference/sim.py`](../tools/sim-reference/sim.py) (60 s explicit Euler, the §7 step order), and the numbers in §15 and §18 come from it. Regenerate them with `python3 -I tools/sim-reference/sim.py all`. Readout tables in §14 were derived from the same curves but the readout functions themselves were not coded yet. Each number is marked **sourced** (with an SCI reference) or **tuned** (tuned for game).
+**Status:** v1.1, Phase 4. Every equation below is implemented in the reference model [`tools/sim-reference/sim.py`](../tools/sim-reference/sim.py) (60 s explicit Euler, the §7 step order), and the numbers in §15 and §18 come from it. Regenerate them with `python3 -I tools/sim-reference/sim.py all`. Readout tables in §14 were derived from the same curves; the reference model does not code them (the game layer does). Each number is marked **sourced** (with an SCI reference) or **tuned** (tuned for game).
+
+**v1.1 changes (2026-11-27).** No change to any stored variable, rate or state rule, so the golden traces (DIFF-01) are unchanged.
+- §13: the `pleasantly_tangy` curve now falls to 0 at acid 0.80 (was 0.72).
+- §13.1 (new): the smell check, a computable rule for "Try inspecting the surface".
+- §14: the `surface` readout is a warning from the watch stage on. The old "ambiguous pairs" line is replaced by the inspect-to-smell rule.
+- §14.2 (new): trait inputs.
+- §15: rows for `window_sill` and `proofing_box`.
+- §18: vector V21.
 
 Conventions: grams, °C, seconds in data; rates below are written **per hour**, so multiply by `dt_s / 3600`. `clamp(x, a, b)` limits x to [a, b]; one-argument `clamp(x)` means [0, 1]. Rate thresholds such as `rise_rate > 0.02` are in ×/h. All functions are pure: `step(state, env, dt_s) -> state`. No engine calls, no hidden randomness.
 
@@ -58,7 +66,7 @@ No rolling windows. All history lives in the scalar accumulators above.
 | `warm_spot` | 26 | 40 | tuned |
 | `window_sill` | 18 | 55 | tuned |
 | `fridge` | 4 | 70 | tuned (typical home fridge) |
-| `proofing_box` | 26, player-set 24..30 | 60 | tuned |
+| `proofing_box` | 26, player-set 24..30 | 60 | tuned. The sim takes any value in 24..30; the dial step is a UI choice. Bakers aim for 24 to 26 °C (SCI §3). |
 
 RH is a fixed per-location property, not a player control (game-designer R6).
 
@@ -268,7 +276,7 @@ wet_flour        = clamp(1 - p/0.3)
 mildly_fruity    = 0.9 × gas_n × tri(p; 0.05, 0.3, 0.7)
 fresh_yeasty     = gas_n × clamp(yeast/0.5)
 yogurt           = tri(acid; 0.25, 0.45, 0.70) × clamp(0.3 + gas_n)
-pleasantly_tangy = tri(acid; 0.40, 0.58, 0.72)
+pleasantly_tangy = tri(acid; 0.40, 0.58, 0.80)      v1.1: was 0.72
 strongly_acidic  = clamp((acid - 0.66)/0.15)
 alcohol          = 0.8 × clamp(starved_h/10) + 0.2 × hooch
 acetone          = clamp((starved_h - 14)/24)
@@ -277,10 +285,12 @@ musty            = 0 if mold_risk < 0.3, else max(0.2, clamp((mold_risk - 0.2)/0
 cold damping: every intensity except musty × clamp(0.35 + 0.65 × ferm(temp_c))
 moldy: {musty: 1.0} only
 ```
-`musty` is exempt from cold damping on purpose. It is the warning sign, so it shows and comes first whenever `mold_risk ≥ 0.3`, at any temperature (game rule; real cold does mute smells).
+`musty` is exempt from cold damping on purpose. It is the warning sign, so it shows and comes first whenever `mold_risk ≥ 0.3`, at any temperature (game rule; real cold does mute smells, SCI §6).
 Display the top 3 with intensity ≥ 0.15. `musty`, when present, is always listed first, and no "everything is faint" rule may hide it. Ties sort by the vision.md descriptor order (`wet_flour` first, `musty` last). Words: faint 0.15 to 0.35, clear 0.35 to 0.7, strong ≥ 0.7.
 
-Primary descriptor over a 1:1:1 cycle at 22 °C (script): wet_flour 0 to 2 h, fresh_yeasty 2 to 3.5 h, yogurt 3.5 to 5.5 h, pleasantly_tangy 5.5 to 16 h (peak, collapse and the first hours of hunger), alcohol from 16 h, acetone and alcohol trade the lead from about 48 h, strongly_acidic from about 72 h, musty from the watch stage on.
+Primary descriptor over a 1:1:1 cycle at 22 °C (script): wet_flour 0 to 2 h, fresh_yeasty 2 to 3.5 h, yogurt 3.5 to 5.5 h, pleasantly_tangy 5.5 to 17 h (peak, collapse and the first hours of hunger), alcohol from about 17 h, acetone and alcohol trade the lead from about 48 h, strongly_acidic from about 72 h, musty from the watch stage on.
+
+**Why the tangy curve changed in v1.1.** With the old end at 0.72, `pleasantly_tangy` and `strongly_acidic` both sat near 0.2 at acid 0.69 to 0.71. That is where a rye or stiff starter sits at its peak, still fed, before any alcohol. So the sourest flour smelled "very faint" at its peak: rye 60% for 3.7 h, rye 100% for 1.5 h (script). Real ripe starters smell clearly sour at peak (SCI §6). With the end at 0.80, the two curves cross at 0.38 ("clear"), and those troughs are gone. V1's smell sets are unchanged. The white 1:1:1 primary hands over from tangy to alcohol at 16.8 h instead of 15.7 h.
 
 | State | Typical set from the script (22 °C) |
 |---|---|
@@ -288,13 +298,46 @@ Primary descriptor over a 1:1:1 cycle at 22 °C (script): wet_flour 0 to 2 h, fr
 | developing, active | wet_flour fading; fresh_yeasty, mildly_fruity, yogurt |
 | near_peak, at_peak | pleasantly_tangy, fresh_yeasty, yogurt |
 | collapsing | pleasantly_tangy, alcohol |
-| hungry | pleasantly_tangy and alcohol at first, alcohol leads from about 16 h, acetone after about a day, strongly_acidic after about 2 days |
+| hungry | pleasantly_tangy and alcohol at first, alcohol leads from about 17 h, acetone after about a day, strongly_acidic after about 2 days |
 | dormant (cold) | faint: alcohol, pleasantly_tangy, acetone |
 | dormant (neglect) | alcohol, acetone, strongly_acidic |
 | recovering | wet_flour longer, then yogurt and tangy (a slower version of the rise phases) |
 | unhealthy | musty first, then strongly_acidic, alcohol or acetone |
 | moldy | musty only. Copy: don't sniff closely, discard. |
 | young (maturity < 0.33) | cheesy added to any rising or hungry set |
+
+### 13.1 Smell check: when the nose can't tell
+
+This is the rule behind ux §9's "Try inspecting the surface" (`SMELL_TRY_INSPECT` and `_BTN`). `smell_check(state, env)` returns `check` and `faint_cause`. It is pure and reads only the §13 intensities and `temp_c`. First match wins:
+
+| # | `check` | Rule | What the smell card does |
+|---|---|---|---|
+| 1 | `""` | `moldy` | Nothing new. Smell is locked while moldy (D-043), and the moldy card says discard. |
+| 2 | `musty` | `musty` > 0, which is exactly `mold_risk` ≥ 0.3 (watch stage or worse) | The musty card as today. Its meaning line never fades and already says to check the surface. Add the Inspect button. **Never** add the "Hard to say" line here, because it would soften a warning. |
+| 3 | `faint` | every descriptor except `musty` is below `SMELL_FAINT_MAX` = 0.30, after cold damping | Add "Hard to say. Try inspecting the surface." and the Inspect button. |
+| 4 | `""` | otherwise | Nothing. |
+
+- The Inspect button always opens `surface`. That is the one view that shows what a nose can't settle: fuzz or color (mold, so discard), hooch and how dark it is (hunger, and for how long), skin or crust (neglect), and a dome or a sunken top (where it is in the cycle).
+- `faint_cause`, only when `check` is `faint`: `cold` when ferm(temp_c) < 0.30 (the §12.2 cold test, below about 11 °C), otherwise `mild`.
+- The `SMELL_FAINT_*` lines talk about the cold, so they are true only for `cold`. A `mild` result is a cool or early rise at room temperature. It needs words that don't mention cold (narrative-designer's call: new lines, or the strongest descriptor's own lines). game-copy §5.1's faint rule uses the same 0.30 cut but shows the cold lines at any temperature. At 18 °C that happens for about 1.5 h in every 1:1:1 cycle.
+
+**Why this rule (science).**
+- A musty smell can come from mold, but a nose can neither confirm nor rule out mold. Fuzz or color, seen by looking, decides (SCI §1, §9.1). Musty, then look, is the real habit. It matches the `warning_signs` "Look first" route (D-027).
+- Cold starters give off less smell, because fewer volatile compounds reach the air at lower temperatures (SCI §6, medium). The §13 cold damping is the game's version, and its size is **tuned**. In the fridge, the surface (hooch, skin) carries the information.
+- Early in a rise the smell is mild and mixed: flour, a little yeast, fruit, yogurt (SCI §6). Then the dome and bubbles say more than the nose. The 0.30 cut is **tuned**.
+
+**Safety.** Rule 2 comes before rule 3, and `musty` is never cold-damped. So any starter at the watch stage or worse gets `musty`, never `faint`, at any temperature, and no warning ever reads "hard to say". From the watch stage on, the `surface` readout is a warning that states the check rule (§14).
+
+**Where it fires** (script, v1.1, `feed_u` 0 to 1):
+
+| Scenario | `check` |
+|---|---|
+| 1:1:1 at 22 to 30 °C, 48 h | none |
+| `window_sill`, 1:1:1 | `faint` (`mild`) from 2.3 to 4.0 h after the feed, while `active` |
+| Larger ratios, 18 to 30 °C | `faint` (`mild`) for 0.2 to 5 h early in the rise, for example 1:5:5 at 22 °C from 5.2 to 5.7 h |
+| Fed, then straight into the fridge | `faint` (`cold`) from 2.3 h. After about 3 days, alcohol and tang reach 0.30 and it stops. |
+| Unfed at the counter | `musty` from the watch stage (75.7 h) until `moldy`. Never `faint`. |
+| `moldy` | none |
 
 ## 14. Inspection readouts
 
@@ -303,16 +346,18 @@ Readout keys are proposals; narrative-designer may key copy by state instead, as
 | Kind | Reveals | Keys in first-match order |
 |---|---|---|
 | `bubbles` | gas, rise_phase | 1 `none`: gas_n < 0.05 and state is hungry, dormant or unhealthy. 2 `popped_craters`: rise_phase is collapsing or hungry. 3 `large_at_top`: rise_phase is near_peak or at_peak. 4 `few_tiny`: rise < 1.15. 5 `many_small`: otherwise. |
-| `consistency` | h_eff, acid, phase | 1 `stiff_dough`: h_eff < 75. 2 `slack_soupy`: rise_phase is collapsing or hungry, or state is dormant (starved) or unhealthy, with acid ≥ 0.66. 3 `airy_webby`: rise_phase is active, near_peak or at_peak. 4 `loose_batter`: h_eff ≥ 110. 5 `thick_batter`: otherwise. Cold dormant: `firm_cold` replaces 3 to 5. |
+| `consistency` | h_eff, acid, phase | 1 `stiff_dough`: h_eff < 75. 2 `slack_soupy`: rise_phase is collapsing or hungry, or state is dormant (starved) or unhealthy, with acid ≥ 0.66. 3 `airy_webby`: rise_phase is active, near_peak or at_peak. 4 `loose_batter`: h_eff ≥ 110. 5 `thick_batter`: otherwise. Cold dormant: `firm_cold` replaces 3 to 5. **Rye (v1.1):** when the rye share is ≥ 0.5 (the `surface` `cracked` test), `airy_pasty` replaces `airy_webby`, and copy for near_peak, at_peak and collapsing must not mention strands, stretch or a web. Rye has little functional gluten, so a rye starter rises as a bubbly paste, not a stretchy web (SCI §5). |
 | `height` | rise, rise_rate, peak_rise | level: `at_mark` < 1.1, `a_little` < 1.5, `nearly_doubled` < 1.85, `doubled` < 2.4, `more_than_doubled` ≥ 2.4. trend: `rising`, `falling`, else `steady`. `streak_line` when peak_rise - rise ≥ 0.2. |
 | `surface` | rise_phase, hooch, dryness, mold_risk, flour_mix | shape: 1 `fuzzy_spots` if moldy. 2 `sunken`: rise_phase collapsing. 3 `cracked`: rye share ≥ 0.5 and rise ≥ 1.3. 4 `flat_bubbly`: at_peak. 5 `domed`: rising and rise ≥ 1.3. 6 `smooth_flat`. hooch (separate line): `hooch_dark` if hooch ≥ 0.8, or hooch ≥ 0.1 with mold_risk ≥ 0.3; `hooch_layer` ≥ 0.4; `hooch_thin` ≥ 0.1. skin (separate line): `crust` ≥ 0.7, `skin` ≥ 0.3. |
 | `development` | maturity, vigor, vigor_at_feed | stage: young, steady, mature, seasoned (§9). strength: `strong` vigor ≥ 0.85, `steady` ≥ 0.6, `weakened` below. **Only these.** The sim keeps no record of past rises, so development can't report "how reliable recent rises were". |
+
+**`surface` from the watch stage on (v1.1).** When `mold_risk` ≥ 0.3 and the starter is not moldy, the `surface` readout is a warning (`is_warning` true), whatever the state. Its meaning line states the check rule: fuzz, or pink or orange color, means discard, and none means feed (`INSPECT_SURFACE_UNHEALTHY_MEAN` already says this). The observation lines stay as they are. Before v1.1, `surface` was a warning only at `unhealthy` or with `hooch_dark`. A stiff (60%) whole wheat or rye starter makes almost no hooch, so at the watch stage it read "Flat and still. Run down after a long wait." right after a musty smell (script: 75.5 h unfed, surface `smooth_flat` and `skin`, not a warning).
 
 `recovering` overlaps every rise phase (§12.2). Recovering readouts must follow `rise_phase` (flat when freshly fed, domed when rising), with a "weaker than usual" note. A fixed "modest rise" line would be wrong right after a feed.
 
 What young vs mature looks like in the sim: a young starter (maturity 0.2) peaks a little later and lower (6.7 h at 1.95x vs 6.2 h at 2.18x, 1:1:1 at 22 °C) and smells cheesy. Its rises are **not** more variable: tested jitter of ±15% moved its peak only 6.3 to 7.0 h. Copy must not claim young rises "vary".
 
-Ambiguous pairs, where the readout should suggest smelling: freshly_fed vs dormant, near_peak vs at_peak, collapsing vs hungry, dormant vs unhealthy, young vs weakened.
+**Inspect to smell (ux §10's "Smell it" button).** This is the reverse of §13.1: states that look alike but smell different. `freshly_fed` and `dormant` are both flat, but one smells of wet flour and the other of alcohol or acetone. `dormant` and `unhealthy` differ by `musty`. A `young` starter smells `cheesy`, a `weakened` one doesn't. If the button is built, show it on a `height`, `bubbles` or `surface` result when rise < 1.1 and |rise_rate| ≤ 0.02 and the starter is not moldy, and on `development` when the stage is `young` or the strength is `weakened`. Smell does not settle `near_peak` vs `at_peak` or `collapsing` vs `hungry`: `height` does (the trend and the streak line). The button has no copy key and is not on the Phase 4 board. I recommend leaving it out, because the status pill already names the state.
 
 ### 14.1 Event and copy thresholds
 
@@ -330,6 +375,21 @@ For game-designer's triggers and narrative-designer's words. All are **tuned**.
 | `back_to_strength` | rise reaches 0.85 × a reference peak in a cycle with vigor_at_feed ≥ 0.75 | The reference (the last peak_rise from a cycle with vigor_at_feed ≥ 0.75) is a game-layer field; the sim doesn't store it. Without the vigor gate, it fires on the first recovering feed (72 h away gives 88% of normal while the pill still says Recovering). |
 | `warm_and_quick` | peak time ≤ 0.85 × the forecast for the same feed at 22 °C | The sim's peak-time ratio at 26 / 28 / 30 °C is 0.80 / 0.76 / 0.73, nearly the same for 1:1:1 and 1:5:5. The proposed 0.75 never fires at warm_spot, and comparing with the last counter peak mixes in ratio changes. |
 | Memorial `{days}` | days since the last feed with temp_c ≥ 11 °C (not cold dormant) | Fridge days are not mold days. Minimum in-game value: 6 days (proofing box at 30 °C). |
+
+### 14.2 Trait inputs (P1)
+
+Traits change wording only (D-022). Their rules belong to progression §5. What the sim side guarantees:
+- **No randomness and no sim rates.** Every trait input comes from the player's actions and the environment, so the same history gives the same trait.
+- **Count warm and cool hours from the place's set temperature** (`EnvironmentState.temperature_c`), not from the starter's `temp_c`. In IEEE doubles (GDScript `float` too), `temp_c` approaches a place's temperature but stops a few units in the last place short of it (script):
+
+  | Move | `temp_c` after 200 h | Test |
+  |---|---|---|
+  | counter to `window_sill` (18 °C) | 18.00000000000016 | `≤ 18` is never true |
+  | fridge to `window_sill` | 17.99999999999984 | `≤ 18` is true at once |
+  | counter to `proofing_box` at 24 °C | 23.99999999999984 | `≥ 24` is never true |
+
+  With `temp_c`, the same place would count or not depending on where the jar came from. If `temp_c` must be used, test ≥ 23.5 and ≤ 18.5 instead.
+- **Science check on the attitudes.** Warm starters do run faster and cool ones slower (SCI §3), neglected mature starters do recover (SCI §8), and a new flour or place does change how a starter behaves (SCI §5). Copy may describe what the starter does under those conditions. It must never say the trait causes it.
 
 ## 15. Calibration table
 
@@ -352,7 +412,13 @@ Script run, jitter 1.0, mature (maturity 0.6), `white_bread` 100%, `loose_lid`, 
 | Neglect, counter cloth / tight lid | unhealthy 4.15 / 4.8 d, mold 8.2 / 10.0 d | as above | tuned |
 | Neglect, warm_spot loose / cloth | 3.5 / 3.3 d, mold 7.1 / 6.6 d (gap 85 / 80 h) | gap ≥ 48 h in the worst combination | tuned |
 | Neglect, 35 °C cloth, 30% RH | unhealthy 2.3 d, mold 4.8 d (gap 60 h) | gap ≥ 48 h | tuned |
-| Neglect, window_sill | unhealthy 5.8 d, mold 11.4 d | | tuned |
+| Neglect, window_sill | unhealthy 5.8 d, mold 11.4 d (gap 135 h) | | tuned |
+| `window_sill` (18 °C), 1:1:1 / 1:2:2 / 1:5:5 / 1:10:10 | peaks 8.6 to 8.8 / 11.5 to 12.1 / 15.7 to 16.6 / 18.9 to 20.1 h at 2.04 to 2.06 / 2.17 to 2.20 / 2.25 to 2.29 / 2.28 to 2.32x. Hungry from 15.2 / 18.2 / 22.3 / 25.5 h | "Cooler means slower. Fits a once-a-day schedule" (mechanics §3.1) | direction sourced (SCI §3), times tuned |
+| `window_sill`, once a day, 14 d | 1:5:5: min vigor 1.00, mold 0, never recovering. 1:1:1: min vigor 0.98 | thrives | tuned |
+| `proofing_box` at 24 / 26 / 28 / 30 °C, 1:1:1 | peaks 5.4 to 5.6 / 4.9 to 5.1 / 4.6 to 4.8 / 4.5 to 4.6 h at 2.20 to 2.24x | faster when warmer, flattening near 30 | direction sourced (SCI §2, §3), times tuned |
+| `proofing_box` at 24 / 26 / 28 / 30 °C, 1:5:5 | peaks 9.6 to 10.1 / 8.7 to 9.2 / 8.2 to 8.7 / 8.1 to 8.5 h | | tuned |
+| `proofing_box` at 30 °C, 14 d | once a day 1:1:1: min vigor 0.67, shows `recovering`, peaks fall to 1.83x. Once a day 1:5:5: min vigor 0.82, never recovering. Twice a day 1:1:1: 0.93 | too warm for the ratio: rises and falls fast, weakens. A bigger ratio or a cooler spot fixes it | direction sourced (SCI §8, medium), tuned |
+| Neglect, `proofing_box` at 24 / 26 / 28 / 30 °C, loose lid, 60% RH | unhealthy 4.05 / 3.64 / 3.29 / 3.01 d. Mold 8.1 / 7.35 / 6.7 / 6.2 d. Warning to mold 98 / 89 / 82 / 76 h. Watch to mold 127 / 116 / 106 / 99 h | gap ≥ 72 h, watch to mold ≥ 96 h. The L-4 and L-5 floors (4 d, 7 d) are for the counter. 28 and 30 °C go under both (`warm_spot` already goes under the 4 d one) | tuned |
 | Away 24 h, then feeds every 12 h | first peak 2.12x (98% of normal) | ≥ 85% on feed 1 | tuned (R3) |
 | Away 72 h | recovering on feed 1 (1.91x, 9.4 h), normal by feed 2 to 3 | ≤ 2 feeds | tuned (vision) |
 | Unhealthy (5 d), then fed | out of unhealthy at once; feed 1 at 1.71x, 12 h; normal by feed 3 | ≤ 3 feeds | tuned (R3) |
@@ -371,7 +437,7 @@ Script run, jitter 1.0, mature (maturity 0.6), `white_bread` 100%, `loose_lid`, 
 
 ## 17. Randomness
 
-One draw per feed: `feed_u = rng.randf()` in [0, 1) from the passed-in seeded `RandomNumberGenerator` (never `randfn`), stored. `feed_jitter = 0.95 + 0.10 × feed_u` scales growth and shifts peak times by up to ±0.5 h. `big_bubble` reuses `feed_u` (§14.1), so it needs no RNG of its own. Nothing else is random: mold onset, smells and readouts are deterministic. Every test vector below holds for every seed.
+One draw per feed: `feed_u = rng.randf()` in [0, 1) from the passed-in seeded `RandomNumberGenerator` (never `randfn`), stored. `feed_jitter = 0.95 + 0.10 × feed_u` scales growth and shifts peak times by up to ±0.5 h. `big_bubble` reuses `feed_u` (§14.1), so it needs no RNG of its own. Nothing else is random: mold onset, smells, the smell check (§13.1), readouts and trait inputs (§14.2) are deterministic. Every test vector below holds for every seed.
 
 ## 18. Test vectors (golden tests)
 
@@ -407,6 +473,7 @@ Fixture `MATURE`: start from the stored defaults (food 0.05, yeast 0.9, lab 0.95
 | V16 | once a day, 1:1:1, 14 d, 22 and 24 °C | vigor ≥ 0.8 always. mold_risk 0. Never recovering, dormant or unhealthy. |
 | V17 | catch-up split | any split of a 5-day run equals the unsplit run exactly (same build). |
 | V20 | 1:1:1 at 22 °C, 36 h unfed (hooch about 0.46), then 1:1:1 with `pour_off` vs `stir_in` | both: hooch 0 after the feed. Hydration 100.0% vs 100.8%. Peaks within 0.05 h and 0.01x of each other (about 7.4 h, 2.06x). Acid identical. |
+| V21 | Smell check (§13.1), sampled every minute unless noted | 1:1:1 at 22 °C: no check in 48 h. `window_sill` 1:1:1: `faint` (`mild`) at 3.0 h, the span starting at 2.2 to 2.8 h and ending at 3.6 to 4.1 h, none after 6 h. Fed straight into the fridge (hourly): none at 1 h, `faint` (`cold`) at 24 h and 47 h. Unfed at the counter, 14 d (every 10 min): `musty` starts on the same sample as mold_risk ≥ 0.3 (72 to 80 h) and holds until moldy, never `faint`; moldy gives none. `MATURE` at 4 °C with mold_risk 0.3: `musty`, not `faint`. Rye 60% after 3 conversion feeds, 1:1:1 at 22 °C: no check in 24 h. |
 
 ## 19. Tuning knobs (for game-designer)
 
@@ -426,6 +493,7 @@ Fixture `MATURE`: start from the stored defaults (food 0.05, yeast 0.9, lab 0.95
 | `mold_feed_keep` | 0.3 | Risk left after a feed |
 | `mat_step`, `mat_w_cap` | 0.01024, 2.5 | Maturity pacing, generation weight cap |
 | `feed_jitter` range | ±5% | Run-to-run variety |
+| `SMELL_FAINT_MAX` | 0.30 | When the smell card says "hard to say" (§13.1) |
 
 Changing a knob means rerunning the §18 vectors.
 

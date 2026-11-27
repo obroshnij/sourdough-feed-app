@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Sourdough starter reference model. Implements docs/starter-simulation-spec.md v1.
+"""Sourdough starter reference model. Implements docs/starter-simulation-spec.md v1.1.
 
 Owner: sourdough-scientist. Pure Python 3, standard library only, one file.
 This is the oracle the GDScript sim is tested against. It is not game code.
 
-    python3 -I sim.py vectors       # test vectors V1 to V20 (spec §18)
+    python3 -I sim.py vectors       # test vectors V1 to V21 (spec §18)
     python3 -I sim.py calibration   # calibration rows (spec §15)
     python3 -I sim.py all           # both
     python3 -I sim.py trace OUTDIR  # golden JSON traces for the GDScript port
@@ -317,7 +317,7 @@ def smell_intensities(s, env):
         'mildly_fruity': 0.9 * gas_n * tri(p, 0.05, 0.3, 0.7),
         'fresh_yeasty': gas_n * clamp(s.yeast / 0.5),
         'yogurt': tri(s.acid, 0.25, 0.45, 0.70) * clamp(0.3 + gas_n),
-        'pleasantly_tangy': tri(s.acid, 0.40, 0.58, 0.72),
+        'pleasantly_tangy': tri(s.acid, 0.40, 0.58, 0.80),   # v1.1: was 0.72, which left a faint trough at peak
         'strongly_acidic': clamp((s.acid - 0.66) / 0.15),
         'alcohol': 0.8 * clamp(s.starved_h / 10.0) + 0.2 * s.hooch,
         'acetone': clamp((s.starved_h - 14.0) / 24.0),
@@ -334,6 +334,23 @@ def smells(s, env):
     d = {k: v for k, v in smell_intensities(s, env).items() if v >= 0.15}
     order = sorted(d, key=lambda k: (k != 'musty', -d[k], DESCRIPTORS.index(k)))
     return [(k, round(d[k], 2)) for k in order[:3]]
+
+
+SMELL_FAINT_MAX = 0.30   # spec §13.1: below this for every non-musty descriptor, the nose can't tell
+
+
+def smell_check(s, env):
+    """Spec §13.1. Returns (check, faint_cause). check: 'musty', 'faint' or ''. When check is not '',
+    the smell card offers the `surface` inspection. faint_cause: 'cold' or 'mild' when check is 'faint', else ''.
+    musty wins over faint, so a starter at the watch stage or worse never gets the "hard to say" line."""
+    if s.moldy:
+        return '', ''
+    v = smell_intensities(s, env)
+    if v['musty'] > 0.0:
+        return 'musty', ''
+    if max(x for k, x in v.items() if k != 'musty') < SMELL_FAINT_MAX:
+        return 'faint', ('cold' if ferm(s.temp_c) < P['dormant_cold_ferm'] else 'mild')
+    return '', ''
 
 
 # ------------------------------------------------------------------ fixtures and scenario helpers (spec §18)
@@ -668,10 +685,63 @@ def vectors():
     c.within('V20 stir-in hydration gain', sa.culture_hydration - pa.culture_hydration, 0.5, 1.1)
     c.true('V20 peaks close', abs(ra['peak'][0] - rb['peak'][0]) <= 0.05 and abs(ra['peak'][1] - rb['peak'][1]) <= 0.01)
     c.true('V20 acid identical', pa.acid == sa.acid)
+    _v21(c, base)
     print(f"== Checks: {c.n} run, {len(c.fails)} failed")
     for msg in c.fails:
         print("FAIL " + msg)
     return len(c.fails)
+
+
+def _checks_over(s, hours, env, every_min=1):
+    """[(h, check, faint_cause, moldy)] sampled every `every_min` minutes, then the end state."""
+    out = []
+    for i in range(int(round(hours * 60))):
+        if i % every_min == 0:
+            ch, cause = smell_check(s, env)
+            out.append((i / 60.0, ch, cause, s.moldy, s.mold_risk))
+        s = step(s, env)
+    return out, s
+
+
+def _v21(c, base):
+    """Spec §13.1, the smell check ("try inspecting the surface")."""
+    for u in U3:
+        rows, _ = _checks_over(feed_ratio(at_temp(base, 22.0), feed_u=u), 48.0, COUNTER)
+        c.true(f'V21a 1:1:1 22 C u={u} no check in 48 h', all(r[1] == '' for r in rows),
+               str([r[:3] for r in rows if r[1]][:3]))
+    sill = location('window_sill')
+    for u in U3:
+        rows, _ = _checks_over(feed_ratio(at_temp(base, 18.0), feed_u=u), 12.0, sill)
+        fa = [r[0] for r in rows if r[1] == 'faint']
+        c.true(f'V21b window_sill 1:1:1 u={u} faint (mild) at 3.0 h',
+               any(abs(r[0] - 3.0) < 1e-9 and r[1] == 'faint' and r[2] == 'mild' for r in rows))
+        c.within(f'V21b window_sill u={u} faint span start', fa[0] if fa else None, 2.2, 2.8, TOL_T)
+        c.within(f'V21b window_sill u={u} faint span end', fa[-1] if fa else None, 3.6, 4.1, TOL_T)
+        c.true(f'V21b window_sill u={u} no check after 6 h', all(r[1] == '' for r in rows if r[0] >= 6.0))
+    fr = location('fridge')
+    rows, _ = _checks_over(feed_ratio(base), 48.0, fr, every_min=60)
+    by_h = {round(r[0]): r for r in rows}
+    c.true('V21c fed into the fridge: none at 1 h', by_h[1][1] == '', str(by_h[1]))
+    c.true('V21c fed into the fridge: faint (cold) at 24 h and 47 h',
+           by_h[24][1:3] == ('faint', 'cold') and by_h[47][1:3] == ('faint', 'cold'), f"{by_h[24]} {by_h[47]}")
+    rows, end = _checks_over(feed_ratio(base), 14 * 24.0, COUNTER, every_min=10)
+    first_musty = next((r[0] for r in rows if r[1] == 'musty'), None)
+    watch = next((r[0] for r in rows if r[4] >= P['mold_watch']), None)
+    c.true('V21d neglect: musty check starts exactly at the watch stage', first_musty == watch, f"{first_musty} vs {watch}")
+    c.within('V21d neglect: musty check onset', first_musty, 72, 80, TOL_T)
+    c.true('V21d neglect: never faint from feed to mold', all(r[1] != 'faint' for r in rows))
+    c.true('V21d neglect: musty on every sample from watch until moldy',
+           all(r[1] == 'musty' for r in rows if r[4] >= P['mold_watch'] and not r[3]))
+    c.true('V21d moldy: no check (smell is locked, the card says discard)', end.moldy and smell_check(end, COUNTER) == ('', ''))
+    cold_watch = copy_state(base, temp_c=4.0, mold_risk=0.3)
+    c.true('V21e watch stage in the cold: musty beats faint', smell_check(cold_watch, fr) == ('musty', ''))
+    rye = converted(base, 'rye', 60.0)
+    for u in U3:
+        rows, _ = _checks_over(feed_ratio(at_temp(rye, 22.0), (1, 1, 1), 'rye', 60.0, feed_u=u), 24.0, COUNTER)
+        c.true(f'V21f rye 60% 1:1:1 22 C u={u}: never faint in 24 h (no trough at peak)',
+               all(r[1] == '' for r in rows), str([r[:3] for r in rows if r[1]][:3]))
+    print("V21 smell check: 1:1:1 at 22 C none; window_sill mid-rise faint (mild); fridge faint (cold); "
+          f"neglect musty from {first_musty:.1f} h; rye 60% at peak not faint")
 
 
 def calibration():

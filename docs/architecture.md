@@ -287,6 +287,14 @@ Tests never call `start()`. They use `GameSession.new()`, `setup(FakeClock.new()
 - **The starter is one `ShaderMaterial`.** Every `VisualParams` field maps 1:1 to a uniform with the same name (`data-models.md` §7). `custom_aabb` covers the maximum rise (3.0x) and dome.
 - Mesh contract with `art-director` (`jar_v0.glb`, enforced by `art/blender/scripts/verify_glb.py`): mesh nodes `Jar_Glass`, `Starter_Body`, `Starter_Liner`, `Jar_Lid_Loose`, `Jar_Lid_Tight`, `Cloth_Cover`, `Rubber_Band`, `Counter`, and empties `StarterFloor` and `StarterRim`. Shape data lives in UV2 (x radial, y height fraction). glTF node extras arrive as `get_meta("extras")` **[ran]**. `jar_geometry.gd` mirrors them as constants and asserts a match at load.
 - The set (D-049): `Kitchen_Wall` in `kitchen_wall.glb` (one draw call, `art-direction.md` §18.2) and the 2.20 m `Counter`. The Phase 2 card `Backdrop_placeholder` is removed from `jar_v0.glb` and `verify_glb.py` (art-director's change, landing with the next merge). `jar_view.gd` still looks the node up and hides it; that lookup finds nothing afterwards and can go (T2).
+- **Places (Phase 4, `art-direction.md` §19, agreed with `art-director`).**
+  - Each place is a light preset plus a set swap around the jar. `assets/3d/places.glb` holds `Place_Proofing_Box` and the Empties `Spot_Window_Sill` and `Spot_Proofing_Box`. `window_sill` reuses `Kitchen_Wall` with a second atlas.
+  - The view reads `StarterSnapshot.location` from `state_changed`. No new Bus signal or `VisualParams` field. `&""` or an unknown id shows the counter.
+  - **The jar root stays at the origin.** The view offsets the place set by minus the spot's translation, because the camera aims at world-space targets (`HOME_TARGET`, `JarGeometry.FLOOR_Y_M`).
+  - Acceptance:
+    - a ray check per place with 0 misses, and no set mesh between the camera and the jar over the whole orbit and every focus preset
+    - the visible set within D-031's 16k triangles, with under 30 draw calls
+    - `places.glb` checked by `verify_glb.py`
 
 ### 8.2 Day and night: one curve (D-043, D-049)
 - **`NightFade`** (`src/core/night_fade.gd`, T1) is the one shared night curve, a pure function of local seconds of day: 0 by day, 1 at night. Night eases in from 17:00 to 17:20 and out from 06:00 to 06:20 (smoothstep), per `art-direction.md` §3.

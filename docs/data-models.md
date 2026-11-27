@@ -259,9 +259,10 @@ Cap: **400 entries or 100 KB of saved bytes** (`JournalEntry.CAP`, `BYTE_CAP`), 
 | `dullness` | float | 0..1 | `unhealthy` look, before any mold (art and scientist decide) |
 | `mold` | float | 0..1 | Nonzero **only** when the state is `moldy` (hard rule 2) |
 | `big_bubble` | float | 0..1 | Nonzero for the cycle's big bubble: from the step `rise_phase` enters `near_peak` while `feed_u >= 0.85` (spec §14.1). The look and the decay are art's |
+| `crack` | float | 0..1 | **Phase 4, agreed with `art-director`, lands with T1's Phase 4 contracts.** Rye's fissured top. Invariant: `crack > 0` only when `Inspection.read(state, env, &"surface")` lists `cracked` (rye share >= 0.5 and rise >= 1.3, not moldy, `rise_phase` not `collapsing`). The curve inside that region is art's, and a property test pins the invariant. Showing cracks while collapsing would need the inspection to list them too (`sourdough-scientist`) |
 | `time_override` | float | -1 or >= 0 | -1 = use shader `TIME`. Tests and captures set a fixed value |
 
-Non-uniform fields: `cover: StringName` (which lid node is visible).
+Non-uniform fields: `cover: StringName` (which lid node is visible). The place set (Phase 4, `art-direction.md` §19) is **not** a `VisualParams` field: it comes from the environment, and the view reads `StarterSnapshot.location` from `state_changed` (`architecture.md` §8.1).
 
 ## 8. Readouts
 
