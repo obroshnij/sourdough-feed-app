@@ -249,6 +249,16 @@ func set_lid_lift(k: float) -> void:
 	lid_moved.emit(k)
 
 
+## The empty jar (after Discard, until Start again): no starter, no residue, no band, no pops.
+func set_empty(empty: bool) -> void:
+	for mi: MeshInstance3D in [starter, liner, band]:
+		if mi != null:
+			mi.visible = not empty
+	if pops != null:
+		pops.visible = not empty
+		pops.set_process(not empty)
+
+
 ## Reduce motion turns off breathing and pops (ux-design.md §15).
 func set_motion(on: bool) -> void:
 	for m: ShaderMaterial in starter_materials():

@@ -56,6 +56,12 @@ var _pending_focus: StringName = &""
 var _pending_release: bool = false
 var _pending_region: Rect2 = Rect2()
 var _has_pending_region: bool = false
+## The empty jar (snapshot.empty_jar) and the onboarding demo (Session.demo_played).
+var empty_jar: bool = false
+var _demo: bool = false
+## OD-27: the view reports its own activity so the idle frame cap never starts mid-animation.
+var _busy: bool = false
+var _busy_ping: float = 0.0
 var _smelling: bool = false
 var _sheets_open: int = 0
 
@@ -100,6 +106,8 @@ func _ready() -> void:
 			session.state_changed.connect(_on_state_changed)
 			session.session_ready.connect(_on_session_ready)
 			session.resumed.connect(_on_resumed)
+			if session.has_signal(&"demo_played"):
+				session.connect(&"demo_played", play_demo)
 			if session.is_booted():
 				_on_session_ready(null)
 
@@ -280,6 +288,7 @@ func _on_focus_released() -> void:
 
 
 func _process(delta: float) -> void:
+	_report_busy(delta)
 	if _move_t >= 0.0:
 		_step_move(delta)
 	audio.pops_muted = _sheets_open > 0 or feed.active() or _smelling or time_lapse != null
@@ -337,6 +346,7 @@ func _on_session_ready(summary: CatchUpResult) -> void:
 	var snap: StarterSnapshot = session.get_snapshot()
 	if snap != null:
 		set_place(snap.location, false)
+		set_empty(snap.empty_jar)
 	var v: VisualParams = session.get_visuals()
 	if v != null:
 		set_visuals(v)
@@ -381,7 +391,10 @@ func _play_time_lapse(delta: float) -> void:
 			set_visuals(session.get_visuals())
 			set_night(session.get_night_factor())
 		rig.set_input_enabled(true)
-		_bus_emit(&"time_lapse_finished")
+		if _demo:
+			_demo = false
+		else:
+			_bus_emit(&"time_lapse_finished")
 
 
 func _poll_night(delta: float) -> void:
@@ -396,13 +409,55 @@ func _poll_night(delta: float) -> void:
 			set_night(n)
 
 
+func is_busy() -> bool:
+	return time_lapse != null or _move_t >= 0.0 or feed.active() or _smelling or rig.is_animating() \
+			or not easer.is_settled() or absf(rig.yaw_velocity) > 0.0 or absf(rig.pitch_velocity) > 0.0
+
+
+## Bus.interaction_started while any view animation runs (re-sent every 0.5 s, so a gesture's end
+## can't start Session's idle timer mid-animation), interaction_ended once when it all stops.
+func _report_busy(delta: float) -> void:
+	var busy: bool = is_busy()
+	if busy:
+		_busy_ping -= delta
+		if not _busy or _busy_ping <= 0.0:
+			_bus_emit(&"interaction_started")
+			_busy_ping = 0.5
+	elif _busy:
+		_bus_emit(&"interaction_ended")
+	_busy = busy
+
+
 func _bus_emit(sig: StringName) -> void:
 	var bus: Node = get_node_or_null(^"/root/Bus")
 	if bus != null and bus.has_signal(sig):
 		bus.emit_signal(sig)
 
 
+## The onboarding demo (Session.play_demo, D-059): its keyframes play like the away time-lapse.
+## It does not emit the time-lapse signals: the away summary must not follow the demo.
+func play_demo(result: CatchUpResult) -> void:
+	if result == null or result.keyframes.size() < 2:
+		return
+	time_lapse = TimeLapsePlayer.new(result.keyframes, result.time_lapse_duration_s(), reduce_motion)
+	_demo = true
+	rig.set_input_enabled(false)
+	_play_time_lapse(0.0)
+
+
+## Empty jar on or off. Leaving it starts the fill with the starter_new sound (audio-direction §3).
+func set_empty(empty: bool) -> void:
+	if empty == empty_jar:
+		return
+	empty_jar = empty
+	jar.set_empty(empty)
+	if not empty:
+		audio.play("starter_new")
+
+
 func _on_state_changed(snapshot: StarterSnapshot, visuals: VisualParams) -> void:
+	if snapshot != null:
+		set_empty(snapshot.empty_jar)
 	if snapshot != null and PlacePresets.resolve(snapshot.location) != place:
 		set_place(snapshot.location, true)
 	follow_visuals(visuals)
