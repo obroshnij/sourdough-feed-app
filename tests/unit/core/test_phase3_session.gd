@@ -165,7 +165,11 @@ func test_events_release_once_and_withdraw_when_stale() -> void:
 	s.apply(AdoptStarterAction.new("Bramble"))
 	var raised: Array[int] = []
 	var withdrawn: Array[int] = []
-	s.event_raised.connect(func(e: SimEvent) -> void: raised.append(e.uid))
+	var injected: Array[int] = []
+	# The slice rules fire real events (peak_now) during these ticks too; only the injected ones count here.
+	s.event_raised.connect(func(e: SimEvent) -> void:
+		if injected.has(e.uid):
+			raised.append(e.uid))
 	s.event_withdrawn.connect(func(uid: int) -> void: withdrawn.append(uid))
 	var now: int = s.get_starter().sim_time_unix
 	var info: SimEvent = _pending(s, &"first_rise", &"info", now)
@@ -174,6 +178,7 @@ func test_events_release_once_and_withdraw_when_stale() -> void:
 	later.not_before_unix = now + 2 * H
 	var expiring: SimEvent = _pending(s, &"hungry_again", &"nudge", now)
 	expiring.expires_unix = now + 3 * 60
+	injected.append_array([info.uid, card.uid, later.uid, expiring.uid])
 	check_eq(info.presentation(), SimEvent.PRESENT_TOAST, "info is a toast")
 	check_eq(card.presentation(), SimEvent.PRESENT_CARD, "nudge is a card")
 	clock.advance(60)
@@ -198,7 +203,8 @@ func test_events_release_once_and_withdraw_when_stale() -> void:
 	var raised_again: Array[int] = []
 	again.event_raised.connect(func(e: SimEvent) -> void: raised_again.append(e.uid))
 	again.boot()
-	check_eq(raised_again, [later.uid], "a relaunch raises the unacknowledged card again, and only it")
+	check(raised_again.has(later.uid) and not raised_again.has(card.uid) and not raised_again.has(info.uid),
+		"a relaunch raises the unacknowledged card again, never an acked card or a toast: %s" % [raised_again])
 	again.free()
 
 

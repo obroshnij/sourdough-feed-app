@@ -11,8 +11,13 @@ extends RefCounted
 ##                 withdrawal, ReturnSummary lines and prompt, time-lapse keyframes, journal hooch and Day one
 ##                 entries, memorial stats, NightFade, settings haptics and keep_messages, debug time travel
 ##                 (event rules themselves arrive with T4 and milestone p3_rules)
+##   p3_rules      EventRules.registry() is T4's RuleIndex, live in catch-up, live ticks and every action;
+##                 launch and resume catch-ups of 2 h or more run on a WorkerThreadPool thread in the real app
+##                 (boot_async, resume_async, wait_for_catch_up); D-048's strong-peak reference
 
-const LANDED: Array[StringName] = [&"contracts", &"m2_sim", &"m3_clock", &"m4_save", &"m5_catchup", &"p3_contracts"]
+const LANDED: Array[StringName] = [
+	&"contracts", &"m2_sim", &"m3_clock", &"m4_save", &"m5_catchup", &"p3_contracts", &"p3_rules",
+]
 
 
 static func has(id: StringName) -> bool:

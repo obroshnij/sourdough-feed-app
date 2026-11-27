@@ -19,3 +19,5 @@ var app_foreground: bool = false
 var last_action: GameAction = null
 ## For Forecast calls such as warm_and_quick's 22 C run.
 var catalog: SimCatalog = null
+## EventRules.process's cache: the LocalDay.day_index the ledger was last rolled to. -1 = not yet.
+var day_index: int = -1

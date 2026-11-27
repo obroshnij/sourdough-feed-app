@@ -71,6 +71,39 @@ func set_flour_mix(mix: Dictionary[StringName, float]) -> void:
 	flour_mix = sorted_mix
 
 
+## Overwrites every field with `other`'s, reusing this object (catch-up keeps one buffer for the previous
+## step instead of allocating 20,160 copies). flour_mix is only duplicated when it differs.
+func copy_from(other: StarterState) -> void:
+	id = other.id
+	name = other.name
+	born_unix = other.born_unix
+	sim_time_unix = other.sim_time_unix
+	food = other.food
+	food_at_feed = other.food_at_feed
+	yeast = other.yeast
+	lab = other.lab
+	acid = other.acid
+	rise = other.rise
+	peak_rise = other.peak_rise
+	peak_rate = other.peak_rate
+	hooch = other.hooch
+	dryness = other.dryness
+	vigor = other.vigor
+	vigor_at_feed = other.vigor_at_feed
+	maturity = other.maturity
+	starved_h = other.starved_h
+	mold_risk = other.mold_risk
+	moldy = other.moldy
+	temp_c = other.temp_c
+	since_feed_s = other.since_feed_s
+	mass_g = other.mass_g
+	culture_hydration = other.culture_hydration
+	if flour_mix != other.flour_mix:
+		flour_mix = other.flour_mix.duplicate()
+	feed_u = other.feed_u
+	feed_jitter = other.feed_jitter
+
+
 func copy() -> StarterState:
 	var s := StarterState.new()
 	s.id = id
