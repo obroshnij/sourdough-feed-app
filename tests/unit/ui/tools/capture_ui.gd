@@ -31,8 +31,13 @@ const SHOTS: Array[Array] = [
 	["iphone_17e_390x844", &"at_peak", false, 1.0, "smell"],
 	["iphone_17e_390x844", &"active", false, 1.0, "inspect"],
 	["iphone_se_375x667", &"at_peak", false, 1.5, "feed"],
+	["iphone_17e_390x844", &"at_peak", false, 1.0, "note"],
+	["iphone_17e_390x844", &"moldy", false, 1.0, "mold"],
+	["iphone_17e_390x844", &"moldy", false, 1.0, "memorial"],
+	["iphone_17e_390x844", &"at_peak", false, 1.0, "journal"],
+	["iphone_17e_390x844", &"hungry", true, 1.0, "nudge"],
 ]
-const SESSION_EXTRAS: Array[String] = ["feed", "place", "smell", "inspect"]
+const SESSION_EXTRAS: Array[String] = ["feed", "place", "smell", "inspect", "note", "mold", "memorial", "journal", "nudge"]
 
 
 func _initialize() -> void:
@@ -78,8 +83,11 @@ func _capture(shot: Array) -> void:
 		root.add_child(session)
 		var dir: String = "user://capture_tmp/%d" % Time.get_ticks_usec()
 		session.setup(FakeClock.new(), SaveStore.new(dir), SettingsStore.new(dir + "/settings.cfg"))
-		session.boot_from_fixture("res://tests/unit/ui/fixtures/%s.json" % state)
 		ui.bind_session(session)
+		if extra == "note":
+			session.boot()
+		else:
+			session.boot_from_fixture("res://tests/unit/ui/fixtures/%s.json" % state)
 		ui.set_text_scale(text_scale)
 		ui.set_night_blend(1.0 if night else 0.0)
 	else:
@@ -97,6 +105,30 @@ func _capture(shot: Array) -> void:
 		"smell":
 			UiMotion.time_scale = 0.05
 			ui.start_smell()
+			await create_timer(0.5).timeout
+			UiMotion.time_scale = 1.0
+		"mold", "memorial":
+			var e := SimEvent.new()
+			e.id = &"mold_found"
+			e.tier = &"attention"
+			e.uid = 1
+			UiMotion.time_scale = 0.05
+			ui.presenter.enqueue(e)
+			await create_timer(0.5).timeout
+			UiMotion.time_scale = 1.0
+			if extra == "memorial":
+				ui.flow_sheet.done_button.pressed.emit()
+				ui.flow_sheet._secondary.pressed.emit()
+		"journal":
+			session.apply(session.last_feed_action())
+			ui.open_sheet(&"journal")
+		"nudge":
+			var n := SimEvent.new()
+			n.id = &"hungry_again"
+			n.tier = &"nudge"
+			n.uid = 2
+			UiMotion.time_scale = 0.05
+			ui.presenter.enqueue(n)
 			await create_timer(0.5).timeout
 			UiMotion.time_scale = 1.0
 		"inspect":

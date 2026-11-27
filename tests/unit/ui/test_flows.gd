@@ -181,6 +181,20 @@ func test_journal_keeps_uid_order() -> void:
 	check_eq(shown, expected, "newest first, in uid order, never sorted by at_unix")
 
 
+## D-043: the palette and the lights share one curve, NightFade, through Session.get_night_factor().
+func test_palette_follows_night_fade() -> void:
+	await boot("active")
+	# The harness pins day for layout tests; the game follows the Session (override < 0).
+	ui.set_night_blend(-1.0)
+	var day0: int = clock.now_unix() - posmod(clock.now_unix(), 86400)
+	for minutes: int in [12 * 60, 16 * 60 + 55, 17 * 60 + 5, 17 * 60 + 10, 17 * 60 + 25, 23 * 60, 6 * 60 + 10]:
+		clock.set_now(day0 + minutes * 60)
+		ui._refresh_night()
+		var expected: float = NightFade.at_unix(float(clock.now_unix()), clock.local_utc_offset_s())
+		check_close(ui.palette.night, expected, 0.0, 0.0001, "palette night factor at %02d:%02d" % [minutes / 60, minutes % 60])
+		check_close(ui.palette.night, session.get_night_factor(), 0.0, 0.0001, "same as Session.get_night_factor()")
+
+
 func test_bar_is_quiet_while_catching_up() -> void:
 	await boot("active")
 	session.on_background()

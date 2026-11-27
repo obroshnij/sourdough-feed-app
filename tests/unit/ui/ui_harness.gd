@@ -9,6 +9,7 @@ const UI_SCENE: String = "res://src/ui/ui_root.tscn"
 ## a 24 pt status bar; its bottom comes from the 48 floor.
 const DEVICES: Dictionary[String, Array] = {
 	"android_360x640": [Vector2(360, 640), 24.0, 0.0, "Android"],
+	"android_411x914": [Vector2(411, 914), 24.0, 0.0, "Android"],
 	"iphone_se_375x667": [Vector2(375, 667), 20.0, 0.0, "iOS"],
 	"iphone_17e_390x844": [Vector2(390, 844), 47.0, 34.0, "iOS"],
 	"iphone_17_pro_max_440x956": [Vector2(440, 956), 62.0, 34.0, "iOS"],
