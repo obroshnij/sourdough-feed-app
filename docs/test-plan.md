@@ -912,17 +912,22 @@ Tested with a stand-in backend that records every call (TBD-T1). The real iOS pl
 
 ### AC-22 Audio
 
+Numbers from `audio-direction.md` (sound-designer, Phase 4 first set: 31 files, 1,930 KB, all synthesized). `python3 -I art/audio/scripts/verify_audio.py` checks AC-22.1 to AC-22.3 offline in about 3 s ("RESULT: PASS", exit 1 on any miss). It needs `ffmpeg` on PATH for the 2 Ogg loops (present on this Mac at `/opt/homebrew/bin/ffmpeg`). Whether it joins `run.sh`'s lints is OD-38.
+
 | ID | Given | When | Then | Check |
 |---|---|---|---|---|
-| AC-22.1 | `assets/audio/**` | Lint | WAV for one-shots, Ogg Vorbis for anything longer than about 2 s, 44.1 or 48 kHz, mono unless `audio-direction.md` says otherwise, ≤ 2 MB in total. Every file has a line in `art/audio/LICENSES.md`: synthesized with its script, or CC0 with its source URL. | auto (lint), QA |
-| AC-22.2 | Each file | Sample scan | Peak ≤ −3 dBFS (0.708 of full scale). The first and last samples are within TBD-SND of zero, so nothing clicks. Short effects are near −20 LUFS by sound-designer's measurement, which is reported, not gated. | auto (lint), QA |
+| AC-22.1 | `assets/audio/**` | `verify_audio.py` | Every file in the sound list exists. WAV for one-shots, Ogg Vorbis for the loops, 44.1 or 48 kHz. The set is ≤ 2 MB. Every file has a line in `art/audio/LICENSES.md` (synthesized with its script, or CC0 with its source). | auto (lint), QA |
+| AC-22.2 | Each file | `verify_audio.py` | Peak ≤ −3 dBFS. Loudness within 1 LU of its target in the sound list. No clicking edge, and the loops wrap without a step. | auto (lint), QA |
 | AC-22.3 | Each synthesized file | Its script rerun into a temp folder | Byte-identical to the committed file. | auto (lint), QA |
-| AC-22.4 | Sound off | A feed, a smell, pokes, the time-lapse, the room tone | 0 sounds start, and the room tone stops within 1 frame. Sound back on resumes the room tone. The setting persists in `settings.cfg`. | auto, T2 |
-| AC-22.5 | The volume setting (TBD-UX: steps or a slider) | Each value | Maps monotonically to the bus level. The lowest value is silent. It persists. | auto, T2 |
-| AC-22.6 | Every sound | The trigger list in `audio-direction.md` | Each plays only from its Bus signal or Session event. Every sound moment also has a visual cue, so nothing depends on sound. | auto, T2 + QA |
-| AC-22.7 | 100 pokes in 1 s, then a feed with bubble pops | Count voices | Never more than the voice limit playing at once (TBD-SND), with the stealing rule from `audio-direction.md`. | auto, T2 |
-| AC-22.8 | The loudest overlap: the feed sequence, pops and the room tone | The master bus | Peak ≤ 0 dBFS (headroom or a limiter, TBD-SND). | capture (Mac), T2 |
-| AC-22.9 | The app backgrounded; the iPhone's silent switch | Sound playing | Stops in the background and resumes on return. The silent switch mutes the game (proposed: the ambient iOS audio session category, checked as a project setting, TBD-SND and T2). | auto (setting) + manual (MAN-D5) |
+| AC-22.4 | Sound off (`SettingsStore.sound` false) | A feed, a smell, pokes, the time-lapse, the room tone | Master is muted (`AudioServer.is_bus_mute`), so nothing is heard, and haptics still fire (AC-21.3). Haptics off keeps every sound. Both settings persist in `settings.cfg`. | auto, T2 |
+| AC-22.5 | `master_volume` 0 to 1 (default 1.0) | Each value | Master `volume_db` = `linear_to_db(v)`, so it is monotonic, and 0 mutes. On the slider's release, `glass_tink` previews the new level once. | auto, T2 |
+| AC-22.6 | Every sound | The sound list's triggers | Each plays only from its Bus signal or Session event. Every haptic moment in ux §15 also has a sound (AC-21.5). Every sound moment also has a visual cue. | auto, T2 + QA |
+| AC-22.7 | 100 pokes in 1 s, then a feed with pops | Count voices | Never more than 2 Room, 6 Sfx and 2 Ui players at once, and never more than 2 bubble pops. A full pool stops its oldest voice with a 40 ms fade. | auto, T2 |
+| AC-22.8 | Bubble pops | Any state | A pop sound plays only for a pop the view draws: none under hooch, none at mold, none when still. None while a sheet is open, during the feed sequence, the smell moment or the time-lapse. | auto, T2 |
+| AC-22.9 | A catch-up, or an open sheet | An event | No event chime until it is presented (`Bus.event_presented`): never during a catch-up and never behind an open sheet (AC-10.8). | auto, T2 |
+| AC-22.10 | The night factor from 0 to 1 | Day into night | The room tone crossfades from `room_day` to `room_night` with the night factor (art's one curve, D-043), with no step. | auto, T2 |
+| AC-22.11 | The loudest overlap: the feed sequence, 2 pops and the room tone | The master bus | Peak ≤ 0 dBFS. | capture (Mac), T2 |
+| AC-22.12 | `project.godot`; the iPhone | Lint; the silent switch and other apps' music | `audio/general/ios/session_category` is Ambient and `mix_with_others` is true (requested of T1). On the phone, the silent switch mutes the game and the player's own music keeps playing. Sound stops in the background and comes back on return. | auto (setting) + manual (MAN-D5) |
 
 ### AC-23 Battery
 
@@ -1000,15 +1005,15 @@ Updated as tests land. **planned** means the row waits for the named track's cod
 | AC-19 Events | 13 | 13 | 0 | |
 | AC-20 Notification | 11 | 10 | 1 | |
 | AC-21 Haptics | 6 | 5 | 1 | |
-| AC-22 Audio | 9 | 8 | 1 | |
+| AC-22 Audio | 12 | 11 | 1 | |
 | AC-23 Battery | 5 | 4 | 1 | |
 | AC-24 Compact feed sheet and sheets | 7 | 7 | 0 | |
 | AC-25 Journal merge | 5 | 5 | 0 | |
 | AC-26 Saves | 2 | 2 | 0 | |
 | AC-27 Richer journal | 5 | 5 | 0 | |
-| **Total** | **112** | **105** | **7** | |
+| **Total** | **115** | **108** | **7** | |
 
-Plus the 4 carried rows and BT-12 (§3A.14). AC-17.5 counts as auto with a capture part, and AC-15.7 as capture plus review. AC-19.13, AC-20.9 and AC-22.9 have a device part in MAN-D.
+Plus the 4 carried rows and BT-12 (§3A.14). AC-17.5 counts as auto with a capture part, and AC-15.7 as capture plus review. AC-19.13, AC-20.9 and AC-22.12 have a device part in MAN-D.
 
 ---
 
@@ -1621,4 +1626,5 @@ All of these were accepted by tech-architect. The names are from `architecture.m
 | OD-34 | **"6 ObjectDB instances were leaked at exit": found.** Only `tests/unit/view/test_touch_gestures.gd` leaks (QA ran every folder, then every file, with `--verbose`). The test holds `g: TouchGestures`, and `before_each` connects g's signals to lambdas that write the test's members, so the two hold each other. | T2 | **Resolved:** QA added `func after_each() -> void: g = null` to T2's file with the director's OK (T2 wasn't running). 0 leaked instances in the full run after it. Proposal still open: `run.sh --strict` fails on any "leaked at exit" line, so a new leak shows up in the commit that adds it. |
 | OD-35 | `first_acetone` is "one-time per player" in events-catalog §4.1 and "One-time" in game-mechanics §7.4 | game-designer, narrative | AC-19.1 follows the catalog (per player, so it doesn't repeat for a new starter) unless told otherwise. |
 | OD-36 | Spec v1.1 (scientist, 2026-11-27): `pleasantly_tangy` peaks at acid 0.80, was 0.72. `tests/property/test_smell_rules.gd` transcribes 0.72 | QA, T1 | QA changes its copy in the merge that brings T1's `SmellModel` change, so the gate never sees one without the other. The other v1.1 changes are AC-14.4, AC-16.1 and AC-17.4. |
+| OD-38 | `verify_audio.py` as a `run.sh` lint: it needs `ffmpeg` on PATH for the 2 Ogg loops | director | Add it as the sixth lint. Where `ffmpeg` is missing, the lint fails with a clear message rather than skipping, so `--strict` stays honest. QA wires it once the set is merged into `phase-4-polish`. |
 | OD-37 | `mvp-scope.md` still says Godot 4.8 before any store release, and `roadmap.md` Phase 4 still lists the 4.8 upgrade and a screen-reader pass | director | The director is fixing both (2026-11-27). |

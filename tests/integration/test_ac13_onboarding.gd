@@ -28,6 +28,9 @@ func test_ac_13_5_the_demo_never_touches_the_clock_or_the_save() -> void:
 	s = h.launch()
 	check(s.is_first_run(), "still no name after the relaunch, so onboarding starts again")
 	s.adopt_starter(peak, SliceHarness.STARTER_NAME)
+	# EC-26 (QA finding, 2026-11-27, sent to T1): today the 2 unnamed days leave 5 journal entries
+	# (collapsing, hungry, peaked_while_away, hungry_again, hooch_forming) and a pending hungry_again after
+	# naming, and the relaunch builds a return summary. The commit that fixes it adds those checks here.
 	var st: StarterState = h.disk_starter()
 	check_eq(st.sim_time_unix, Sim.grid(h.clock.now_unix()), "adopted at grid(now), not 2 days back")
 	check_eq(StateDeriver.derive(st, s.get_environment()).rise_phase, &"at_peak", "fresh at its peak")
