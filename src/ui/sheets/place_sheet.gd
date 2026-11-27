@@ -44,7 +44,10 @@ func _refresh_text() -> void:
 	super._refresh_text()
 	for p: StringName in cards:
 		cards[p].set_texts(tr(Keys.location(p)), tr(StringName("%s_SUB" % Keys.location(p))))
-		# AC-06.4's temperature line waits for a {temp} placeholder in narrative's copy checker.
+		# AC-06.4: the temperature is read-only and derived from the place (D-018); a whole number.
+		var row: Array = SimConstants.LOCATIONS[p]
+		var temp: float = row[0]
+		cards[p].detail_text = tr(&"PLACE_TEMP_C").format({"temp": str(roundi(temp))})
 
 
 func _notification(what: int) -> void:

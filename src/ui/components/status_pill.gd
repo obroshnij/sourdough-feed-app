@@ -14,9 +14,12 @@ const DOT: float = 10.0
 var state_id: StringName = &""
 var dormant_cause: StringName = &""
 var _styling: bool = false
+## AC-08.7: a 10 pt dot (a shape) plus STATUS_NEW_A11Y in the description, never color alone.
 var show_new_dot: bool = false:
 	set(v):
 		show_new_dot = v
+		if is_node_ready():
+			_apply_text()
 		queue_redraw()
 
 
@@ -77,6 +80,8 @@ func _apply_text() -> void:
 	# The name stays short (40 max); STATUS_A11Y is a 120-character description slot (game-copy §1.2).
 	accessibility_name = text
 	accessibility_description = tr(&"STATUS_A11Y").format({"word": text, "hint": tr(hint_key())})
+	if show_new_dot:
+		accessibility_description += " " + tr(&"STATUS_NEW_A11Y")
 
 
 func _apply_style() -> void:
