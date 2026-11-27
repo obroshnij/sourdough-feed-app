@@ -1,12 +1,14 @@
 PROBE compat_night_tierA_at_peak_pose.png (720x1280) state=at_peak
-ROW N1 night paste lit #BAA991 H 35 S 22% V 73% [PASS] want V 72-88, S <= 22, hue 30-40, max <= 0.92
-ROW N2 night paste shadow #A29076 H 35 S 27% V 64% [PASS] want V >= 40
+ROW N1 night paste lit #BEAD95 H 35 S 21% V 75% [PASS] want V 72-88, S <= 27 (art's tolerance), hue 30-40, max <= 0.92
+ROW N2 night paste shadow #7C6A52 H 35 S 34% V 49% [PASS] want V >= 40
+ROW N6 night counter, clip 0.01% #9C876C H 34 S 31% V 61% [PASS] want counter V 55-75, clipped < 0.5%
+ROW N7 night pockets mean 0.71 x p80, darkest5 V 36 [PASS] want >= 0.68 and >= 35
 ROW N3 night wall behind the jar #6A533C H 30 S 44% V 42% [PASS] want V 25-45, hue 30-60, S <= 45
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
-ROW clipped 30.58% of pixels
+ROW clipped 0.01% of pixels
 PROBE compat_night_tierA_unhealthy_pose.png (720x1280) state=unhealthy
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
-ROW clipped 32.30% of pixels
+ROW clipped 0.01% of pixels
 PROBE compat_tierA_active_pose.png (720x1280) state=active
 ROW info paste (290,850) #DCD2C0 H 38 S 12% V 86%, (450,830) #C5BAA8 H 37 S 15% V 77%
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
@@ -160,8 +162,10 @@ ROW R12 dark hooch from above #8F7A66 H 29 S 29% V 56% [PASS] want V 46-60, S 28
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.01% of pixels
 PROBE mobile_night_tierB_at_peak_pose.png (720x1280) state=at_peak
-ROW N1 night paste lit #B8A187 H 32 S 27% V 72% [FAIL] want V 72-88, S <= 22, hue 30-40, max <= 0.92
-ROW N2 night paste shadow #A08666 H 33 S 36% V 63% [PASS] want V >= 40
+ROW N1 night paste lit #BCA991 H 33 S 23% V 74% [PASS] want V 72-88, S <= 27 (art's tolerance), hue 30-40, max <= 0.92
+ROW N2 night paste shadow #8C755A H 33 S 35% V 55% [PASS] want V >= 40
+ROW N6 night counter, clip 0.00% #B7A38C H 32 S 24% V 72% [PASS] want counter V 55-75, clipped < 0.5%
+ROW N7 night pockets mean 0.76 x p80, darkest5 V 42 [PASS] want >= 0.68 and >= 35
 ROW N3 night wall behind the jar #6B5B44 H 36 S 37% V 42% [PASS] want V 25-45, hue 30-60, S <= 45
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.00% of pixels
@@ -595,25 +599,25 @@ ROW clipped 0.54% of pixels
 PROBE compat_night_tierA_at_peak_orbit_y-70_p15_z1.png (720x1280) state=at_peak
 ROW N4 darkest wall at night #36251D H 19 S 46% V 21% [PASS] want V >= 8
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
-ROW clipped 37.22% of pixels
+ROW clipped 0.01% of pixels
 PROBE compat_night_tierA_at_peak_orbit_y-70_p35_z1.png (720x1280) state=at_peak
-ROW N4 darkest wall at night #F8EAD4 H 37 S 14% V 97% [PASS] want V >= 8
+ROW N4 darkest wall at night #39281F H 20 S 45% V 22% [PASS] want V >= 8
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
-ROW clipped 59.46% of pixels
+ROW clipped 0.00% of pixels
 PROBE compat_night_tierA_at_peak_orbit_y0_p-5_z1.png (720x1280) state=at_peak
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
-ROW clipped 11.98% of pixels
+ROW clipped 0.02% of pixels
 PROBE compat_night_tierA_at_peak_orbit_y0_p15_z1.png (720x1280) state=at_peak
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
-ROW clipped 30.58% of pixels
+ROW clipped 0.01% of pixels
 PROBE compat_night_tierA_at_peak_orbit_y70_p-5_z2.2.png (720x1280) state=at_peak
 ROW N4 darkest wall at night #18130E H 27 S 41% V 10% [PASS] want V >= 8
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
-ROW clipped 1.07% of pixels
+ROW clipped 0.53% of pixels
 PROBE compat_night_tierA_at_peak_orbit_y70_p15_z1.png (720x1280) state=at_peak
 ROW N4 darkest wall at night #37271E H 20 S 45% V 22% [PASS] want V >= 8
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
-ROW clipped 37.02% of pixels
+ROW clipped 0.02% of pixels
 PROBE mobile_day_tierB_at_peak_orbit_y-70_p15_z1.png (720x1280) state=at_peak
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.00% of pixels
@@ -757,7 +761,7 @@ ROW N4 darkest wall at night #1C1510 H 25 S 44% V 11% [PASS] want V >= 8
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.00% of pixels
 PROBE mobile_night_tierB_at_peak_orbit_y-70_p35_z1.png (720x1280) state=at_peak
-ROW N4 darkest wall at night #E0D1BF H 32 S 15% V 88% [PASS] want V >= 8
+ROW N4 darkest wall at night #241C13 H 31 S 46% V 14% [PASS] want V >= 8
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.00% of pixels
 PROBE mobile_night_tierB_at_peak_orbit_y0_p-5_z1.png (720x1280) state=at_peak
@@ -786,4 +790,4 @@ PROBE se_tierA_unhealthy_focus_bubbles.png (720x1281) state=unhealthy
 ROW info inspect framing capture, no rows
 ROW no orange: 0 sampled pixels under hue 25 at S > 50% [PASS]
 ROW clipped 0.00% of pixels
-SUMMARY 321 pass, 3 fail
+SUMMARY 326 pass, 2 fail

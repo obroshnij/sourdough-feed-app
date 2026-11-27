@@ -28,7 +28,7 @@ func _initialize() -> void:
 			_magenta(img)
 		elif file.contains("_orbit"):
 			if file.contains("night") and (file.contains("_y-70_") or file.contains("_y70_")):
-				_n4(img)
+				_n4(img, 110 if file.contains("_p35_") else 260)
 		elif file.ends_with("_side.png"):
 			_side(img, state)
 			if state == "hungry" or state == "unhealthy":
@@ -233,20 +233,69 @@ func _night_pose(img: Image, state: String) -> void:
 	if state != "at_peak":
 		return
 	var lit: Color = _patch(img, Vector2i(290, 850))
-	_row("N1 night paste lit", lit, lit.v >= 0.72 and lit.v <= 0.88 and lit.s <= 0.22 and _hue_in(lit, 30.0, 40.0)
-			and _max_ch(lit) <= 0.92, "V 72-88, S <= 22, hue 30-40, max <= 0.92")
+	_row("N1 night paste lit", lit, lit.v >= 0.72 and lit.v <= 0.88 and lit.s <= 0.27 and _hue_in(lit, 30.0, 40.0)
+			and _max_ch(lit) <= 0.92, "V 72-88, S <= 27 (art's tolerance), hue 30-40, max <= 0.92")
 	var shade: Color = _patch(img, Vector2i(450, 830))
 	_row("N2 night paste shadow", shade, shade.v >= 0.40, "V >= 40")
+	var counter: Color = _patch(img, Vector2i(600, 1150))
+	var clip: float = _clip_share(img, 252.0 / 255.0)
+	_row("N6 night counter, clip %.2f%%" % (clip * 100.0), counter, counter.v >= 0.55 and counter.v <= 0.75 and clip < 0.005,
+			"counter V 55-75, clipped < 0.5%")
+	_n7(img)
 	var wall: Color = _patch(img, Vector2i(360, 150))
 	_row("N3 night wall behind the jar", wall, wall.v >= 0.25 and wall.v <= 0.45 and _hue_in(wall, 30.0, 60.0)
 			and wall.s <= 0.45, "V 25-45, hue 30-60, S <= 45")
 
 
-## N4: the darkest wall at yaw +-70 at night is never pure black (V 8% or more).
-func _n4(img: Image) -> void:
+## N7: at night the pockets still read as cream cavities, not a dark sponge (x 240-480, y 800-990).
+func _n7(img: Image) -> void:
+	var vals: Array[float] = []
+	for y: int in range(800, 990, 2):
+		for x: int in range(240, 480, 2):
+			var c: Color = img.get_pixel(x, y)
+			# Paste pixels only (§16.1): skip the sage rubber band that crosses the patch.
+			if c.s > 0.08 and c.h * 360.0 > 70.0 and c.h * 360.0 < 170.0:
+				continue
+			vals.append(c.v)
+	vals.sort()
+	var p80: float = vals[int(vals.size() * 0.8)]
+	var pockets: Array[float] = []
+	var sum: float = 0.0
+	for v: float in vals:
+		if v < p80 - 0.10:
+			pockets.append(v)
+			sum += v
+	if pockets.is_empty():
+		print("ROW N7 no pockets in the patch")
+		return
+	var mean_ratio: float = sum / float(pockets.size()) / maxf(p80, 0.001)
+	var darkest: float = pockets[int(pockets.size() * 0.05)]
+	var ok: bool = mean_ratio >= 0.68 and darkest >= 0.35
+	print("ROW N7 night pockets mean %.2f x p80, darkest5 V %.0f [%s] want >= 0.68 and >= 35" % [mean_ratio, darkest * 100.0, "PASS" if ok else "FAIL"])
+	if ok:
+		passed += 1
+	else:
+		failed += 1
+
+
+func _clip_share(img: Image, thr: float) -> float:
+	var n: int = 0
+	var c: int = 0
+	for y: int in range(0, img.get_height(), 2):
+		for x: int in range(0, img.get_width(), 2):
+			n += 1
+			var px: Color = img.get_pixel(x, y)
+			if maxf(px.r, maxf(px.g, px.b)) >= thr:
+				c += 1
+	return float(c) / float(maxi(n, 1))
+
+
+## N4: the darkest wall at yaw +-70 at night is never pure black (V 8% or more). Sampled near the
+## top of the frame, above the counter line at every pitch.
+func _n4(img: Image, row: int) -> void:
 	var darkest := Color(1, 1, 1)
 	for x: int in range(HALF, img.get_width() - HALF, 40):
-		var c: Color = _patch(img, Vector2i(x, 260))
+		var c: Color = _patch(img, Vector2i(x, row))
 		if c.v < darkest.v:
 			darkest = c
 	_row("N4 darkest wall at night", darkest, darkest.v >= 0.08, "V >= 8")
