@@ -710,10 +710,10 @@ Full sheet, one row each, in this order. Dividers (outline, 1 pt) separate the 3
 | 5 | Reduce motion | Toggle | `SETTINGS_REDUCE_MOTION` | Off | As built |
 | 6 | Keep messages on screen | Toggle | `SETTINGS_KEEP_MESSAGES` | Off | As built |
 | 7 | Time-lapse on return | Toggle | `SETTINGS_TIME_LAPSE` (**new**) | On | The existing `show_time_lapse` field. Off still shows the summary card |
-| 8 | Warning alert | Toggle + one note line | new, deferred | Off | Only once D-057's iOS plugin is wired. Turning it on is the only thing that asks for iOS notification permission: never at launch, never in onboarding |
+| 8 | Warning alert | Toggle + one note line | `SETTINGS_WARNING_ALERT`, `_NOTE` | Off | T1's `notifications: bool = false` field. The row shows only once D-057's iOS plugin is wired. Turning it on is the only thing that asks for iOS notification permission: never at launch, never in onboarding |
 | | Done | SecondaryButton, pinned | `UI_DONE_BTN` | | |
 
-- **Settings fields** are T1's, as T1 built them: `sound: bool = true` and `master_volume: float = 1.0` (0 to 1). data-models §9.1 should match T1's names.
+- **Settings fields** are T1's, as T1 built them and data-models §9.1 records them: `sound: bool = true`, `master_volume: float = 1.0` (0 to 1) and `notifications: bool = false`.
 - **Sounds** for every new Phase 4 haptic moment are in `audio-direction.md` §3 (sound-designer).
 - **iOS audio session: Ambient.** The game obeys the ring/silent switch and mixes with the player's own music or podcast, as a calm game should. sound-designer found `audio/general/ios/session_category` (with Ambient) and `audio/general/ios/mix_with_others` in the 4.7.2 binary's strings (read, not run). T1 sets it in `project.godot`. The silent-switch behavior still needs the iPhone.
 - Slider: track 6, thumb 28, hit area 48 tall (§17). Disabled: track and fill in the disabled color.
