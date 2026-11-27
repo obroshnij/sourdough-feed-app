@@ -1,6 +1,6 @@
 # Production board
 
-Owner: director (the only writer). Teammates report by message. Last updated 2026-11-26.
+Owner: director (the only writer). Teammates report by message. Last updated 2026-11-27.
 
 ## Phase 2: foundation (branch `phase-2-foundation`): done, waiting for the user's review
 
@@ -24,6 +24,18 @@ Owner: director (the only writer). Teammates report by message. Last updated 202
 | Art | `art-director` | Masks, reference board, 47 icons, kitchen set, sign-off |
 | Toolchain | `t1-toolchain` | Android export works end to end. iOS simulator is boot-only (D-044) |
 
+## Phase 3: vertical slice (branch `phase-3-slice`): in progress (D-046)
+
+| Step | Owner | Status |
+|---|---|---|
+| Contracts commit: actions, events, return summary, time-lapse feed, journal API, new game and naming, night fade, settings fields, stable `project.godot` | `t1-sim-core` | in progress |
+| Wider curved backdrop for yaw beyond ±15° | `art-director` | in progress |
+| AC-01 to AC-12 harness, manual checklists, look probe rows R12 and R13, the 411×914 profile, the flaky sheet test | `qa-engineer` | in progress |
+| Event rules, catch-up budget, journal store | `t1-sim-core` | after contracts |
+| Live easing, transitions, bubbles, wisps, inspection cameras, time-lapse, evening light | `t2-view` | after contracts |
+| Feed, place, smell and inspect sheets, event cards, away summary, journal, naming, moldy locks, settings | `t3-ui` | after contracts |
+| Exit: AC-01 to AC-12 green under `--strict` on a fresh clone, and the user plays on the Mac and the Android emulator | director | |
+
 ## Phase 3 backlog (vertical slice), carried from Phase 2
 
 | Item | Owner |
@@ -46,7 +58,7 @@ Owner: director (the only writer). Teammates report by message. Last updated 202
 
 ## Waiting on the user
 
-- Review Phase 2, then approve Phase 3.
+- Review and merge PR #1 (Phase 2). Phase 3 builds on top of it and is approved.
 - Before Phase 5: the bundle id and Apple Team ID, and whether to download the Metal Toolchain (about 0.7 GB, unverified) for iOS shader baking.
 - Machine note: Godot's editor setting `export/android/java_sdk_path` now points to Android Studio's JDK (set during the toolchain dry run). Set it back to empty to undo.
 
@@ -54,6 +66,6 @@ Owner: director (the only writer). Teammates report by message. Last updated 202
 
 | Phase | Status |
 |---|---|
-| 3. Vertical slice | Waiting for approval |
+| 3. Vertical slice | In progress |
 | 4. Polish and the rest of the MVP | |
 | 5. Mobile validation | |
