@@ -57,11 +57,6 @@ func bind(model: Node3D) -> PackedStringArray:
 	liner = model.find_child(String(JarGeometry.NODE_LINER), true, false) as MeshInstance3D
 	band = model.find_child(String(JarGeometry.NODE_BAND), true, false) as MeshInstance3D
 	counter = model.find_child(String(JarGeometry.NODE_COUNTER), true, false) as MeshInstance3D
-	# The old wall card (art-direction.md §18.5) may still be in the GLB: it would z-fight with the
-	# kitchen wall, so hide it if present. Nothing else uses it.
-	var legacy_card: Node3D = model.find_child("Backdrop_placeholder", true, false) as Node3D
-	if legacy_card != null:
-		legacy_card.visible = false
 	for cover: StringName in JarGeometry.COVER_NODES:
 		var node: MeshInstance3D = model.find_child(String(JarGeometry.COVER_NODES[cover]), true, false) as MeshInstance3D
 		if node != null:
