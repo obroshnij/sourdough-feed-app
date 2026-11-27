@@ -129,6 +129,39 @@ func test_ac_10_6_and_10_10_warning_then_mold_at_the_counter() -> void:
 		check(e.id != &"hungry_again", "the stale hunger nudge is gone")
 
 
+## AC-10.6: a second attention is held while the first waits, and admitted once the first is
+## acknowledged. The first warning_signs is left unacknowledged; a rescue feed ends the episode; a second
+## neglect re-arms the rule (24 h out of unhealthy) and makes it unhealthy again, but nothing new is
+## admitted while the first card waits. Acknowledging it lets the second warning in at once.
+func test_ac_10_6_a_second_attention_waits_for_the_first_ack() -> void:
+	if not ready_for_rules():
+		return
+	var h: SliceHarness = _mature("attention_hold", OFFSET_08)
+	h.apply(feed_111())
+	h.reopen_at(T0 + 115 * HOUR)
+	var first: Array[SimEvent] = _of(h.session.get_last_catch_up().events, &"warning_signs")
+	if not check_eq(first.size(), 1, "the first warning_signs"):
+		return
+	check(h.apply(feed_111()).ok, "a rescue feed")
+	check(h.state() != &"unhealthy", "out of unhealthy after the rescue")
+	h.reopen_at(T0 + 115 * HOUR + 130 * HOUR)
+	var r: CatchUpResult = h.session.get_last_catch_up()
+	check(_transition_to(r, &"unhealthy") > 0, "unhealthy again in the second neglect")
+	check(_of(r.events, &"warning_signs").is_empty(), "the second warning is held while the first waits")
+	var waiting: Array[SimEvent] = _waiting_attention(h)
+	check(waiting.size() == 1 and waiting[0].uid == first[0].uid, "only the first warning waits")
+	if h.state() != &"unhealthy":
+		fail("still unhealthy at the ack (got %s), so the held warning can be admitted" % h.state())
+		return
+	var ack: ActionResult = h.apply(AckEventAction.new(first[0].uid))
+	check(ack.ok, "the first warning is acknowledged")
+	var second: Array[SimEvent] = _of(ack.events, &"warning_signs")
+	if second.is_empty():
+		h.play(MIN)
+		second = _waiting_attention(h)
+	check(second.size() == 1 and second[0].uid != first[0].uid, "the second warning is admitted after the ack")
+
+
 ## AC-10.10 at warm_spot (26 °C): warning to mold is at least 59 h (the spec's floor anywhere; v1 is
 ## about 86 h here).
 func test_ac_10_10_warning_gap_at_the_warm_spot() -> void:
@@ -390,6 +423,14 @@ func _journaled(h: SliceHarness, id: StringName) -> int:
 		if String(e.data.get("event_id", "")) == String(id):
 			n += 1
 	return n
+
+
+static func _waiting_attention(h: SliceHarness) -> Array[SimEvent]:
+	var out: Array[SimEvent] = []
+	for e: SimEvent in h.session.get_pending_events():
+		if e.tier == &"attention":
+			out.append(e)
+	return out
 
 
 static func _of(events: Array[SimEvent], id: StringName) -> Array[SimEvent]:

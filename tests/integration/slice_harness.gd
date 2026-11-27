@@ -85,6 +85,21 @@ func kill() -> void:
 	session = null
 
 
+## A launch from a fixture save (data-models §9.5): the fixture's state shown as of now, then saved in
+## this phone's folder like any launch.
+func launch_fixture(fixture_path: String) -> GameSession:
+	kill()
+	DirAccess.make_dir_recursive_absolute(dir)
+	store = SaveStore.new(dir)
+	settings = SettingsStore.new(dir.path_join("settings.cfg"))
+	session = GameSession.new()
+	_tree.root.add_child(session)
+	session.setup(clock, store, settings)
+	_listen(session, &"session")
+	session.boot_from_fixture(fixture_path)
+	return session
+
+
 ## Close now, move the wall clock to `unix`, launch again.
 func reopen_at(unix: int) -> GameSession:
 	close()
