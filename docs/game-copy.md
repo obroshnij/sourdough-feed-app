@@ -250,6 +250,7 @@ The ribbon marks a smell the player hasn't met before. `SMELL_TRY_INSPECT` and i
 | `SMELL_NEW_RIBBON` | New smell | 20 |
 | `SMELL_TRY_INSPECT` | Hard to say. Try inspecting the surface. | 60 |
 | `SMELL_TRY_INSPECT_BTN` | Inspect | 18 |
+| `SMELL_MEANING_BTN` | What it means | 18 |
 
 ### 5.2 Notes
 
