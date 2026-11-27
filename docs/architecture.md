@@ -289,12 +289,18 @@ Tests never call `start()`. They use `GameSession.new()`, `setup(FakeClock.new()
 - The set (D-049): `Kitchen_Wall` in `kitchen_wall.glb` (one draw call, `art-direction.md` §18.2) and the 2.20 m `Counter`. The Phase 2 card `Backdrop_placeholder` is removed from `jar_v0.glb` and `verify_glb.py` (art-director's change, landing with the next merge). `jar_view.gd` still looks the node up and hides it; that lookup finds nothing afterwards and can go (T2).
 - **Places (Phase 4, `art-direction.md` §19, agreed with `art-director`).**
   - Each place is a light preset plus a set swap around the jar. `assets/3d/places.glb` holds `Place_Proofing_Box` and the Empties `Spot_Window_Sill` and `Spot_Proofing_Box`. `window_sill` reuses `Kitchen_Wall` with a second atlas.
-  - The view reads `StarterSnapshot.location` from `state_changed`. No new Bus signal or `VisualParams` field. `&""` or an unknown id shows the counter.
-  - **The jar root stays at the origin.** The view offsets the place set by minus the spot's translation, because the camera aims at world-space targets (`HOME_TARGET`, `JarGeometry.FLOOR_Y_M`).
-  - Acceptance:
-    - a ray check per place with 0 misses, and no set mesh between the camera and the jar over the whole orbit and every focus preset
-    - the visible set within D-031's 16k triangles, with under 30 draw calls
+  - The view reads `StarterSnapshot.location` from `state_changed`. No new Bus signal or `VisualParams` field.
+  - **The jar root rests at the origin.** The view offsets the place set by minus the spot's translation, because the camera aims at world-space targets (`HOME_TARGET`, `JarGeometry.FLOOR_Y_M`).
+  - **The move animation** (art §19.4) is view-only. The sim applies the move at once, and `state_changed` carries the new `location`. The jar lifts 18 mm for 1.3 s, then the root is set back to exactly (0, 0, 0), never left at the end of a tween. Conditions:
+    - focus requests and `jar_region_changed` reframes wait for the lift to end;
+    - a second move during the lift retargets it, so offsets never stack;
+    - anything shown on the jar is a child of the jar root (bubble pops already are);
+    - with reduce motion, a cross-fade replaces the lift.
+  - Acceptance, measured by art-director in `build_places.py` and `verify_glb.py` (`art-direction.md` §19, §20.2):
+    - rays from 9,971 camera poses (orbit and every focus preset, at three starter heights): 0 blocked and 0 with the camera inside the set; the wall keeps 0 misses
+    - the heaviest visible set at 15,044 of D-031's 16,000 triangles; the proofing box adds 1 draw call and the window sill none
     - `places.glb` checked by `verify_glb.py`
+  - Every location id has a set, and `&""` or an unknown id shows the counter.
 
 ### 8.2 Day and night: one curve (D-043, D-049)
 - **`NightFade`** (`src/core/night_fade.gd`, T1) is the one shared night curve, a pure function of local seconds of day: 0 by day, 1 at night. Night eases in from 17:00 to 17:20 and out from 06:00 to 06:20 (smoothstep), per `art-direction.md` §3.
