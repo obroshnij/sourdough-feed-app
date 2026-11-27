@@ -217,7 +217,8 @@ func focus_pose(what: StringName) -> Pose:
 	match what:
 		&"bubbles":
 			# Raised with the paste, so the camera stays just above the rim and the cap stays in frame.
-			var y: float = maxf(starter_mid_y, starter_top_y - 0.028)
+			# X1 recheck: in the 160 pt band with the HUD tucked, -0.028 let the cap leave the band at max rise.
+			var y: float = maxf(starter_mid_y, starter_top_y - 0.020)
 			return Pose.new(BUBBLES_YAW, BUBBLES_PITCH, home_dist / BUBBLES_DIST_M, Vector3(0.0, y, 0.0))
 		&"mold":
 			# Colony close-up (D-023): the top and the glass just above it, from the front left.

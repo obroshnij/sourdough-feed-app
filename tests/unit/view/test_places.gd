@@ -86,3 +86,28 @@ func test_reduce_motion_is_a_short_crossfade_without_lift() -> void:
 		highest = maxf(highest, world.jar.position.y)
 	check_eq(highest, 0.0, "no lift")
 	check(not world.is_moving(), "done in 0.4 s")
+
+
+func test_empty_jar_hides_the_starter_and_refills() -> void:
+	world.set_empty(true)
+	check(not world.jar.starter.visible and not world.jar.liner.visible and not world.jar.band.visible, "empty jar")
+	world.set_empty(false)
+	check(world.jar.starter.visible and world.jar.band.visible, "refilled")
+
+
+func test_demo_plays_without_the_away_signals() -> void:
+	var r := CatchUpResult.new()
+	var a := TimeLapseKeyframe.new()
+	a.at_unix = 0
+	a.visuals = VisualParams.new()
+	var b := TimeLapseKeyframe.new()
+	b.at_unix = 3600
+	b.visuals = VisualParams.new()
+	b.visuals.rise = 2.3
+	r.keyframes = [a, b]
+	world.play_demo(r)
+	check(world.time_lapse != null, "the demo plays")
+	check(world.is_busy(), "busy while it plays (the idle cap waits)")
+	_run(10.0)
+	check(world.time_lapse == null, "the demo ends")
+	check(not world.is_busy(), "idle afterward")
