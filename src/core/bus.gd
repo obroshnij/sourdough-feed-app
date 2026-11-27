@@ -9,7 +9,9 @@ signal sheet_opened(sheet_id: StringName)
 @warning_ignore("unused_signal")
 signal sheet_closed(sheet_id: StringName)
 
-## ui to view. target is one of &"bubbles", &"surface", &"height", &"top", &"home".
+## ui to view. target is one of &"bubbles", &"surface", &"height", &"top", &"home", &"mold".
+## &"mold" is the close-up of the colony (D-023, ux-design §12): T3 emits it when the mold_found sheet opens
+## (SimEvent.id == &"mold_found"), and camera_focus_released() when the sheet closes.
 @warning_ignore("unused_signal")
 signal camera_focus_requested(target: StringName)
 @warning_ignore("unused_signal")

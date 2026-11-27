@@ -562,13 +562,18 @@ Measure as in §3: 31 px patch means, sRGB 8-bit, HSV. Captures at the §7 pose 
 
 I sign off when every row passes in all three captures and the board's tells (§16.2) read side by side. The director then shows the user, as D-037 requires.
 
+**Final, 2026-11-26** (T2 04d5d07): **the starter look is signed off on all three renderers** (Mobile Tier B, Mobile Tier A, Compatibility Tier A). The director shows the user next, as D-037 requires.
+- Compatibility `unhealthy` hooch now reads `#8F7A66` (V 56%, S 29%, hue 29), the same taupe as Mobile's `#927D65`. I grant R12 a 1-point tolerance, so S 28% or more and hue 28 to 40 pass. That is far from the §2.3 orange rule (hue under 25 at S over 50%). R10 is unchanged at V 59%.
+- Compatibility glass `edge_absorb` 0.35: the walls no longer read smoky in the pose.
+- Still open, not blocking: the `bubbles` inspection camera height (Phase 3), and the backdrop past ±15 degrees of yaw (§15).
+
 **Re-check, 2026-11-26** (T2 c76af37, all three fixes and the kitchen set; 154 of 156 rows pass, plus the integrated `hungry` and `unhealthy` captures).
 
 | Renderer | Verdict |
 |---|---|
 | Mobile Tier B | **Signed off** |
 | Mobile Tier A | **Signed off** |
-| Compatibility Tier A | **Not yet.** One fix: dark hooch (R12) |
+| Compatibility Tier A | Not yet at this re-check; signed off at Final, above |
 
 - **Compatibility fix, dark hooch** (R12). The `unhealthy` cap reads `#645546` (V 39%) against V 46 to 60%; Mobile reads `#927D65` (V 57%).
   - Lift only the dark end, so `hungry` and `dormant` (R10, V 59% now) don't move.

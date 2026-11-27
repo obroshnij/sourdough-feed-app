@@ -77,6 +77,27 @@ No string is ever picked with a free random call (CLAUDE.md rule 1).
 
 `feed_count` is the starter's total number of feeds, saved. `DESCRIPTOR_ORDER` is vision.md's list order: `wet_flour`, `mildly_fruity`, `fresh_yeasty`, `yogurt`, `pleasantly_tangy`, `strongly_acidic`, `alcohol`, `acetone`, `cheesy`, `musty`. Inspection has one line per cell, so it needs no pick.
 
+### 1.5 Time and date parts
+
+Used to build `{time}` and `{start_date}`/`{end_date}` (§1.3) in US English. Worst cases stay true: `{time}` "11:30 PM" is 8 characters, the date "Nov 26, 2026" is 12.
+
+| Key | Text | Max |
+|---|---|---|
+| `TIME_AM` | AM | 2 |
+| `TIME_PM` | PM | 2 |
+| `MONTH_SHORT_01` | Jan | 3 |
+| `MONTH_SHORT_02` | Feb | 3 |
+| `MONTH_SHORT_03` | Mar | 3 |
+| `MONTH_SHORT_04` | Apr | 3 |
+| `MONTH_SHORT_05` | May | 3 |
+| `MONTH_SHORT_06` | Jun | 3 |
+| `MONTH_SHORT_07` | Jul | 3 |
+| `MONTH_SHORT_08` | Aug | 3 |
+| `MONTH_SHORT_09` | Sep | 3 |
+| `MONTH_SHORT_10` | Oct | 3 |
+| `MONTH_SHORT_11` | Nov | 3 |
+| `MONTH_SHORT_12` | Dec | 3 |
+
 ## 2. Status
 
 The pill shows an icon plus the word, never color alone. The hint is always shown under it. Tapping the status shows the tap line, plus the forecast during a rise (§9).
@@ -161,6 +182,7 @@ The status pill's `accessibility_name` is the status word itself (12, within 40)
 | `REASON_ENVIRONMENT` | That place isn't available. | 60 |
 | `REASON_INSPECT_KIND` | That one can't be inspected yet. | 60 |
 | `REASON_NAME` | A name needs 1 to 16 characters. | 60 |
+| `REASON_ADOPT` | It already has a name. | 60 |
 | `REASON_EVENT` | That note is already gone. | 60 |
 | `REASON_SAVE_FAILED` | Couldn't save just now. Trying again soon. | 60 |
 | `REASON_NOT_READY` | One moment. Still getting ready. | 60 |
@@ -838,6 +860,6 @@ Local only, opt-in, outside quiet hours (D-007, game-design OD-1). No guilt, no 
 | Status coverage | Every state id in vision.md has `_WORD`, `_HINT` and `_TAP` (`dormant` twice). |
 | Pending CSVs | Every row in `src/i18n/pending_*.csv` (header `keys,en`) gets the key format, placeholder, banned-word, exclamation, em dash and safety checks, but no length check (no `Max`). A pending key that is also in the docs or `en.csv`, or in two pending files, is an error (LINT-11). |
 
-It also runs `qa-engineer`'s LINT-06 word lists, mapped to the real key prefixes (safety: `STATUS_MOLDY`, `STATUS_UNHEALTHY`, `SMELL_MUSTY`, `SMELL_MOLDY`, `INSPECT_*_MOLDY*`, `INSPECT_*_UNHEALTHY*`, `INSPECT_SURFACE_HOOCH_DARK`, `EVENT_WARNING_SIGNS`, `EVENT_MOLD_FOUND`, `MOLD_`, `MEMORIAL_`, `NOTIF_WARNING`, `REASON_MOLDY`, `REASON_NOT_MOLDY`; hunger: `STATUS_HUNGRY`, `STATUS_DORMANT_STARVED`, `SMELL_ACETONE`, `SMELL_ALCOHOL`, `SMELL_STRONGLY_ACIDIC`, `EVENT_HOOCH_FORMING`, `EVENT_HUNGRY_AGAIN`, `EVENT_FIRST_ACETONE`, `INSPECT_SURFACE_HOOCH`, `INSPECT_*_HUNGRY*`, `FEED_HOOCH`, `GLOSS_HOOCH`). Every moldy *message* (`STATUS_MOLDY_HINT` and `_TAP`, `SMELL_MOLDY_BODY`, `INSPECT_*MOLDY*_MEAN`, `MOLD_SHEET_BODY*`, `MOLD_FEED_BLOCKED`, `REASON_MOLDY_LOCKED`) must contain "discard". Titles, status words, observations and buttons are exempt because they always appear beside one of those.
+It also runs `qa-engineer`'s LINT-06 word lists, mapped to the real key prefixes (safety: `STATUS_MOLDY`, `STATUS_UNHEALTHY`, `SMELL_MUSTY`, `SMELL_MOLDY`, `INSPECT_*_MOLDY*`, `INSPECT_*_UNHEALTHY*`, `INSPECT_SURFACE_HOOCH_DARK`, `EVENT_WARNING_SIGNS`, `EVENT_MOLD_FOUND`, `MOLD_`, `MEMORIAL_`, `NOTIF_WARNING`, `REASON_MOLDY`, `REASON_NOT_MOLDY`; hunger: `STATUS_HUNGRY`, `STATUS_DORMANT_STARVED`, `SMELL_ACETONE`, `SMELL_ALCOHOL`, `SMELL_STRONGLY_ACIDIC`, `EVENT_HOOCH_FORMING`, `EVENT_HUNGRY_AGAIN`, `EVENT_FIRST_ACETONE`, `INSPECT_SURFACE_HOOCH`, `INSPECT_*_HUNGRY*`, `FEED_HOOCH`, `GLOSS_HOOCH`). Every moldy *message* (`STATUS_MOLDY_HINT` and `_TAP`, `SMELL_MOLDY_BODY`, `INSPECT_*MOLDY*_MEAN`, `MOLD_SHEET_BODY*`, `MOLD_FEED_BLOCKED`, `REASON_MOLDY_LOCKED`, `EVENT_MOLD_FOUND_JOURNAL_BODY`) must contain "discard". Titles, status words, observations and buttons are exempt because they always appear beside one of those.
 
 **Last run, 2026-11-26:** `python3 -I tools/i18n/check_copy.py .` over 614 strings (narrative 123, events 69, game copy 422). First run found 3 over-length strings, all fixed. Second run: 0 problems. After the scientist's wave B review (21 fixes, 3 strings removed, 6 added, net 612 strings), the run still finds 0 problems. It also confirmed the smell rule shows all 3 variants within 300 feeds and never repeats a line on consecutive cycles. Phase 2, 2026-11-26: after adding `AWAY_CAPPED`, the checker reports 613 strings (narrative 123, events 68, game copy 422) and 0 problems, and `build_catalog.py` writes all 613 to `en.csv`. The T1 copy pass added the 13 `REASON_*` lines (§3.1), `JOURNAL_LOG_MOVE_FRIDGE` and `JOURNAL_LOG_RENAME`: 628 strings. The T3 copy pass added 12 UI keys (§2, §3.2, §6): 640 strings. The checker now also lints `pending_*.csv`.

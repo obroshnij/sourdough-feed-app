@@ -306,6 +306,8 @@ The `_AWAY_` peak lines double as the journal's peak log lines, so peaks read th
 | Key | Text | Max |
 |---|---|---|
 | `EVENT_MOLD_FOUND_AWAY` | Mold appeared on the surface. | 44 |
+| `EVENT_MOLD_FOUND_JOURNAL_TITLE` | Mold appeared | 26 |
+| `EVENT_MOLD_FOUND_JOURNAL_BODY` | Mold appeared on the surface. It can't be fixed. Don't use or taste it. Discard all of it, even the parts that look clean, then wash the jar well. | 200 |
 
 ---
 

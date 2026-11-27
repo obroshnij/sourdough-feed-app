@@ -20,6 +20,23 @@ static func seconds_to_quiet_end(local_minute_of_day: int) -> int:
 	return minutes * 60
 
 
+## Condition ids a rule may put in SimEvent.expires_if (game-mechanics §7.3 staleness).
+const EXPIRES_IF: Array[StringName] = [&"state_not_hungry", &"state_not_unhealthy"]
+
+
+## True when a pending event should be dropped silently: its `expires_if` condition holds for `derived`, or
+## `expires_unix` has passed. Session checks this before releasing an event and on every step after.
+static func is_stale(event: SimEvent, derived: DerivedState, now_unix: int) -> bool:
+	if event.expires_unix > 0 and now_unix >= event.expires_unix:
+		return true
+	match event.expires_if:
+		&"state_not_hungry":
+			return derived.state != &"hungry"
+		&"state_not_unhealthy":
+			return derived.state != &"unhealthy"
+	return false
+
+
 ## Admits `event` into `ledger.pending` and returns true, or returns false and changes nothing.
 ## The caller rolls the ledger's day first (EventRules.process does).
 static func admit(event: SimEvent, ledger: EventLedger, local_minute_of_day: int,

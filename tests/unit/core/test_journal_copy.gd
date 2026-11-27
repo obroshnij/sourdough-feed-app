@@ -14,10 +14,13 @@ func _check_rendered(e: JournalEntry) -> void:
 	var where: String = "%s entry %s" % [e.kind, e.text_key]
 	if not check(e.text_key != &"", where + ": has a text key"):
 		return
-	check(TranslationServer.translate(e.text_key) != e.text_key, where + ": key exists in the catalogs")
-	var text: String = Keys.format(e.text_key, e.args)
-	check(not text.contains("{") and not text.contains("}"), "%s: no leftover placeholder in \"%s\"" % [where, text])
-	check(_key_shape.search(text) == null, "%s: no untranslated key in \"%s\"" % [where, text])
+	for key: StringName in [e.text_key, e.body_key()]:
+		if key == &"":
+			continue
+		check(TranslationServer.translate(key) != key, "%s: %s exists in the catalogs" % [where, key])
+		var text: String = Keys.format(key, e.args)
+		check(not text.contains("{") and not text.contains("}"), "%s: no leftover placeholder in \"%s\"" % [where, text])
+		check(_key_shape.search(text) == null, "%s: no untranslated key in \"%s\"" % [where, text])
 
 
 func test_every_journal_entry_renders() -> void:
@@ -26,6 +29,7 @@ func test_every_journal_entry_renders() -> void:
 	var clock := FakeClock.new(T0)
 	var s: GameSession = session(fresh_dir("journal_copy"), clock)
 	s.boot()
+	check(s.apply(AdoptStarterAction.new("Bramble", &"skip")).ok, "naming the gifted starter")
 	var feed: FeedAction = FeedAction.from_ratio(1.0, 1.0, &"whole_wheat")
 	s.apply(feed)
 	clock.advance(2 * 3600)
@@ -44,7 +48,9 @@ func test_every_journal_entry_renders() -> void:
 	clock.set_now(clock.now_unix() + 5 * 86400)
 	s.on_resume()
 	check_eq(s.get_snapshot().state, &"unhealthy", "5 days unfed at the counter")
-	s.apply(FeedAction.from_ratio(1.0, 1.0, &"white_bread"))
+	var rescue: FeedAction = FeedAction.from_ratio(1.0, 1.0, &"white_bread")
+	rescue.hooch_choice = &"stir_in"
+	s.apply(rescue)
 	s.on_background()
 	clock.set_now(clock.now_unix() + 14 * 86400)
 	s.on_resume()
@@ -56,11 +62,12 @@ func test_every_journal_entry_renders() -> void:
 		kinds[e.kind] = true
 		keys[e.text_key] = true
 		_check_rendered(e)
-	for kind: StringName in [&"feed", &"environment", &"smell", &"inspect", &"state_change", &"rename", &"memorial"]:
+	for kind: StringName in [&"feed", &"environment", &"smell", &"inspect", &"state_change", &"rename", &"memorial",
+			&"hooch", &"milestone"]:
 		check(kinds.has(kind), "the script wrote a %s entry" % kind)
 	for key: StringName in [&"JOURNAL_LOG_FEED", &"JOURNAL_LOG_FEED_AT_PEAK", &"JOURNAL_LOG_FEED_RESCUE",
 			&"JOURNAL_LOG_MOVE_FRIDGE", &"JOURNAL_LOG_MOVE_PROOFING_BOX", &"STATUS_DORMANT_COLD_WORD",
-			&"STATUS_DORMANT_STARVED_WORD"]:
+			&"STATUS_DORMANT_STARVED_WORD", &"JOURNAL_LOG_HOOCH_STIRRED", &"JOURNAL_DAY_ONE_TITLE"]:
 		check(keys.has(key), "covered %s" % key)
 	s.free()
 
@@ -87,9 +94,11 @@ func test_every_event_journal_entry_renders() -> void:
 		var e := SimEvent.new()
 		e.id = id
 		e.created_unix = T0
+		# The payload convention agreed with T4 (SimEvent): time_unix fills {time}.
+		e.payload = {"time_unix": T0 - 3600, "began_unix": T0 - 30 * 3600, "peak_rise": 2.1, "rise_word": "DOUBLE"}
 		events.append(e)
 	var before: int = s.get_journal().size()
-	s._emit_events(events)
+	s._record_events(events)
 	var journal: Array[JournalEntry] = s.get_journal()
 	check_eq(journal.size() - before, ids.size(), "one journal entry per event")
 	for i: int in range(before, journal.size()):
