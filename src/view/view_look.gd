@@ -69,6 +69,11 @@ var hooch_desat: float = 0.0
 var backdrop_energy: float = 1.0
 ## Counter and lid brightness, and lid saturation.
 var dressing_value: float = 1.0
+## Places (art-direction.md §19.7): proofing box grade and the painted sill's value.
+var box_energy: float = 0.78
+var box_saturation: float = 0.8
+var box_night_k: float = 1.0
+var sill_value: float = 1.0
 var lid_saturation: float = 1.0
 
 
@@ -92,6 +97,10 @@ static func for_renderer(renderer: String) -> ViewLook:
 		look.glass_spec = 1.5
 		look.glass_reflection = 0.35
 		look.lid_saturation = 0.8
+		look.box_energy = 0.72
+		look.box_saturation = 0.65
+		look.box_night_k = 2.0
+		look.sill_value = 0.95
 		look.wall_night_gain = 0.35
 		look.wall_keep_hue = 0.8
 		look.wall_floor_mul = 2.0

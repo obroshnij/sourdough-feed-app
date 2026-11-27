@@ -25,6 +25,20 @@ uniform float lid_on = 1.0;
 uniform float lid_y0 = 0.163;
 uniform float lid_y1 = 0.2035;
 uniform float drop_strength = 0.5;
+// Places: the painted sill (window_sill) and the proofing box's contact shade.
+uniform float sill_k = 0.0;
+uniform float sill_value = 1.0;
+uniform vec3 sill_light : source_color = vec3(0.827, 0.792, 0.733);   // #D3CABB
+uniform vec3 sill_dark : source_color = vec3(0.761, 0.722, 0.651);    // #C2B8A6
+uniform float box_k = 0.0;
+uniform vec4 box_rect = vec4(-0.300, -0.158, 0.300, 0.274);
+
+float box_shade(vec2 xz) {
+	vec2 c = (box_rect.xy + box_rect.zw) * 0.5;
+	vec2 h = (box_rect.zw - box_rect.xy) * 0.5;
+	float d = length(max(abs(xz - c) - h, 0.0));
+	return mix(1.0, 0.55 + 0.45 * smoothstep(0.0, 0.035, d), box_k);
+}
 uniform float glass_strength = 0.2;
 
 varying vec3 v_world;
@@ -49,7 +63,7 @@ void vertex() {
 void fragment() {
 	vec2 p = v_world.xz;
 	float dd = texture(oak_detail, v_world.xz / 0.36).r;
-	vec3 col = mix(oak_dark, oak_light, dd);
+	vec3 col = mix(mix(oak_dark, sill_dark * sill_value, sill_k), mix(oak_light, sill_light * sill_value, sill_k), dd);
 	float d = length(p);
 	// Contact shadow: a soft ring where the glass meets the wood. Under the base the thick glass
 	// passes light, so the counter seen through it stays bright.
@@ -60,7 +74,9 @@ void fragment() {
 	float s_glass = cylinder_shadow(p, l, jar_radius, 0.0, glass_h);
 	float s_lid = cylinder_shadow(p, l, jar_radius, lid_y0, lid_y1) * lid_on;
 	float drop = max(max(s_starter, s_lid) * drop_strength, s_glass * glass_strength);
-	ALBEDO = col * contact * (1.0 - drop) * grade_value;
+	// In the box the jar's own drop shadow lies under the heat plate; the bake carries it (§19.3).
+	drop *= 1.0 - box_k;
+	ALBEDO = col * contact * (1.0 - drop) * box_shade(p) * grade_value;
 	ROUGHNESS = mix(0.62, 0.42, dd);
 	SPECULAR = 0.35;
 	AO = contact;

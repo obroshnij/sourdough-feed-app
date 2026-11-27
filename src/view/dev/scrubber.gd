@@ -60,6 +60,8 @@ func _ready() -> void:
 	set_state(state_id)
 	if args.has("stock-starter"):
 		world.jar.use_stock_starter(true)
+	if args.has("place"):
+		world.set_place(StringName(args["place"]), false)
 	if args.has("night"):
 		world.set_night(float(args["night"]))
 	if args.has("magenta"):

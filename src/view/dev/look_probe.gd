@@ -24,7 +24,9 @@ func _initialize() -> void:
 		var file: String = path.get_file()
 		var state: String = _state_of(file)
 		print("PROBE %s (%dx%d) state=%s" % [file, img.get_width(), img.get_height(), state])
-		if file.contains("_flour_"):
+		if file.contains("_place_") and file.ends_with("_pose.png") and not file.contains("magenta"):
+			_place(img, file, state)
+		elif file.contains("_flour_"):
 			_flour(img, file, state)
 		elif file.contains("_focus_"):
 			print("ROW info inspect framing capture, no rows")
@@ -241,7 +243,7 @@ func _r13(img: Image) -> void:
 
 
 ## Night rows N1 to N3 at the §7 pose (art-direction.md §18.6). N5 is the no-orange check.
-func _night_pose(img: Image, state: String) -> void:
+func _night_pose(img: Image, state: String, place: bool = false) -> void:
 	if state != "at_peak":
 		return
 	var lit: Color = _patch(img, Vector2i(290, 850))
@@ -249,11 +251,13 @@ func _night_pose(img: Image, state: String) -> void:
 			and _max_ch(lit) <= 0.92, "V 72-88, S <= 27 (art's tolerance), hue 30-40, max <= 0.92")
 	var shade: Color = _patch(img, Vector2i(450, 830))
 	_row("N2 night paste shadow", shade, shade.v >= 0.40, "V >= 40")
+	_n7(img)
+	if place:
+		return
 	var counter: Color = _patch(img, Vector2i(600, 1150))
 	var clip: float = _clip_share(img, 252.0 / 255.0)
 	_row("N6 night counter, clip %.2f%%" % (clip * 100.0), counter, counter.v >= 0.55 and counter.v <= 0.75 and clip < 0.005,
 			"counter V 55-75, clipped < 0.5%")
-	_n7(img)
 	var wall: Color = _patch(img, Vector2i(360, 150))
 	_row("N3 night wall behind the jar", wall, wall.v >= 0.25 and wall.v <= 0.45 and _hue_in(wall, 30.0, 60.0)
 			and wall.s <= 0.45, "V 25-45, hue 30-60, S <= 45")
@@ -402,6 +406,46 @@ func _flour(img: Image, file: String, state: String) -> void:
 			_:
 				print("ROW FL1 white paste %s (the §16.6 rows hold)" % _fmt(paste))
 	_no_pink(img)
+
+
+## Places (art-direction.md §19.7): WS1 to WS6 and WS8 at the window, PB1 to PB6 and PB8 in the box.
+## WS7 and PB7's sky part are the magenta orbit files; PB7's occlusion is art's ray check.
+func _place(img: Image, file: String, state: String) -> void:
+	if state != "at_peak":
+		return
+	var night: bool = file.contains("night")
+	var ws: bool = file.contains("window_sill")
+	var lit: Color = _patch(img, Vector2i(290, 850))
+	var shade: Color = _patch(img, Vector2i(450, 830))
+	var top: Color = _patch(img, Vector2i(360, 150))
+	var left: Color = _patch(img, Vector2i(120, 520))
+	var floor_c: Color = _patch(img, Vector2i(600, 1150))
+	var clip: float = _clip_share(img, 252.0 / 255.0)
+	if night:
+		# N3 and N6 sample the kitchen wall and counter; here those patches are the panes, the box lid
+		# and the box door, so WS8 and PB8 replace them. N1, N2 and N7 still apply.
+		_night_pose(img, state, true)
+		if ws:
+			_row("WS8 panes at night", top, top.v >= 0.05 and top.v <= 0.25 and (_hue_in(top, 180.0, 240.0) or top.s <= 0.15), "V 5-25, cool or S <= 15")
+		else:
+			_row("PB8 box back wall at night", left, left.v >= 0.35 and left.v <= 0.60 and _hue_in(left, 28.0, 40.0) and left.s <= 0.45, "V 35-60, hue 28-40, S <= 45")
+		return
+	if ws:
+		_row("WS1 paste lit", lit, lit.v >= 0.81 and lit.v <= 0.93 and lit.s >= 0.07 and lit.s <= 0.16 and _hue_in(lit, 30.0, 42.0) and _max_ch(lit) <= 0.92, "V 81-93, S 7-16, hue 30-42")
+		_row("WS2 paste shadow", shade, shade.v >= 0.50 and shade.v <= 0.66 and shade.s <= 0.45, "V 50-66, S <= 45")
+		_row("WS3 window behind", top, top.v >= 0.65 and top.v <= 0.88 and top.s <= 0.14 and _max_ch(top) <= 0.95, "V 65-88, S <= 14, max <= 0.95")
+		_row("WS4 curtain", left, left.v >= 0.65 and left.v <= 0.88 and left.s <= 0.14 and _hue_in(left, 30.0, 60.0), "V 65-88, S <= 14, hue 30-60")
+		_row("WS5 sill", floor_c, floor_c.v >= 0.82 and floor_c.v <= 0.93 and floor_c.s <= 0.10 and _max_ch(floor_c) < 0.99, "V 82-93, S <= 10")
+		_row("WS6 clipped %.2f%%" % (clip * 100.0), lit, clip < 0.005, "< 0.5%")
+	else:
+		_row("PB1 paste lit", lit, lit.v >= 0.78 and lit.v <= 0.92 and lit.s >= 0.08 and lit.s <= 0.18 and _hue_in(lit, 30.0, 40.0), "V 78-92, S 8-18, hue 30-40")
+		_row("PB2 paste shadow", shade, shade.v >= 0.46 and shade.v <= 0.62, "V 46-62")
+		var lum_lit: float = 0.2126 * lit.r + 0.7152 * lit.g + 0.0722 * lit.b
+		var lum_wall: float = 0.2126 * left.r + 0.7152 * left.g + 0.0722 * left.b
+		_row("PB3 box back wall", left, _hue_in(left, 28.0, 40.0) and left.s >= 0.16 and left.s <= 0.28 and lum_wall <= 0.9 * lum_lit and left.s >= lit.s + 0.03, "hue 28-40, S 16-28, 10% darker and 3 S points over PB1")
+		_row("PB4 lid inside", top, top.v >= 0.60 and top.v <= 0.85 and _hue_in(top, 28.0, 45.0), "V 60-85, hue 28-45")
+		_row("PB5 door", floor_c, floor_c.v >= 0.70 and floor_c.v <= 0.88 and _hue_in(floor_c, 28.0, 40.0) and floor_c.s <= 0.25, "V 70-88, hue 28-40, S <= 25")
+		_row("PB6 clipped %.2f%%" % (clip * 100.0), lit, clip < 0.005, "< 0.5%")
 
 
 ## FL9: no pink, nothing at hue 330 to 20 with S over 25%.

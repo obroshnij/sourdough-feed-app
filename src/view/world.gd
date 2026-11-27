@@ -44,6 +44,18 @@ var time_lapse: TimeLapsePlayer
 var _night_poll: float = 0.0
 var _sky_mat: ShaderMaterial
 var audio: JarAudio
+## Where the jar lives (art-direction.md §19) and the blended preset every light reads.
+var place: StringName = &"counter"
+var _place_now: Dictionary = PlacePresets.preset(&"counter")
+var _place_from: Dictionary = {}
+var _place_to: Dictionary = {}
+var _move_t: float = -1.0
+var _wall_a: bool = false
+var _wall_b: bool = false
+var _pending_focus: StringName = &""
+var _pending_release: bool = false
+var _pending_region: Rect2 = Rect2()
+var _has_pending_region: bool = false
 var _smelling: bool = false
 var _sheets_open: int = 0
 
@@ -53,6 +65,9 @@ func _ready() -> void:
 	look = ViewLook.for_renderer(renderer)
 	jar.bind($Jar/Model as Node3D)
 	jar.bind_wall($Wall as Node3D)
+	var places_root: Node3D = get_node_or_null(^"Places") as Node3D
+	if places_root != null:
+		jar.bind_places(places_root)
 	_place_lights()
 	apply_look(look)
 	set_reduce_effects(false)
@@ -67,8 +82,8 @@ func _ready() -> void:
 	if bus != null:
 		bus.connect(&"sheet_opened", _on_sheet_opened)
 		bus.connect(&"sheet_closed", _on_sheet_closed)
-		bus.connect(&"camera_focus_requested", rig.focus)
-		bus.connect(&"camera_focus_released", rig.release_focus)
+		bus.connect(&"camera_focus_requested", _on_focus_requested)
+		bus.connect(&"camera_focus_released", _on_focus_released)
 		bus.connect(&"jar_region_changed", _on_jar_region_changed)
 		bus.connect(&"settings_changed", _read_settings)
 		bus.connect(&"feed_moment", _on_feed_moment)
@@ -117,29 +132,34 @@ func apply_look(p_look: ViewLook) -> void:
 ## the lamp on, and the drop shadow turned toward the lamp. The jar stays lit.
 func set_night(n: float) -> void:
 	night = clampf(n, 0.0, 1.0)
-	# Art's night ruling: the key stays front-left at 45% and warms to #FFE6CC, so the camera-facing
-	# paste is lit from the front; the lamp behind the jar only adds the warm pool and the cap glow.
-	key_light.light_energy = look.key_energy * lerpf(1.0, look.night_key, night)
-	key_light.light_color = look.key_color.lerp(look.night_key_color, night)
-	rim_light.light_energy = look.rim_energy * lerpf(1.0, 0.35, night)
+	var pl: Dictionary = _place_now
+	# §19.5: at night every place shares the signed-off night look (multipliers go to 1).
+	key_light.light_energy = look.key_energy * lerpf(float(pl["key"]), 1.0, night) * lerpf(1.0, look.night_key, night)
+	key_light.light_color = (pl["key_color"] as Color).lerp(look.night_key_color, night)
+	rim_light.light_energy = look.rim_energy * lerpf(float(pl["rim"]), 1.0, night) * lerpf(1.0, 0.35, night)
+	rim_light.light_color = (pl["rim_color"] as Color).lerp(look.rim_color, night)
 	night_lamp.visible = night > 0.001
 	night_lamp.light_energy = look.lamp_energy * night
 	night_lamp.light_color = look.lamp_color
 	if _sky_mat != null:
-		_sky_mat.set_shader_parameter(&"energy", look.sky_energy * lerpf(1.0, look.night_sky, night))
-		_sky_mat.set_shader_parameter(&"window_energy", 0.6 * (1.0 - night))
+		_sky_mat.set_shader_parameter(&"energy", look.sky_energy * lerpf(float(pl["sky"]), 1.0, night) * lerpf(1.0, look.night_sky, night))
+		_sky_mat.set_shader_parameter(&"window_energy", 0.6 * lerpf(float(pl["window"]), 1.0, night) * (1.0 - night))
 	if jar.quality != null:
-		jar.quality.set_shared(&"reflection_strength", look.glass_reflection * lerpf(1.0, 0.5, night))
+		jar.quality.set_shared(&"reflection_strength", look.glass_reflection * lerpf(float(pl["glass"]), 1.0, night) * lerpf(1.0, 0.5, night))
 	if jar.counter_mat != null:
 		jar.counter_mat.set_shader_parameter(&"grade_value", look.dressing_value * lerpf(1.0, look.night_counter, night))
 		jar.counter_mat.set_shader_parameter(&"key_dir", KEY_DIR.normalized().lerp(NIGHT_SHADOW_DIR.normalized(), night).normalized())
 	jar.set_wall_night(night)
+	var wall_mix: float = 0.0
+	if _move_t >= 0.0 and _wall_a != _wall_b:
+		wall_mix = PlacePresets.set_progress(_move_t, reduce_motion)
+	jar.set_place_look(pl, wall_mix, night)
 	if audio != null:
 		audio.night = night
 	# Under the warm lamp the tonemapper lifts the cream's saturation in the darker range (N1, §18.6).
 	for m: ShaderMaterial in jar.starter_materials():
 		if m != null:
-			m.set_shader_parameter(&"grade_saturation", look.starter_saturation * (1.0 - look.night_desat * night))
+			m.set_shader_parameter(&"grade_saturation", look.starter_saturation * lerpf(float(pl["sat"]), 1.0, night) * (1.0 - look.night_desat * night))
 	# Night pockets stay cream cavities, not a dark sponge (N7): less cavity contrast at night.
 	if jar.starter_mat != null:
 		jar.starter_mat.set_shader_parameter(&"pocket_k", look.pocket_k * lerpf(1.0, look.night_pocket, night))
@@ -181,7 +201,87 @@ func follow_visuals(p: VisualParams) -> void:
 		easer.snap_fields([&"level_m", &"rise", &"lumps", &"peak_line", &"streak_amount", &"hooch_depth"])
 
 
+## Moves the jar to a place (art-direction.md §19.4): the set and lights cross-fade while the jar
+## lifts 18 mm and sets down. A second move during one retargets it. The root ends at the origin.
+func set_place(id: StringName, animated: bool) -> void:
+	id = PlacePresets.resolve(id)
+	if id == place and _move_t < 0.0:
+		return
+	_place_from = _place_now.duplicate()
+	_place_to = PlacePresets.preset(id)
+	place = id
+	_wall_b = float(_place_to["window_set"]) > 0.5
+	_set_wall_textures()
+	if not animated:
+		_finish_move()
+		return
+	_move_t = 0.0
+
+
+func is_moving() -> bool:
+	return _move_t >= 0.0
+
+
+func _step_move(dt: float) -> void:
+	_move_t += dt
+	var lights: Dictionary = PlacePresets.blend(_place_from, _place_to, PlacePresets.light_progress(_move_t, reduce_motion))
+	var set_now: Dictionary = PlacePresets.blend(_place_from, _place_to, PlacePresets.set_progress(_move_t, reduce_motion))
+	lights["sill"] = set_now["sill"]
+	lights["box"] = set_now["box"]
+	_place_now = lights
+	jar.position = Vector3(0.0, PlacePresets.lift_offset(_move_t, reduce_motion), 0.0)
+	set_night(night)
+	if _move_t >= PlacePresets.duration(reduce_motion):
+		_finish_move()
+
+
+func _finish_move() -> void:
+	_place_now = _place_to.duplicate()
+	_wall_a = _wall_b
+	_set_wall_textures()
+	jar.position = Vector3.ZERO
+	_move_t = -1.0
+	set_night(night)
+	if _has_pending_region:
+		_has_pending_region = false
+		_on_jar_region_changed(_pending_region)
+	if _pending_focus != &"":
+		rig.focus(_pending_focus)
+		_pending_focus = &""
+	elif _pending_release:
+		rig.release_focus()
+	_pending_release = false
+
+
+func _set_wall_textures() -> void:
+	var fa: Color = PlacePresets.preset(&"window_sill" if _wall_a else &"counter")["night_floor"]
+	var fb: Color = PlacePresets.preset(&"window_sill" if _wall_b else &"counter")["night_floor"]
+	jar.set_wall_textures(PlacePresets.WINDOW_WALL if _wall_a else PlacePresets.KITCHEN_WALL,
+			PlacePresets.WINDOW_NIGHT if _wall_a else PlacePresets.KITCHEN_NIGHT, fa,
+			PlacePresets.WINDOW_WALL if _wall_b else PlacePresets.KITCHEN_WALL,
+			PlacePresets.WINDOW_NIGHT if _wall_b else PlacePresets.KITCHEN_NIGHT, fb)
+
+
+## Focus requests and reframes wait for a lift to end (§19.4, at most 1.3 s).
+func _on_focus_requested(target: StringName) -> void:
+	if _move_t >= 0.0:
+		_pending_focus = target
+		_pending_release = false
+	else:
+		rig.focus(target)
+
+
+func _on_focus_released() -> void:
+	if _move_t >= 0.0:
+		_pending_focus = &""
+		_pending_release = true
+	else:
+		rig.release_focus()
+
+
 func _process(delta: float) -> void:
+	if _move_t >= 0.0:
+		_step_move(delta)
 	audio.pops_muted = _sheets_open > 0 or feed.active() or _smelling or time_lapse != null
 	if time_lapse != null:
 		_play_time_lapse(delta)
@@ -234,6 +334,9 @@ func _read_settings() -> void:
 func _on_session_ready(summary: CatchUpResult) -> void:
 	_read_settings()
 	var session: GameSession = get_node(^"/root/Session") as GameSession
+	var snap: StarterSnapshot = session.get_snapshot()
+	if snap != null:
+		set_place(snap.location, false)
 	var v: VisualParams = session.get_visuals()
 	if v != null:
 		set_visuals(v)
@@ -299,7 +402,9 @@ func _bus_emit(sig: StringName) -> void:
 		bus.emit_signal(sig)
 
 
-func _on_state_changed(_snapshot: StarterSnapshot, visuals: VisualParams) -> void:
+func _on_state_changed(snapshot: StarterSnapshot, visuals: VisualParams) -> void:
+	if snapshot != null and PlacePresets.resolve(snapshot.location) != place:
+		set_place(snapshot.location, true)
 	follow_visuals(visuals)
 
 
@@ -413,6 +518,10 @@ func _on_sheet_closed(_sheet_id: StringName) -> void:
 
 
 func _on_jar_region_changed(region: Rect2) -> void:
+	if _move_t >= 0.0:
+		_pending_region = region
+		_has_pending_region = true
+		return
 	var screen_h_pt: float = float(DisplayServer.window_get_size().y) / maxf(DisplayServer.screen_get_scale(), 0.01)
 	rig.set_jar_region(region, screen_h_pt)
 
