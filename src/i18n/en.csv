@@ -75,6 +75,8 @@ EVENT_HUNGRY_AGAIN_JOURNAL_BODY,"The food ran out around {time}. It fell back an
 EVENT_HUNGRY_AGAIN_JOURNAL_TITLE,Hungry again
 EVENT_HUNGRY_AGAIN_TITLE,Ready for a feed
 EVENT_MOLD_FOUND_AWAY,Mold appeared on the surface.
+EVENT_MOLD_FOUND_JOURNAL_BODY,"Mold appeared on the surface. It can’t be fixed. Don’t use or taste it. Discard all of it, even the parts that look clean, then wash the jar well."
+EVENT_MOLD_FOUND_JOURNAL_TITLE,Mold appeared
 EVENT_OFF_TO_NAP_ENERGETIC,Into the fridge. It seems mildly offended.
 EVENT_OFF_TO_NAP_JOURNAL_BODY,"Into the fridge around {time}. The cold slows it nearly to a stop, so it can wait days or weeks. When it comes out, a feed or two will wake it."
 EVENT_OFF_TO_NAP_JOURNAL_TITLE,Off for a nap
