@@ -134,7 +134,7 @@ root
 | `camera_focus_released()` | ui to view | Back to the player's orbit |
 | `smell_moment_started()` / `smell_moment_finished()` | ui to view | Camera nudge, wisps |
 | `feed_moment(step: StringName)` | ui to view | `discard`, `scoop`, `pour`, `stir` animations |
-| `jar_region_changed(region: Rect2)` | ui to view | The free space between the top HUD plate and the action bar, in UI units (pt, since stretch is off, §13). Emitted on every layout change (text size, safe areas, rotation). The camera frames the jar to it (`ux-design.md` §2, §19.5) |
+| `jar_region_changed(region: Rect2)` | ui to view | The free space for the jar, in UI units (pt, since stretch is off, §13). With no sheet open it runs from the top HUD plate to the action bar. Emitted on every layout change (text size, safe areas, rotation) and whenever a sheet opens or closes. The camera frames the jar to it (`ux-design.md` §2, §3, §19.5). Phase 4: while a sheet is open the HUD plate tucks away, so the region runs from `safe top + 8` to the sheet's top edge. For feed and place T2 frames the whole jar in it (§9.1) |
 | `starter_tapped(where: StringName)` | view to ui | `starter`, `glass`. A tap on the jar |
 | `interaction_started()` / `interaction_ended()` | both | Drives the frame cap (§11) |
 
@@ -287,6 +287,14 @@ Tests never call `start()`. They use `GameSession.new()`, `setup(FakeClock.new()
 - **The starter is one `ShaderMaterial`.** Every `VisualParams` field maps 1:1 to a uniform with the same name (`data-models.md` §7). `custom_aabb` covers the maximum rise (3.0x) and dome.
 - Mesh contract with `art-director` (`jar_v0.glb`, enforced by `art/blender/scripts/verify_glb.py`): mesh nodes `Jar_Glass`, `Starter_Body`, `Starter_Liner`, `Jar_Lid_Loose`, `Jar_Lid_Tight`, `Cloth_Cover`, `Rubber_Band`, `Counter`, and empties `StarterFloor` and `StarterRim`. Shape data lives in UV2 (x radial, y height fraction). glTF node extras arrive as `get_meta("extras")` **[ran]**. `jar_geometry.gd` mirrors them as constants and asserts a match at load.
 - The set (D-049): `Kitchen_Wall` in `kitchen_wall.glb` (one draw call, `art-direction.md` §18.2) and the 2.20 m `Counter`. The Phase 2 card `Backdrop_placeholder` is removed from `jar_v0.glb` and `verify_glb.py` (art-director's change, landing with the next merge). `jar_view.gd` still looks the node up and hides it; that lookup finds nothing afterwards and can go (T2).
+- **Places (Phase 4, `art-direction.md` §19, agreed with `art-director`).**
+  - Each place is a light preset plus a set swap around the jar. `assets/3d/places.glb` holds `Place_Proofing_Box` and the Empties `Spot_Window_Sill` and `Spot_Proofing_Box`. `window_sill` reuses `Kitchen_Wall` with a second atlas.
+  - The view reads `StarterSnapshot.location` from `state_changed`. No new Bus signal or `VisualParams` field. `&""` or an unknown id shows the counter.
+  - **The jar root stays at the origin.** The view offsets the place set by minus the spot's translation, because the camera aims at world-space targets (`HOME_TARGET`, `JarGeometry.FLOOR_Y_M`).
+  - Acceptance:
+    - a ray check per place with 0 misses, and no set mesh between the camera and the jar over the whole orbit and every focus preset
+    - the visible set within D-031's 16k triangles, with under 30 draw calls
+    - `places.glb` checked by `verify_glb.py`
 
 ### 8.2 Day and night: one curve (D-043, D-049)
 - **`NightFade`** (`src/core/night_fade.gd`, T1) is the one shared night curve, a pure function of local seconds of day: 0 by day, 1 at night. Night eases in from 17:00 to 17:20 and out from 06:00 to 06:20 (smoothstep), per `art-direction.md` §3.
@@ -313,6 +321,11 @@ Tests never call `start()`. They use `GameSession.new()`, `setup(FakeClock.new()
 - **Text size** (100%, 125%, 150%) scales Theme font sizes only, never `content_scale_factor`. Every text container grows vertically.
 - **Event display** (T3) takes `Session.event_raised` and `event_withdrawn` and enforces the display rules: nothing interrupts an open sheet, at most one `attention` on screen, order attention then nudge then info. `event.presentation()` picks toast, card or sheet. Admission caps stay in the pure `EventScheduler`, and release in `Session` (§7). The UI only decides when to show. With `keep_messages` on, toasts and cards stay until dismissed.
 - **Actions while not ready.** Until `session_ready` or `resumed`, T3 keeps the action bar disabled and quiet, because `apply()` refuses with `REASON_NOT_READY` (D-050).
+- **Sheets and the jar band (Phase 4, `ux-design.md` §3).**
+  - When any sheet opens, the HUD plate tucks away. Its space goes to the jar.
+  - A non-full sheet's top edge stays at least 160 pt below `safe top + 8`.
+  - Feed and place become fit sheets: header, content and footer, capped by that band, with the content scrolling past the cap.
+  - T3 emits `Bus.jar_region_changed` with the band on every open, close and resize. No new signal is needed.
 - **Night palette**: `Session.get_night_factor()` (§8.2).
 - Status, hint, smell, inspection, forecast and the time-lapse read only `Session` outputs (snapshots, readouts, `CatchUpResult`), never their own logic.
 - **Accessibility**: every interactive Control sets `accessibility_name` through `tr()` now. The property exists in 4.7.2 **[ran]**. Mobile screen readers arrive with 4.8 (D-012).

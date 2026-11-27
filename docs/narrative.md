@@ -296,6 +296,7 @@ Slots: onboarding page title 26 and body 120, coach marks 60, buttons 18, badge 
 | `ONBOARD_NOTE_BODY` | A sourdough starter: flour and water, alive with wild yeast and bacteria. Feed it, and it will raise bread for years. M. | 120 |
 | `ONBOARD_NOTE_BTN_TOUR` | Show me around | 18 |
 | `ONBOARD_NOTE_BTN_SKIP` | I know starters | 18 |
+| `ONBOARD_SKIP_TOUR_BTN` | Skip tour | 18 |
 | `ONBOARD_LOOK_COACH` | Drag to turn the jar. Pinch to look closer. | 60 |
 | `ONBOARD_LOOK_DONE` | The jar shows you almost everything. Almost. | 60 |
 | `ONBOARD_SMELL_COACH` | Now smell it. Tap Smell. | 60 |

@@ -43,7 +43,7 @@ Also in the slice:
   - the remaining events: `first_acetone`, `off_to_nap`, `waking_up`, `fed_before_peak`, `warm_and_quick`, `big_bubble`, `getting_stretchy`, `trait_revealed`
 - **The one opt-in "warning signs" notification** (D-025).
 - **Polish:** audio, a small iOS haptics plugin, VFX, transitions, battery tuning.
-- **Godot 4.8** stable before any store release (D-012).
+- ~~**Godot 4.8** stable before any store release (D-012).~~ Superseded by D-055: we stay on Godot 4.7.2 and skip screen readers for now. iOS ships first (D-054).
 
 ## Not in the MVP
 

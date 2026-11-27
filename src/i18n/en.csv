@@ -142,7 +142,7 @@ FEED_SHEET_TITLE,Feed
 FEED_SKIP_ANIM_BTN,Skip
 FEED_STEP_FLOUR,Flour
 FEED_STEP_HOOCH,Hooch
-FEED_STEP_HYDRATION,Hydration
+FEED_STEP_HYDRATION,Water
 FEED_STEP_TIMING,Timing
 FEED_SUMMARY,Keep {grams} g · {ratio} · {flour}
 FLOUR_RYE,Rye
@@ -153,6 +153,7 @@ FLOUR_WHITE_BREAD,Bread flour
 FLOUR_WHITE_BREAD_NOTE,"The mildest. A tall, smooth dome."
 FLOUR_WHOLE_WHEAT,Whole wheat
 FLOUR_WHOLE_WHEAT_NOTE,"Tan and flecked, with a sourer smell."
+FORECAST_HINT,At its best {window}
 FORECAST_LINE,It should be at its best {window}.
 GLOSS_DISCARD,"Discard: the part you take out before feeding, so the jar doesn’t overflow."
 GLOSS_FEED,"Feed: fresh flour and water, so it has food again."
@@ -168,6 +169,7 @@ HYDRATION_STANDARD,Standard
 HYDRATION_STANDARD_NOTE,Equal weights of flour and water. The usual.
 HYDRATION_STIFF,Stiff
 HYDRATION_STIFF_NOTE,Water at 60% of the flour. Thick and firm.
+INSPECT_ANY_DORMANT_RISEN_MEAN,The cold has paused it partway. It will sink slowly while it rests.
 INSPECT_ANY_MOLDY_MEAN,Please discard all of it and wash the jar.
 INSPECT_ANY_MOLDY_OBS,There’s mold on the surface. No need to look closer.
 INSPECT_BUBBLES_ACTIVE_MEAN,It’s making gas steadily. That gas is what raises bread.
@@ -198,9 +200,11 @@ INSPECT_CONSISTENCY_ACTIVE_MEAN,Good activity. It’s on track.
 INSPECT_CONSISTENCY_ACTIVE_OBS,Softer and airier as it fills with gas.
 INSPECT_CONSISTENCY_AT_PEAK_MEAN,This texture means it’s strong and ready.
 INSPECT_CONSISTENCY_AT_PEAK_OBS,"Light, stretchy and webby, like marshmallow fluff."
+INSPECT_CONSISTENCY_AT_PEAK_RYE_OBS,"Bubbly and pasty, like wet clay full of bubbles. No strands."
 INSPECT_CONSISTENCY_AT_PEAK_STIFF_OBS,"Puffy and spongy, like a well-risen dough."
 INSPECT_CONSISTENCY_COLLAPSING_MEAN,Acid and time soften it as the food runs out. Feed soon.
 INSPECT_CONSISTENCY_COLLAPSING_OBS,Looser now. The web is breaking down.
+INSPECT_CONSISTENCY_COLLAPSING_RYE_OBS,Looser now. The bubbly paste is settling.
 INSPECT_CONSISTENCY_DEVELOPING_MEAN,Mostly fresh food so far. Give it time.
 INSPECT_CONSISTENCY_DEVELOPING_OBS,"Still thick, with a few small air pockets."
 INSPECT_CONSISTENCY_DORMANT_MEAN_COLD,The cold keeps it firm and quiet.
@@ -216,6 +220,8 @@ INSPECT_CONSISTENCY_HUNGRY_OBS,"Thin and soupy, almost pourable."
 INSPECT_CONSISTENCY_HUNGRY_STIFF_OBS,"Softer and sticky, but it still holds its shape."
 INSPECT_CONSISTENCY_NEAR_PEAK_MEAN,Strands are forming. A sign of a strong rise.
 INSPECT_CONSISTENCY_NEAR_PEAK_OBS,Light and spongy. It stretches a little off the spoon.
+INSPECT_CONSISTENCY_NEAR_PEAK_RYE_MEAN,"Rye makes a bubbly paste, not strands. Bubbles are the sign."
+INSPECT_CONSISTENCY_NEAR_PEAK_RYE_OBS,"Airy and bubbly, a little pasty, like a thick mousse."
 INSPECT_CONSISTENCY_UNHEALTHY_MEAN,"A warning sign. Check the surface, then feed it."
 INSPECT_CONSISTENCY_UNHEALTHY_OBS,Slack and lifeless under a dry skin.
 INSPECT_DEVELOPMENT_MATURE_MEAN,"A mature starter, strong enough to raise bread."
@@ -281,6 +287,8 @@ INSPECT_SURFACE_MOLDY_MEAN,"It can’t be saved. Discard all of it, even parts t
 INSPECT_SURFACE_MOLDY_TINT_OBS,"Fuzzy spots of mold, and pink or orange spoilage."
 INSPECT_SURFACE_NEAR_PEAK_MEAN,Nearly at its peak.
 INSPECT_SURFACE_NEAR_PEAK_OBS,"Domed, with bubbles stretching the top."
+INSPECT_SURFACE_RISING_RYE_OBS,No dome. The top is opening into cracks as it rises.
+INSPECT_SURFACE_SUNKEN_RYE_OBS,"The cracked top has sunk a little, and the cracks are softening."
 INSPECT_SURFACE_UNHEALTHY_MEAN,"Warning sign. Fuzz, or pink or orange color, means discard. If none, feed it now."
 INSPECT_SURFACE_UNHEALTHY_OBS,"A dull, dry skin across the top, maybe with dark liquid."
 JAR_A11Y_DESC,Drag to turn the jar. Pinch to look closer.
@@ -450,6 +458,7 @@ ONBOARD_NOTE_BTN_SKIP,I know starters
 ONBOARD_NOTE_BTN_TOUR,Show me around
 ONBOARD_NOTE_TITLE,It came with a note
 ONBOARD_SKIP_DONE,All yours. The journal has notes if you want them.
+ONBOARD_SKIP_TOUR_BTN,Skip tour
 ONBOARD_SMELL_AFTER,The smell changes as it rises. Your nose will learn it.
 ONBOARD_SMELL_COACH,Now smell it. Tap Smell.
 ONBOARD_TIMELAPSE_BADGE,Time-lapse
@@ -480,6 +489,7 @@ REACT_MOVE_COUNTER,Back on the counter. Its usual pace.
 REACT_MOVE_PROOFING,Into the proofing box. Warm and steady.
 REACT_MOVE_WARM,"Somewhere warmer. A faster rise, and hungry sooner."
 REASON_ADOPT,It already has a name.
+REASON_EMPTY_JAR,The jar is empty. Start again when you’re ready.
 REASON_ENVIRONMENT,That place isn’t available.
 REASON_EVENT,That note is already gone.
 REASON_FLOUR,Pick a flour to feed with.
@@ -504,11 +514,16 @@ SETTINGS_A11Y,Settings
 SETTINGS_HAPTICS,Vibration
 SETTINGS_KEEP_MESSAGES,Keep messages on screen
 SETTINGS_REDUCE_MOTION,Reduce motion
+SETTINGS_SOUND,Sound
 SETTINGS_TEXT_LARGE,Large
 SETTINGS_TEXT_LARGEST,Largest
 SETTINGS_TEXT_SIZE,Text size
 SETTINGS_TEXT_STANDARD,Standard
+SETTINGS_TIME_LAPSE,Time-lapse on return
 SETTINGS_TITLE,Settings
+SETTINGS_VOLUME,Volume
+SETTINGS_WARNING_ALERT,Warning alert
+SETTINGS_WARNING_ALERT_NOTE,One alert if it shows warning signs while you’re away.
 SMELL_ACETONE_1,"Sharp and solvent, like nail polish remover."
 SMELL_ACETONE_2,"Sharp and chemical. Nail polish remover, clearly."
 SMELL_ACETONE_3,"Like nail polish remover. Odd, from flour and water."
@@ -530,6 +545,9 @@ SMELL_CHEESY_TITLE,Cheesy
 SMELL_FAINT_1,Barely anything. The cold keeps its smells to itself.
 SMELL_FAINT_2,"Faint and cool. A ghost of tang, not much more."
 SMELL_FAINT_MEANING,"It’s cold, so everything slows down, smells included."
+SMELL_FAINT_MILD_1,"Mild and mixed. A little flour, a little yeast."
+SMELL_FAINT_MILD_2,Soft and quiet. Flour and a touch of yeast.
+SMELL_FAINT_MILD_MEANING,A mild smell is normal. It grows as the starter works.
 SMELL_FAINT_TITLE,Very faint
 SMELL_FRESH_YEASTY_1,"Fresh and bready, like a bakery door opening."
 SMELL_FRESH_YEASTY_2,"Warm and yeasty, like bread dough left to rise."

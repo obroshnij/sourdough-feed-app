@@ -183,6 +183,7 @@ The status pill's `accessibility_name` is the status word itself (12, within 40)
 | `REASON_HOOCH_CHOICE` | Pour off the hooch or stir it in first. | 60 |
 | `REASON_ENVIRONMENT` | That place isn't available. | 60 |
 | `REASON_INSPECT_KIND` | That one can't be inspected yet. | 60 |
+| `REASON_EMPTY_JAR` | The jar is empty. Start again when you're ready. | 60 |
 | `REASON_NAME` | A name needs 1 to 16 characters. | 60 |
 | `REASON_ADOPT` | It already has a name. | 60 |
 | `REASON_EVENT` | That note is already gone. | 60 |
@@ -208,6 +209,11 @@ Used by the UI component inventory (ux-design §14 and §17). Settings rows so f
 | `SETTINGS_TEXT_LARGE` | Large | 12 |
 | `SETTINGS_TEXT_LARGEST` | Largest | 12 |
 | `SETTINGS_REDUCE_MOTION` | Reduce motion | 24 |
+| `SETTINGS_SOUND` | Sound | 24 |
+| `SETTINGS_VOLUME` | Volume | 24 |
+| `SETTINGS_TIME_LAPSE` | Time-lapse on return | 24 |
+| `SETTINGS_WARNING_ALERT` | Warning alert | 24 |
+| `SETTINGS_WARNING_ALERT_NOTE` | One alert if it shows warning signs while you're away. | 60 |
 | `SETTINGS_HAPTICS` | Vibration | 24 |
 | `SETTINGS_KEEP_MESSAGES` | Keep messages on screen | 24 |
 
@@ -228,6 +234,7 @@ Shown on the feed result card and on a status tap during a rise phase. Not shown
 | Key | Text | Max |
 |---|---|---|
 | `FORECAST_LINE` | It should be at its best {window}. | 60 |
+| `FORECAST_HINT` | At its best {window} | 34 |
 
 ## 5. Smell
 
@@ -239,7 +246,7 @@ Shown on the feed result card and on a status tap during a rise phase. Not shown
 | Body | The primary descriptor's sensory line `_<n>` (§1.4), then a note on the secondary descriptor if its intensity is at least 0.15 (**ASSUMED**): `SMELL_NOTE_FAINT` below 0.5, `SMELL_NOTE_CLEAR` at 0.5 or more. Max 60 + 1 + 30 = 91, so the note slot is 29 in practice. Checked below. |
 | Meaning | The primary descriptor's `_MEANING`, for the first 3 times that descriptor appears. Then one tap away. **`musty` never fades.** |
 | `musty` rule | If `musty` has any intensity, it is the primary descriptor, so a warning is never buried in a note. |
-| Faint rule | If every descriptor is below 0.3 (cold `dormant`) **and `musty` is absent**, use the `SMELL_FAINT_*` lines and note the top descriptor. At the watch stage `musty` sits at 0.2 to 0.3, so the faint rule must never hide it (scientist). |
+| Faint rule | If every descriptor is below 0.3 **and `musty` is absent**, the smell is faint. Pick the line set by `faint_cause` (below), and note the top descriptor. At the watch stage `musty` sits at 0.2 to 0.3, so the faint rule must never hide it (scientist). |
 | `moldy` | Use `SMELL_MOLDY_*` only. No sniffing (scientist). |
 | Third descriptor | Not shown in text. The scientist suggests the top two or three; the slot fits two. |
 
@@ -379,10 +386,13 @@ The ribbon marks a smell the player hasn't met before. `SMELL_TRY_INSPECT` and i
 | `SMELL_FAINT_1` | Barely anything. The cold keeps its smells to itself. | 60 |
 | `SMELL_FAINT_2` | Faint and cool. A ghost of tang, not much more. | 60 |
 | `SMELL_FAINT_MEANING` | It's cold, so everything slows down, smells included. | 90 |
+| `SMELL_FAINT_MILD_1` | Mild and mixed. A little flour, a little yeast. | 60 |
+| `SMELL_FAINT_MILD_2` | Soft and quiet. Flour and a touch of yeast. | 60 |
+| `SMELL_FAINT_MILD_MEANING` | A mild smell is normal. It grows as the starter works. | 90 |
 | `SMELL_MOLDY_TITLE` | Best not | 20 |
 | `SMELL_MOLDY_BODY` | No need to sniff a moldy jar. The surface says enough. Please discard it. | 90 |
 
-`SMELL_FAINT_<n>` uses `n = 1 + feed_count % 2`.
+`SMELL_FAINT_<n>` and `SMELL_FAINT_MILD_<n>` use `n = 1 + feed_count % 2`. **Which set (spec §13.1 `faint_cause`):** `cold` (below about 11 °C) uses `SMELL_FAINT_*`. `mild` (a normal-temperature starter early in a rise) uses `SMELL_FAINT_MILD_*`. The cold lines are never used for `mild`. `SMELL_FAINT_TITLE` serves both. `SMELL_TRY_INSPECT` shows only for `faint`, never with `musty`, which gets the Inspect button alone so the warning isn't softened.
 
 ## 6. Inspection
 
@@ -405,6 +415,7 @@ P0 kinds: `height`, `bubbles`, `surface`. P1: `consistency`, `development` (game
 | `INSPECT_CHIP_DEVELOPMENT` | Development | 11 |
 | `INSPECT_ANY_MOLDY_OBS` | There's mold on the surface. No need to look closer. | 90 |
 | `INSPECT_ANY_MOLDY_MEAN` | Please discard all of it and wash the jar. | 90 |
+| `INSPECT_ANY_DORMANT_RISEN_MEAN` | The cold has paused it partway. It will sink slowly while it rests. | 90 |
 | `INSPECT_RECOVERING_MEAN` | Weaker than usual for now. Regular feeds rebuild it. | 90 |
 
 ### 6.1 Bubbles (P0)
@@ -478,6 +489,8 @@ The surface is where the player learns the real discard rule, so its warning and
 | `INSPECT_SURFACE_AT_PEAK_WHOLE_WHEAT_OBS` | A rounded dome, tan and flecked, freckled with bubbles. | 90 |
 | `INSPECT_SURFACE_AT_PEAK_RYE_OBS` | A low top, cracked and pitted with bubbles. | 90 |
 | `INSPECT_SURFACE_AT_PEAK_SPELT_OBS` | A low, soft dome, freckled with bubbles. | 90 |
+| `INSPECT_SURFACE_RISING_RYE_OBS` | No dome. The top is opening into cracks as it rises. | 90 |
+| `INSPECT_SURFACE_SUNKEN_RYE_OBS` | The cracked top has sunk a little, and the cracks are softening. | 90 |
 | `INSPECT_SURFACE_AT_PEAK_MEAN` | The dome means peak. A great moment to feed. | 90 |
 | `INSPECT_SURFACE_COLLAPSING_OBS` | The dome has sunk in the middle, wrinkled and pocked. | 90 |
 | `INSPECT_SURFACE_COLLAPSING_MEAN` | Past peak. It's falling back. | 90 |
@@ -525,9 +538,15 @@ The surface is where the player learns the real discard rule, so its warning and
 | `INSPECT_CONSISTENCY_UNHEALTHY_OBS` | Slack and lifeless under a dry skin. | 90 |
 | `INSPECT_CONSISTENCY_UNHEALTHY_MEAN` | A warning sign. Check the surface, then feed it. | 90 |
 | `INSPECT_CONSISTENCY_FRESHLY_FED_STIFF_OBS` | Firm, like a soft bread dough. | 90 |
+| `INSPECT_CONSISTENCY_NEAR_PEAK_RYE_OBS` | Airy and bubbly, a little pasty, like a thick mousse. | 90 |
+| `INSPECT_CONSISTENCY_NEAR_PEAK_RYE_MEAN` | Rye makes a bubbly paste, not strands. Bubbles are the sign. | 90 |
+| `INSPECT_CONSISTENCY_AT_PEAK_RYE_OBS` | Bubbly and pasty, like wet clay full of bubbles. No strands. | 90 |
+| `INSPECT_CONSISTENCY_COLLAPSING_RYE_OBS` | Looser now. The bubbly paste is settling. | 90 |
 | `INSPECT_CONSISTENCY_AT_PEAK_STIFF_OBS` | Puffy and spongy, like a well-risen dough. | 90 |
 | `INSPECT_CONSISTENCY_HUNGRY_STIFF_OBS` | Softer and sticky, but it still holds its shape. | 90 |
 | `INSPECT_CONSISTENCY_DORMANT_STIFF_OBS_STARVED` | Soft and sticky. | 90 |
+
+The `_RYE_` lines replace the `NEAR_PEAK`, `AT_PEAK` and `COLLAPSING` lines when the sim's consistency readout is `airy_pasty` (rye share at least 0.5, spec §14). The `NEAR_PEAK` meaning is replaced too. The `AT_PEAK` and `COLLAPSING` meaning lines are unchanged because they name no strands. No rye line mentions strands, stretch or a web, except to say there are none.
 
 ### 6.5 Development (P1)
 
@@ -577,7 +596,7 @@ Flow (ux §8, mechanics §2): the sheet opens with last time's choices preselect
 | `FEED_STEP_HOOCH` | Hooch | 14 |
 | `FEED_STEP_TIMING` | Timing | 14 |
 | `FEED_STEP_FLOUR` | Flour | 14 |
-| `FEED_STEP_HYDRATION` | Hydration | 14 |
+| `FEED_STEP_HYDRATION` | Water | 14 |
 | `FEED_MIX_BTN` | Mix | 18 |
 | `FEED_MIX_HOLD` | Hold to mix. | 60 |
 | `FEED_SKIP_ANIM_BTN` | Skip | 18 |

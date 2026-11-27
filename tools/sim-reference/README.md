@@ -1,10 +1,11 @@
 # Sim reference model
 
-Owner: `sourdough-scientist`. One self-contained Python file, `sim.py`, that implements [`docs/starter-simulation-spec.md`](../../docs/starter-simulation-spec.md) **v1**. It is the oracle for the Phase 2 golden tests: the GDScript sim in `src/sim/` must reproduce its numbers. It is not game code and never ships.
+Owner: `sourdough-scientist`. One self-contained Python file, `sim.py`, that implements [`docs/starter-simulation-spec.md`](../../docs/starter-simulation-spec.md) **v1.1**. It is the oracle for the Phase 2 golden tests: the GDScript sim in `src/sim/` must reproduce its numbers. It is not game code and never ships.
 
 ## What it implements
 
-- Spec v1: every equation in §3 to §11, the **§7 per-step procedure** (simultaneous explicit Euler, 60 s fixed step, start-of-step `temp_c`, then clamp, mold latch, peaks, temperature lag, clock), feeding in §6 (including `stir_in` and generation-weighted maturity), state and `rise_phase` derivation in §12 (with `dormant_cause`), and the smell model in §13 (musty first and undamped, ties by vision.md order).
+- Spec v1.1: every equation in §3 to §11, the **§7 per-step procedure** (simultaneous explicit Euler, 60 s fixed step, start-of-step `temp_c`, then clamp, mold latch, peaks, temperature lag, clock), feeding in §6 (including `stir_in` and generation-weighted maturity), state and `rise_phase` derivation in §12 (with `dormant_cause`), the smell model in §13 (musty first and undamped, ties by vision.md order), and the §13.1 smell check (`smell_check()`, vector V21).
+- v1.1 changed only smell (the `pleasantly_tangy` curve) and added the smell check. Stored fields and states are unchanged, so the `trace` output is byte-identical to v1 and the committed golden traces stay valid.
 - `feed_u` is passed in explicitly. `feed_jitter = 0.95 + 0.10 × feed_u`, as in §17.
 - Not implemented: the §14 inspection readouts and the §14.1 event rules. Those are thin lookups over the state, owned by the game layer.
 
@@ -13,7 +14,7 @@ Owner: `sourdough-scientist`. One self-contained Python file, `sim.py`, that imp
 Python 3.8 or newer, standard library only. Verified with Python 3.15.2 on macOS. From the repo root:
 
 ```bash
-python3 -I tools/sim-reference/sim.py vectors        # V1 to V20 (spec §18), with 243 range checks
+python3 -I tools/sim-reference/sim.py vectors        # V1 to V21 (spec §18), with 269 range checks
 python3 -I tools/sim-reference/sim.py calibration    # calibration rows (spec §15)
 python3 -I tools/sim-reference/sim.py all            # both, about 5 s on the Mac
 python3 -I tools/sim-reference/sim.py trace OUTDIR   # golden JSON traces (below)
@@ -36,7 +37,7 @@ python3 -I tools/sim-reference/sim.py trace OUTDIR   # golden JSON traces (below
 
 1. Change parameters only in the `P`, `FLOURS`, `COVER_DRY`, `CONTAINER_DRY` and `LOCATIONS` tables at the top of `sim.py`, together with the matching spec sections.
 2. Run `vectors` and `calibration`.
-3. Copy the new ranges into spec §18 (V1 to V20) and §15. Each vector runs at `feed_u` 0, 0.5 and 1 (jitter 0.95, 1.00, 1.05), and the printed range covers all three.
+3. Copy the new ranges into spec §18 (V1 to V21) and §15. Each vector runs at `feed_u` 0, 0.5 and 1 (jitter 0.95, 1.00, 1.05), and the printed range covers all three.
 4. Tell `qa-engineer`, because the golden tests change.
 
 How to read the output: "at_peak" is when that phase starts; "peak" is the max-rise time and height. Checkpoint rows show the state (all states seen across the three draws), the rise range, the middle draw's displayed smells, whether hooch is visible (≥ 0.10), and the mold stage.

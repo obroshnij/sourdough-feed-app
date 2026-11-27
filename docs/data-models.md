@@ -259,9 +259,10 @@ Cap: **400 entries or 100 KB of saved bytes** (`JournalEntry.CAP`, `BYTE_CAP`), 
 | `dullness` | float | 0..1 | `unhealthy` look, before any mold (art and scientist decide) |
 | `mold` | float | 0..1 | Nonzero **only** when the state is `moldy` (hard rule 2) |
 | `big_bubble` | float | 0..1 | Nonzero for the cycle's big bubble: from the step `rise_phase` enters `near_peak` while `feed_u >= 0.85` (spec §14.1). The look and the decay are art's |
+| `crack` | float | 0..1 | **Phase 4, agreed with `art-director`, lands with T1's Phase 4 contracts.** Rye's fissured top. Invariant: `crack > 0` exactly when the `surface` shape is `cracked` or `sunken_cracked`, the rule in `starter-simulation-spec.md` §14 (v1.1, "Rye cracks"). The rule lives there, not here. So cracks stay through the collapse and are never shown while `moldy` or `unhealthy`. The curve inside that region is art's, with a visible floor so that "exactly when" holds at the thresholds. A property test pins both directions against `Inspection.read(state, env, &"surface")` |
 | `time_override` | float | -1 or >= 0 | -1 = use shader `TIME`. Tests and captures set a fixed value |
 
-Non-uniform fields: `cover: StringName` (which lid node is visible).
+Non-uniform fields: `cover: StringName` (which lid node is visible). The place set (Phase 4, `art-direction.md` §19) is **not** a `VisualParams` field: it comes from the environment, and the view reads `StarterSnapshot.location` from `state_changed` (`architecture.md` §8.1).
 
 ## 8. Readouts
 
@@ -341,6 +342,9 @@ Keep priority: attention, milestone, peak, hunger (one merged row; `hungry_again
 | `show_time_lapse` | bool | true | "Show time-lapse on return". Off still shows the summary card |
 | `haptics` | bool | true | ux-design §15. Every haptic moment also has a sound (D-043) |
 | `keep_messages` | bool | false | "Keep messages on screen": toasts and cards stay until dismissed (D-043) |
+| `sound` | bool | true | **Phase 4, in T1's worktree, not merged yet** (D-056, `ux-design.md` §14.3). False mutes every sound. Haptics are separate |
+| `master_volume` | float | 1.0 | **Phase 4, same.** 0..1 (the slider moves in 0.1 steps), the master volume T2's audio player applies on top of the mix. The default is 100% because the mix is already quiet, so the phone's volume buttons are the main control (sound-designer). A missing or NaN value loads as 1.0; an out-of-range value is clamped |
+| `notifications` | bool | false | **Phase 4, same** (D-025, D-057). The one opt-in "warning signs" notification, off until the player turns it on |
 
 ### 9.2 File layout
 Line 1 is a header. Everything after the first newline is the payload, byte for byte:

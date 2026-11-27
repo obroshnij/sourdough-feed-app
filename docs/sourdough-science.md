@@ -74,6 +74,8 @@ Never present a starter with fuzz or pink, orange or red color as safe or fixabl
 - Rye raises acetic acid. **medium** [PL]
 - Different flours select for different mature communities. **medium**, via summary [SUC]
 - Rye has little functional gluten, so rye starters rise less and crack or pit instead of forming a smooth dome. A slight pinkish-gray tinge from rye is not the same as pink streaks. **medium** (baking references; [SUC] summary notes rye pink tinge from blog sources, low)
+- A rye starter's top cracks as it rises, and bakers read the cracks as a sign of ripeness. Past its peak a starter sinks to a concave top. **low to medium** (consistent baker reports, low authority) [RYE]
+- Whether rye cracks close as it falls: no source found. The game keeps them while it sinks, because a paste with little gluten has no elastic web to pull the splits shut. **low** (my reasoning)
 - Exact speed and sourness multipliers per flour have no clean source. The sim marks them as tuned.
 
 ## 6. Activity: rise, peak, fall, bubbles, smell, texture, acidity
@@ -85,6 +87,8 @@ Never present a starter with fuzz or pink, orange or red color as safe or fixabl
 - The float test gives false positives. **medium** [PL]
 - **Acidity:** a ripe starter typically sits around pH 3.5 to 4.3. The study above measured 4.2 to 4.3 after a full refresh cycle. **medium** [DC14] for the measured range; the sim's pH display is approximate.
 - **Smells over a cycle:** wet flour right after feeding, then yeasty, fruity and yogurt-like, then tangy at peak, then sharper, boozy and acetone-like as it goes hungry. **medium** [PL], [TFL]
+- **Cold mutes smell.** At lower temperatures fewer volatile compounds move from a wet food into the air above it, so a cold starter smells weaker. In one model food, 22 of 25 measured volatiles rose in the headspace as it warmed from 25 to 55 °C [C25]. The same equilibrium effect is why soil gases carry more volatile compounds when warmer [EPAH]. **medium** (the direction is general physical chemistry; neither source measured a starter or fridge temperatures, and a few compounds go the other way)
+- **When the nose can't tell, look.** A musty smell can point to mold, but smell can't confirm or rule out mold. Only a look for fuzz or color can (§1, §9.1). In the cold, or early in a rise when the smell is mild and mixed, the surface shows more: hooch and how dark it is, a dry skin, a dome or a sunken top. **medium** (combines [KA23], [KA18], [EPA] and the point above)
 
 ## 7. Maturity
 
@@ -186,4 +190,7 @@ Truly ending a mature starter takes heat (near 60 °C), mold, or spoilage. Hunge
 | [SJa] | The Sourdough Journey. My sourdough starter smells like acetone. https://thesourdoughjourney.com/my-sourdough-starter-smells-like-acetone/ Via summary. |
 | [SJb] | The Sourdough Journey. The first 10 days of a new sourdough starter (PDF). https://thesourdoughjourney.com/wp-content/uploads/2023/11/TSJ-The-First-10-Days-of-a-New-Sourdough-Starter.pdf Via summary. |
 | [TFL] | The Fresh Loaf forum threads on acetone smell, e.g. https://www.thefreshloaf.com/comment/481927. Community consensus, low authority. |
+| [RYE] | Rye starter surface reports, read 2026-11-27: The Fresh Loaf thread on dusting a rye sour with flour to gauge ripeness ("as the starter expands, cracks will appear"), https://www.thefreshloaf.com/comment/157469 ; Kate Downham, Floury Friday, "Starter ripeness: when it matters, when it doesn't, and how to tell" (cracks at peak, slightly collapsed after), https://katedownham.kit.com/posts/ripe-starter . Community and blog sources, low authority. |
+| [C25] | Chen J, Pu D, Cao B, Sun B, Zhang Y (2025). Effect of temperature and water addition ratio on the aroma release of yeast proteins. *Foods* 14(6):1037. https://doi.org/10.3390/foods14061037 (read 2026-11-27: tested at 25, 35, 45 and 55 °C; in the water model, 22 volatiles rose with temperature and 3 fell) |
+| [EPAH] | US EPA. Estimated Henry's law constants: background (soil-gas partitioning and its temperature dependence). https://www3.epa.gov/ceampubl/learn2model/part-two/onsite/esthenry-background.html Via summary. |
 | [KAHM] | Kahm yeast guidance: Brød & Taylor starter FAQ https://brodandtaylor.com/blogs/recipes/starter-creation-faq ; Cultures for Health https://www.culturesforhealth.com/white-film-cultured-vegetables-mold. Via summary, low authority. |

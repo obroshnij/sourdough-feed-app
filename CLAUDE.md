@@ -23,7 +23,8 @@ A cozy 3D virtual pet for iOS and Android. The player keeps a living sourdough s
 | Blender | `/Applications/Blender.app/Contents/MacOS/Blender` | 5.3.0 |
 | Xcode | `/Applications/Xcode.app` | 27.2, iPhone 17 Pro simulators |
 | JDK | `/Applications/Android Studio.app/Contents/jbr/Contents/Home` | OpenJDK 21.0.10 |
-| Android SDK | `~/Library/Android/sdk` | Missing platform 36, build-tools 36.1.0 and the NDK |
+| Android SDK | `~/Library/Android/sdk` | Missing platform 36, build-tools 36.1.0 and the NDK. Deferred to the Android phase (D-054) |
+| ffmpeg | `/opt/homebrew/bin/ffmpeg` | 9.0.2. Needed by the audio lint (`art/audio/scripts/verify_audio.py`) and the Ogg room loops |
 
 Godot 4.7.2 export templates are installed in `~/Library/Application Support/Godot/export_templates/4.7.2.stable/`, checksum-verified against the official SHA512-SUMS (2026-11-26). There is no physical test phone yet: performance numbers from the Mac or simulators are estimates and must be labeled that way.
 
@@ -36,7 +37,7 @@ Only commands that have actually been run go here.
 /Applications/Blender.app/Contents/MacOS/Blender --version  # Blender 5.3.0
 
 # Reference simulation: checks test vectors V1 to V20 against the spec (about 3 s)
-python3 -I tools/sim-reference/sim.py vectors   # ends "Checks: 243 run, 0 failed", exit 0; exit 1 on any miss
+python3 -I tools/sim-reference/sim.py vectors   # ends "Checks: 269 run, 0 failed", exit 0; exit 1 on any miss (spec v1.1)
 
 # Full test gate: imports first, runs every Godot test plus 5 lints; --strict fails on any skip (D-041).
 # If Godot's first import crashes (an engine bug, test-plan §1), run.sh retries once and the RUN line says
