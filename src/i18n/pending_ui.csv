@@ -2,9 +2,9 @@ keys,en
 FEED_DISCARD_LINE,Take out {grams} g first.
 SMELL_NEW_RIBBON,New smell
 UI_BACK_A11Y,Back
-SETTINGS_HAPTICS,Haptics
+SETTINGS_HAPTICS,Vibration
 SETTINGS_KEEP_MESSAGES,Keep messages on screen
 NAME_BTN_PICK,Pick for me
 MEMORIAL_BTN_NEXT,Continue
-RECOVERED_TITLE,A fresh start
-RECOVERED_BODY,"Your last save couldn't be read, so a new starter is here. The old file is kept, just in case."
+RECOVERED_TITLE,Your save couldn't be read
+RECOVERED_BODY,"A new starter is here instead. The old file is kept, just in case."
