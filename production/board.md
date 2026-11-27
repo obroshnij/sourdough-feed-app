@@ -29,9 +29,10 @@ Owner: director (the only writer). Teammates report by message. Last updated 202
 | Step | Owner | Status |
 |---|---|---|
 | Contracts commit: actions, events, return summary, time-lapse feed, journal API, new game and naming, night fade, settings fields, stable `project.godot` | `t1-sim-core` | in progress |
+| Slice event rules: `first_rise`, `peaked_while_away` and `peak_now`, `hungry_again`, `hooch_forming`, `back_to_strength`, `warning_signs`, `mold_found` (D-032 T4 split) | `t4-events` | in progress |
 | Wider curved backdrop for yaw beyond ±15° | `art-director` | in progress |
 | AC-01 to AC-12 harness, manual checklists, look probe rows R12 and R13, the 411×914 profile, the flaky sheet test | `qa-engineer` | in progress |
-| Event rules, catch-up budget, journal store | `t1-sim-core` | after contracts |
+| Wire rules into catch-up and live steps, return summary classes, catch-up budget | `t1-sim-core` | after contracts |
 | Live easing, transitions, bubbles, wisps, inspection cameras, time-lapse, evening light | `t2-view` | after contracts |
 | Feed, place, smell and inspect sheets, event cards, away summary, journal, naming, moldy locks, settings | `t3-ui` | after contracts |
 | Exit: AC-01 to AC-12 green under `--strict` on a fresh clone, and the user plays on the Mac and the Android emulator | director | |
