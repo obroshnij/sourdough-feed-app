@@ -7,7 +7,8 @@
 #   tests/run.sh --strict           a skipped test or lint counts as a failure (phase exit gate)
 #   tests/run.sh --selftest         prove the runner catches every known false pass (R-9)
 #
-# Environment: GODOT (engine binary), RUN_TIMEOUT_S (outer timeout per Godot call, default 300).
+# Environment: GODOT (engine binary), RUN_TIMEOUT_S (outer timeout per Godot call, default 600; the suite
+# took about 210 s on the Mac at the Phase 3 exit, so 300 s left too little room on a loaded machine).
 # Exit 0 only when every step passed. The last line is always "RUN: PASS ..." or "RUN: FAIL ...".
 # Written for the bash 3.2 that ships with macOS.
 
@@ -15,7 +16,7 @@ set -u
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GODOT="${GODOT:-/Applications/Godot.app/Contents/MacOS/Godot}"
-RUN_TIMEOUT_S="${RUN_TIMEOUT_S:-300}"
+RUN_TIMEOUT_S="${RUN_TIMEOUT_S:-600}"
 RESULT_RE='^RESULT: ([0-9]+) passed, ([0-9]+) failed, ([0-9]+) skipped$'
 # Set when the first --import crashed and the retry succeeded. Shown on the RUN line, never hidden.
 IMPORT_NOTE=""
@@ -28,7 +29,7 @@ while [ $# -gt 0 ]; do
     --selftest) MODE=selftest ;;
     --strict) STRICT=1 ;;
     --) shift; RUNNER_ARGS=("$@"); break ;;
-    -h|--help) sed -n '2,12p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,13p' "$0"; exit 0 ;;
     *) echo "run.sh: unknown option $1 (see --help)"; echo "RUN: FAIL bad arguments"; exit 2 ;;
   esac
   shift

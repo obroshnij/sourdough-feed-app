@@ -75,7 +75,7 @@ Numbers taken from a draft are tagged, and they move when the owning spec moves.
 | R-3 | A `Logger` subclass registered with `OS.add_logger()`. Any `_log_error` during a test (a null call, `push_error`, an `assert`) fails that test. |
 | R-4 | Tests extend `TestCase` (`tests/lib/case_base.gd`) and assert through its `check*` methods. A test with 0 checks fails. Tests never rely on `assert()`, which release builds strip. `skip(reason)` marks a test skipped. A failure recorded before the skip still fails it. `expect_error(fragment)` declares one logged error, which then fails the test only if it never appears. |
 | R-5 | One `PASS`, `SKIP <file>::<test> <reason>` or `FAIL <file>::<test> <message>` line per test (a FAIL may add indented detail lines). The last line is exactly `RESULT: <n> passed, <m> failed, <k> skipped`. Then `quit(1 if m > 0 else 0)`. |
-| R-6 | `run.sh` applies the outer timeout `perl -e 'alarm 300; exec @ARGV'` (`RUN_TIMEOUT_S`). It passes only if the exit code is 0, the last stdout line matches `^RESULT: [0-9]+ passed, 0 failed, [0-9]+ skipped$`, and n > 0. Skips are printed and counted, never passes. `run.sh --strict` (the phase exit gate) also fails on any skip. Before the runner it runs five Python lints: `check_copy.py`, `build_catalog.py --check`, `sim.py vectors`, `verify_glb.py` on `assets/3d/jar_v0.glb` (AC-01.1, D-031, added in Phase 3), and golden-fresh (the committed traces equal a fresh `sim.py trace`). |
+| R-6 | `run.sh` applies the outer timeout `perl -e 'alarm 600; exec @ARGV'` (`RUN_TIMEOUT_S`; 300 until the Phase 3 exit, when the suite reached about 210 s on the Mac). It passes only if the exit code is 0, the last stdout line matches `^RESULT: [0-9]+ passed, 0 failed, [0-9]+ skipped$`, and n > 0. Skips are printed and counted, never passes. `run.sh --strict` (the phase exit gate) also fails on any skip. Before the runner it runs five Python lints: `check_copy.py`, `build_catalog.py --check`, `sim.py vectors`, `verify_glb.py` on `assets/3d/jar_v0.glb` (AC-01.1, D-031, added in Phase 3), and golden-fresh (the committed traces equal a fresh `sim.py trace`). |
 | R-7 | User args after `--`: `--filter=<substring of file::test>` and `--seeds=<n>` (default 100). `--update-golden` is refused when `CI=1`. Any other argument fails the run. Every test file is loaded before filtering, so a filter never hides a broken file. |
 | R-8 | Loads every `.gd` under `res://src/` and fails on any that can't instantiate (LINT-03, `tests/lint/test_lint_03_typing.gd`). |
 | R-9 | `run.sh --selftest` runs each case in `tests/runner_selftest/cases/` as a throwaway project through `run.sh`'s own judge, and checks both the outcome and the reason (`expect_output`). 35 cases (35 of 35 on 2026-11-27). The two added in Phase 3 run a stand-in engine, `tests/runner_selftest/fake_godot_abort.sh`, whose `--import` dies like the crash above: once (retried, then passes with the WARN) and twice (fails with "crashed again"). The original 33: a positive control, a parse error, an untyped declaration, a non-TestCase file, an empty suite, a null call, `push_error`, a failed `assert`, an error in a test's `_init`, 0 checks, skips (counted, can't hide a failure, fail under `--strict`, milestone gate), a hang, no tests, a runner parse error, a runner exiting 0 with failures or 1 without, output after `RESULT`, the filter (and that it can't hide a parse error), `--update-golden` under `CI=1`, an unknown argument, a fresh checkout and a stale `.godot/` (each also run without `--import` to prove R-0 is what makes it come out right), and planted LINT-01 and LINT-03 violations plus a clean near-miss file. |
@@ -233,7 +233,7 @@ Layout is per data-models §9.
 | SAVE-10 | `version` > CURRENT | Moved to quarantine, never overwritten. The next candidate loads. |
 | SAVE-11 | Migration | Every released version keeps `tests/fixtures/saves/v<N>_*.json` forever. Each one loads, migrates and equals the expected current-version payload. Fixtures are never edited. |
 | SAVE-12 | Triggers: each action, each state-id change, every 10 min in the foreground, `APPLICATION_PAUSED` (2015), `FOCUS_OUT` (2017), `WM_CLOSE_REQUEST`, Android back with no sheet open | Each produces a write with a newer `saved_unix` and a higher `save_count`. |
-| SAVE-13 | A synthetic year: 2 feeds a day, every event, every smell and inspect | Size ≤ 128 KB. Write < 10 ms (Mac estimate, architecture §11). The journal holds exactly 400 entries. Drop order: `state_change` first, then inspect and smell, then the oldest of any kind. `memorial` and `milestone` entries are never dropped (data-models §6). |
+| SAVE-13 | A synthetic year: 2 feeds a day, every event, every smell and inspect | Size ≤ 128 KB, flat once the journal is full. Write < 10 ms (Mac estimate, architecture §11; PERF-04). The journal holds at most 400 entries and at most `JournalEntry.BYTE_CAP` (102,400) saved bytes, whichever binds first (T1, 9551f26: without the byte cap, the save passed 128 KB by day 120). Drop order: `state_change` first, then inspect and smell, then the oldest of any kind. `memorial` and `milestone` entries are never dropped (data-models §6). |
 | SAVE-14 | `rng.sim_state` near 2^63 (the save's `rng` section holds only `sim_seed` and `sim_state`) | Round-trips as a string. Restore sets `state` only, never `seed` after `state` (that resets the stream, architect ran this). 3 straight feeds equal 1 feed, save, load, 2 feeds. |
 | SAVE-15 | A fixed fixture | Fixed sha256 (golden). |
 | SAVE-16 | Killed during catch-up, before the post-catch-up save | The relaunch catches up again from the same file, to the same result. |
@@ -510,7 +510,7 @@ Slice events (game-mechanics §7.4):
 
 ### 3.13 Traceability: what proves each row (Phase 3 exit)
 
-As of 2026-11-27, on `phase-3-slice` at `a08aa58` (every track merged, including T2's and T3's backfill), plus QA's backfill.
+As of 2026-11-27, on `phase-3-slice` at `23ba41f` (every track merged, including T2's and T3's backfill and T1's journal byte cap), plus QA's backfill.
 
 **Status:**
 - **covered**: a test in `tests/run.sh --strict` asserts the row's Then. For rows whose check type includes manual, capture or review, the automated part is asserted and the rest is in the named checklist.
@@ -527,7 +527,7 @@ As of 2026-11-27, on `phase-3-slice` at `a08aa58` (every track merged, including
 
 T1, T2, T3 and T4 rows are mapped from their owners' lists and assertion messages.
 
-**Summary: 107 rows. 87 covered, 11 manual only, 8 waived (D-052), 1 open.**
+**Summary: 107 rows. 88 covered, 11 manual only, 8 waived (D-052), 0 open.**
 
 | Group | Rows | Covered | Manual only | Waived | Open |
 |---|---|---|---|---|---|
@@ -541,15 +541,11 @@ T1, T2, T3 and T4 rows are mapped from their owners' lists and assertion message
 | AC-08 Condition display | 8 | 7 | 1 | 0 | 0 |
 | AC-09 Offline | 8 | 7 | 0 | 1 | 0 |
 | AC-10 Events | 12 | 11 | 0 | 1 | 0 |
-| AC-11 Save and load | 4 | 1 | 1 | 1 | 1 |
+| AC-11 Save and load | 4 | 2 | 1 | 1 | 0 |
 | AC-12 Mobile UI | 15 | 12 | 1 | 2 | 0 |
 
-**Still uncovered, with the reason:**
-- **AC-11.1 (open):**
-  - SAVE-13's size budget fails in long play. `save.json` passes 131,072 bytes between 60 and 120 days of the designed routine (146,561 bytes at 120 days). The 400-entry journal ends up as only feed and event entries. Reported to T1, S2.
-  - SAVE-19 (rename on Android) is a Phase 5 device check that D-052 doesn't list.
-  - SAVE-01 to 18 otherwise pass, SAVE-11 included.
-- **Parts inside covered rows that need a waiver or a later phase:**
+**Still uncovered, with the reason.** No row is open. These parts inside covered rows need a waiver or a later phase:
+- AC-11.1: SAVE-19 (rename atomicity on Android) is a Phase 5 device check that D-052 doesn't list. SAVE-13 now holds: T1's byte cap (9551f26) fixed the size overrun QA found (146,561 bytes at 120 days before the fix).
   - AC-04.4: BT-12 is the B6 tutorial demo, a Phase 4 feature not in the slice.
   - AC-09.8: CLK-13's release-export run (Phase 5). LINT-10 checks the debug-only guards statically.
   - AC-03.10: the "fails with `--no-own-touches`" regression proof. The production camera has no such flag, so the test checks the mechanism directly.
@@ -697,7 +693,7 @@ T1, T2, T3 and T4 rows are mapped from their owners' lists and assertion message
 
 | Row | Proved by | Status |
 |---|---|---|
-| 11.1 | `save/store`, `save/payload`, `t1/session`, `int/ac11`, `t1/phase3_session::journal_entries_are_identical_after_a_reload`, `save/year_and_v1::save_11_the_frozen_v1_save_still_loads_intact` (SAVE-11, `tests/fixtures/saves/v1_slice.json`), `::save_13_sixty_days_stay_inside_every_cap` (60 days only). **Open:** SAVE-13's size budget fails by 120 days (bug, T1). SAVE-19 needs Android (Phase 5). | open |
+| 11.1 | `save/store`, `save/payload`, `t1/session`, `int/ac11`, `t1/phase3_session::journal_entries_are_identical_after_a_reload`, `save/year_and_v1::save_11_the_frozen_v1_save_still_loads_intact` (SAVE-11, `tests/fixtures/saves/v1_slice.json`), `::save_13_long_play_stays_inside_every_cap` (120 days, under 128 KB and flat), `perf/save::perf_04_a_full_size_save_writes_in_under_10_ms`. SAVE-19 needs Android (Phase 5). | covered |
 | 11.2 | `int/ac11::killed_at_each_fault_point_mid_game`, `int/ac05::kill_at_mix_never_duplicates_or_half_applies`, `int/ac04::ec_25_*`, `save/store::save_08_kill_at_each_fault_point` | covered |
 | 11.3 | MAN-S5 (Mac and the Android emulator) | manual only |
 | 11.4 | Needs a second save version. | waived (D-052, Phase 4) |
@@ -1050,7 +1046,7 @@ The Mac and simulators use **regression gates**: fail on a slowdown of more than
 | PERF-01b | `PerfLog` on a driver that can't measure GPU time (Metal, Compatibility) | `gpu_ms` is written empty ("not measured"), never 0, and gates skip it. A logged 0 would silently pass every GPU gate. | auto |
 | PERF-02 | Idle frame cap | `Engine.max_fps` = 30 after 3 s with no touch and no tween. Back to 60 within 1 frame of `interaction_started`. | auto (scripted, windowed) |
 | PERF-03 | 14-day catch-up (20,160 steps), synchronous, the full rule registry | Median of 5 runs ≤ 250 ms, Mac estimate (D-051). `tests/perf/test_perf_catch_up.gd` prints every run. Measured 2026-11-27 (M4, other agents' Godot processes running, load average about 4): medians 227.0 to 241.5 ms over 7 gate runs, single runs 225.9 to 394.2 ms. Headroom 8.5 to 23 ms (3 to 9%). The median absorbs a single slow run; heavier load could still turn it red. Report the spread rather than raising the budget. The app runs long catch-ups on a worker thread (D-050), so this is the budget, not a frame hitch. | auto (timed) |
-| PERF-04 | Save | ≤ 128 KB, write < 10 ms (Mac estimate) | auto |
+| PERF-04 | Save | ≤ 128 KB, write < 10 ms (Mac estimate). `tests/perf/test_perf_save.gd` pads a real save to the budget and times `SaveStore.save()`, median of 5, in a fresh process. Measured 2026-11-27 (M4): median 5.51 ms for 130,628 bytes. | auto (timed) |
 | PERF-05 | Launch to first jar frame | Device ≤ 2 s. Mac recorded as an estimate. | capture |
 | PERF-06 | Scene | ≤ 16k triangles, < 10 jar draw surfaces, < 30 draw calls | capture |
 | PERF-07 | Hitches after warm-up: first open of each sheet, each state change | No frame over 50 ms (Mac estimate) | capture |

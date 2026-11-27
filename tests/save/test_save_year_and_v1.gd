@@ -2,13 +2,11 @@ extends SliceCase
 ## AC-11.1's remaining parts: SAVE-13 (size, write time and the journal cap over long play) and SAVE-11
 ## (the first frozen save, OD-23). SAVE-19 (rename on Android) is a Phase 5 device check.
 ##
-## SAVE-13, partly: 60 days of twice-daily care with a daily smell and inspection, after a new game and a
-## discard, fills the 400-entry journal, keeps the memorial and the Day one page, and writes in under
-## 10 ms. It does NOT prove the size budget for a year. Measured 2026-11-27: the journal keeps shedding
-## state changes, then smells and inspections, for heavier feed and event entries, so save.json is
-## 124,989 bytes at 60 days but 146,561 bytes at 120 days (400 entries: 199 feeds, 199 events, the
-## memorial and the milestone), over the 131,072-byte budget. Reported to t1-sim-core and the director.
-## When it's fixed, raise this run to 120 days or more.
+## SAVE-13: 120 days of twice-daily care with a daily smell and inspection, after a new game and a
+## discard. The journal stays within both caps (400 entries and JournalEntry.BYTE_CAP saved bytes, T1's
+## 9551f26), keeps the memorial and the Day one page, and save.json stays under 128 KB, flat between day 60
+## and day 120 (before the byte cap it grew from 124,989 to 146,561 bytes). The write time is timed in a
+## fresh process by tests/perf/test_perf_save.gd (PERF-04).
 ## SAVE-11: tests/fixtures/saves/v1_slice.json is a real save from this build: a memorial, events, a
 ## waiting warning, moves, smells and inspections. It must keep loading in every later build, with every
 ## stored field intact (new optional fields may be added, D-051). Never edit it. Regenerate only with
@@ -16,11 +14,10 @@ extends SliceCase
 
 const V1_FIXTURE: String = "res://tests/fixtures/saves/v1_slice.json"
 const SIZE_BUDGET: int = 128 * 1024
-const WRITE_BUDGET_MS: float = 10.0
 const MOLDY: String = "res://tests/unit/ui/fixtures/moldy.json"
 
 
-func test_save_13_sixty_days_stay_inside_every_cap() -> void:
+func test_save_13_long_play_stays_inside_every_cap() -> void:
 	if not (ready_for_integration() and require(&"p3_contracts") and require(&"p3_rules")):
 		return
 	var h: SliceHarness = phone("year")
@@ -33,36 +30,32 @@ func test_save_13_sixty_days_stay_inside_every_cap() -> void:
 	check_eq(h.state(), &"moldy", "left 12 days, it molds")
 	check(h.apply(DiscardStarterAction.new("Juniper")).ok, "a discard leaves a memorial")
 	var t: int = T0 + 12 * DAY
-	for k: int in 120:
+	var size_at_60: int = 0
+	var kinds_cycle: Array[StringName] = [&"height", &"bubbles", &"surface"]
+	for k: int in 240:
 		h.apply(FeedAction.from_ratio(2.0, 2.0, &"white_bread"))
 		if k % 2 == 0:
 			h.apply(SmellAction.new())
-			var kinds_cycle: Array[StringName] = [&"height", &"bubbles", &"surface"]
 			h.apply(InspectAction.new(kinds_cycle[(k >> 1) % 3]))
 		t += 12 * HOUR
 		h.resume_at(t)
+		if k == 119:
+			size_at_60 = h.bytes_of(SaveStore.FILE_MAIN).size()
 	var journal: Array[JournalEntry] = h.session.get_journal()
-	check_eq(journal.size(), JournalEntry.CAP, "the journal is full and capped at 400")
+	var journal_bytes: int = 0
 	var kinds: Dictionary[StringName, int] = {}
 	for e: JournalEntry in journal:
+		journal_bytes += e.saved_bytes()
 		kinds[e.kind] = kinds.get(e.kind, 0) + 1
+	check(journal.size() <= JournalEntry.CAP, "at most 400 entries (%d)" % journal.size())
+	check(journal_bytes <= JournalEntry.BYTE_CAP, "journal bytes %d within the cap %d" % [journal_bytes, JournalEntry.BYTE_CAP])
 	check_eq(kinds.get(&"memorial", 0), 1, "the memorial is never dropped")
 	check(kinds.get(&"milestone", 0) >= 1, "the Day one milestone is never dropped")
 	check(kinds.get(&"feed", 0) >= 100, "feeds outlast state changes (%s)" % str(kinds))
-	var bytes: int = h.bytes_of(SaveStore.FILE_MAIN).size()
-	check(bytes <= SIZE_BUDGET, "save.json is %d bytes, budget %d" % [bytes, SIZE_BUDGET])
-	var payload: Dictionary = h.session.build_payload()
-	var store := SaveStore.new(h.dir.path_join("timing"))
-	var times: Array[float] = []
-	for i: int in 5:
-		var start: int = Time.get_ticks_usec()
-		store.save(payload)
-		times.append(float(Time.get_ticks_usec() - start) / 1000.0)
-	times.sort()
-	var line: String = "SAVE-13 write, Mac estimate (D-004): median %.2f ms of 5 (min %.2f, max %.2f), %d bytes" % [
-		times[2], times[0], times[4], bytes]
-	print("    " + line)
-	check(times[2] <= WRITE_BUDGET_MS, line)
+	var size_at_120: int = h.bytes_of(SaveStore.FILE_MAIN).size()
+	check(size_at_60 <= SIZE_BUDGET and size_at_120 <= SIZE_BUDGET,
+		"save.json %d bytes at day 60 and %d at day 120, budget %d" % [size_at_60, size_at_120, SIZE_BUDGET])
+	check(absf(float(size_at_120 - size_at_60)) <= 4096.0, "flat from day 60 to day 120 (%d to %d)" % [size_at_60, size_at_120])
 
 
 func test_save_11_the_frozen_v1_save_still_loads_intact() -> void:
