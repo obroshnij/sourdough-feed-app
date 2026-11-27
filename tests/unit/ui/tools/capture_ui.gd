@@ -24,7 +24,15 @@ const SHOTS: Array[Array] = [
 	["iphone_17e_390x844", &"collapsing", false, 1.0, "explainer"],
 	["iphone_17e_390x844", &"at_peak", false, 1.5, "settings"],
 	["android_360x640", &"active", false, 1.0, ""],
+	# Phase 3, driven by a real Session booted from tests/unit/ui/fixtures/<state>.json.
+	["iphone_17e_390x844", &"at_peak", false, 1.0, "feed"],
+	["iphone_se_375x667", &"dormant_starved", false, 1.0, "feed"],
+	["iphone_17e_390x844", &"active", false, 1.0, "place"],
+	["iphone_17e_390x844", &"at_peak", false, 1.0, "smell"],
+	["iphone_17e_390x844", &"active", false, 1.0, "inspect"],
+	["iphone_se_375x667", &"at_peak", false, 1.5, "feed"],
 ]
+const SESSION_EXTRAS: Array[String] = ["feed", "place", "smell", "inspect"]
 
 
 func _initialize() -> void:
@@ -64,14 +72,40 @@ func _capture(shot: Array) -> void:
 	bg.modulate = NIGHT_TINT if night else Color.WHITE
 	vp.add_child(bg)
 	var ui: UiRoot = H.mount(vp, device, text_scale, 1.0 if night else 0.0)
-	ui.apply_snapshot(H.snapshot(state, "Bramble"))
+	var session: GameSession = null
+	if SESSION_EXTRAS.has(extra):
+		session = GameSession.new()
+		root.add_child(session)
+		var dir: String = "user://capture_tmp/%d" % Time.get_ticks_usec()
+		session.setup(FakeClock.new(), SaveStore.new(dir), SettingsStore.new(dir + "/settings.cfg"))
+		session.boot_from_fixture("res://tests/unit/ui/fixtures/%s.json" % state)
+		ui.bind_session(session)
+		ui.set_text_scale(text_scale)
+		ui.set_night_blend(1.0 if night else 0.0)
+	else:
+		ui.apply_snapshot(H.snapshot(state, "Bramble"))
 	await H.settle(self, 4)
 	match extra:
 		"settings":
 			ui.hud.settings_button.pressed.emit()
 		"explainer":
 			ui.hud.status_pill.pressed.emit()
-	await H.settle(self, 20)
+		"feed":
+			ui.open_sheet(&"feed")
+		"place":
+			ui.open_sheet(&"environment")
+		"smell":
+			UiMotion.time_scale = 0.05
+			ui.start_smell()
+			await create_timer(0.5).timeout
+			UiMotion.time_scale = 1.0
+		"inspect":
+			ui.open_sheet(&"inspect")
+			UiMotion.time_scale = 0.05
+			ui.inspect_sheet.show_kind(&"bubbles")
+			await create_timer(0.5).timeout
+			UiMotion.time_scale = 1.0
+	await create_timer(0.8).timeout
 	var img: Image = vp.get_texture().get_image()
 	var name: String = "%s_%s_%s%s.png" % [device, state, "night" if night else "day",
 		"" if extra == "" else "_" + extra]
@@ -80,11 +114,13 @@ func _capture(shot: Array) -> void:
 	print("capture_ui: %s %s (%dx%d, %s)" % [name, error_string(err), img.get_width(), img.get_height(),
 		"jar region %s" % ui.jar_region()])
 	vp.queue_free()
+	if session != null:
+		session.queue_free()
 	await H.settle(self, 2)
 
 
 func _preview(state: StringName) -> Texture2D:
-	var p: String = ProjectSettings.globalize_path("res://art/previews/jar_v0_%s.png" % state)
+	var p: String = ProjectSettings.globalize_path("res://art/previews/jar_v0_%s.png" % String(state).trim_suffix("_starved").trim_suffix("_cold"))
 	if not FileAccess.file_exists(p):
 		p = ProjectSettings.globalize_path("res://art/previews/jar_v0_at_peak.png")
 	var img: Image = Image.load_from_file(p)

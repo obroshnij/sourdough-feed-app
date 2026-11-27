@@ -9,7 +9,7 @@ extends Button
 ## Long-press (500 ms) shows the label at 200% for low vision and doesn't act.
 
 signal activated(action_id: StringName)
-signal locked_pressed(reason_key: StringName)
+signal locked_pressed(action_id: StringName, reason_key: StringName)
 
 const MIN_SIZE := Vector2(64, 64)
 const SLOT_HEIGHT: float = 72.0
@@ -17,6 +17,8 @@ const PAD_TOP: float = 10.0
 const GAP: float = 4.0
 const ICON: float = 28.0
 const DOT: float = 10.0
+## The lock badge on a locked button (D-043), a shape so the lock never relies on the gray alone.
+const LOCK: float = 12.0
 const OPEN_PILL := Vector2(16, 4)
 ## Tap slop (ux-design §6): a finger that moves more than this before release cancels the long-press.
 const SLOP: float = 10.0
@@ -163,7 +165,7 @@ func _on_pressed() -> void:
 		_long_pressed = false
 		return
 	if locked_reason_key != &"":
-		locked_pressed.emit(locked_reason_key)
+		locked_pressed.emit(action_id, locked_reason_key)
 		return
 	activated.emit(action_id)
 
@@ -202,3 +204,15 @@ func _draw() -> void:
 	if is_open:
 		var r := Rect2(Vector2(size.x * 0.5 - OPEN_PILL.x * 0.5, size.y - OPEN_PILL.y - 1.0), OPEN_PILL)
 		draw_rect(r, accent)
+	if locked_reason_key != &"":
+		_draw_lock(icon_center + Vector2(ICON * 0.5, -ICON * 0.5 + 4.0))
+
+
+## A 12 pt padlock badge: a filled disc with a shackle and a body cut in the surface color.
+func _draw_lock(center: Vector2) -> void:
+	var disc: Color = get_theme_color(&"ink_muted", ThemeBuilder.PALETTE_TYPE)
+	var cut: Color = get_theme_color(&"surface", ThemeBuilder.PALETTE_TYPE)
+	draw_circle(center, LOCK * 0.5 + 1.0, cut)
+	draw_circle(center, LOCK * 0.5, disc)
+	draw_arc(center + Vector2(0, -0.5), 2.2, PI, TAU, 12, cut, 1.2, true)
+	draw_rect(Rect2(center + Vector2(-3.0, -0.5), Vector2(6.0, 4.0)), cut)
